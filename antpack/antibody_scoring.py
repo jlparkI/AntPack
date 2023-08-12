@@ -1,5 +1,6 @@
 """Provides tools for scoring an antibody sequence against germlines of
 different species to determine which is the most likely species of origin."""
+import os
 from Bio import SeqIO
 import pyhmmer
 from pyhmmer.hmmer import hmmscan
@@ -38,6 +39,14 @@ class AntibodyScoring:
                 species. If None, the default db built into the package is used;
                 the default db was constructed on 8/11/23.
         """
+        f_dir = os.path.abspath(os.path.dirname(__file__))
+        if all_chains_path is None:
+            all_chains_path = os.path.join(f_dir, "hmm_dbs", "all", "ALL.hmm")
+        if ig_heavy_only_path is None:
+            ig_heavy_only_path = os.path.join(f_dir, "hmm_dbs", "heavy", "HEAVY.hmm")
+        if ig_light_only_path is None:
+            ig_light_only_path = os.path.join(f_dir, "hmm_dbs", "light", "LIGHT.hmm")
+
         with pyhmmer.plan7.HMMFile(all_chains_path) as hmm_file:
             self.all_chains_db = hmm_file.optimized_profiles()
         with pyhmmer.plan7.HMMFile(ig_heavy_only_path) as hmm_file:
@@ -117,7 +126,8 @@ class AntibodyScoring:
                 to True!
 
         Returns:
-            score_results (list): A list of tuples (species_chain, bitscore).
+            score_results (list): A list of lists of tuples. Each sublist is the
+                list of (species_chain, bitscore) for the corresponding input sequence.
 
         Raises:
             ValueError: A ValueError is raised if unexpected arguments are passed.
@@ -130,8 +140,8 @@ class AntibodyScoring:
         loaded_seqs = [TextSequence(name=name.encode(), sequence=seq).digitize(self.alphabet)
                 for (name, seq) in zip(sequence_names, sequences)]
 
-        return [(h.name.decode(), h.score) for h in
-                hmmscan(db_file, loaded_seqs, cpus=ncpu)]
+        return [[(h.name.decode(), h.score) for h in tophit] for tophit in
+                hmmscan(loaded_seqs, db_file, cpus=ncpu)]
 
 
     def score_offline_seqs(self, fasta_file, chain_types = "ALL", ncpu=0):
@@ -147,7 +157,8 @@ class AntibodyScoring:
                 be autoselected.
 
         Returns:
-            score_results (list): A list of tuples (species_chain, bitscore).
+            score_results (list): A list of lists of tuples. Each sublist is the
+                list of (species_chain, bitscore) for the corresponding input sequence.
 
         Raises:
             ValueError: A ValueError is raised if unexpected arguments are passed.
@@ -164,8 +175,8 @@ class AntibodyScoring:
         with open(fasta_file, "r", encoding="utf-8") as fhandle:
             for record in SeqIO.parse(fhandle, 'fasta'):
                 loaded_seq = TextSequence(name=record.name.encode(),
-                        sequence=str(record.seq))
-                hits = list(hmmscan(db_file, [loaded_seq], cpus=ncpu))
-                scores.append( (hits[0].name.decode(), hits[0].score) )
+                        sequence=str(record.seq)).digitize(self.alphabet)
+                hits = list(hmmscan([loaded_seq], db_file, cpus=ncpu))
+                scores.append( [(hit.name.decode(), hit.score) for hit in hits[0]] )
 
         return scores
