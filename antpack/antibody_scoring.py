@@ -105,8 +105,9 @@ class AntibodyScoring:
             self._validate_sequence(sequence)
 
 
-    def score_online_seqs(self, sequences, sequence_names, chain_types = "ALL",
-            ncpu=0, skip_checks=False):
+    def score_online_seqs(self, sequences, sequence_names,
+            allowed_species = ['human', 'mouse'], save_top_score_only=False,
+            chain_types = "ALL", ncpu=0, skip_checks=False):
         """Scores a list of input sequences.
 
         Args:
@@ -114,6 +115,12 @@ class AntibodyScoring:
                 containing the usual 20 amino acids.
             sequence_names (list): A list of strings, each of which is the
                 name of the corresponding sequence in sequences.
+            allowed_species (list): A list of the species you would like to consider.
+                Defaults to human and mouse. Species not on the list are excluded
+                from hit results.
+            save_top_score_only (bool): If True, only the top bitscore, species and chain
+                are saved for each sequence (e.g. ("mouse_H", 100)). If False (default),
+                bit scores for all species and chains are returned.
             chain_types (str): One of 'ALL', 'HEAVY', 'LIGHT'. Determines which db
                 is used. ALL can be used to determine chain type as well if in doubt,
                 while HEAVY or LIGHT will be faster if you know for example that this
@@ -136,19 +143,41 @@ class AntibodyScoring:
             self._in_memory_checks(sequences, sequence_names)
 
         db_file = self._check_chain_type(chain_types)
+        allowed_species = set(allowed_species)
 
         loaded_seqs = [TextSequence(name=name.encode(), sequence=seq).digitize(self.alphabet)
-                for (name, seq) in zip(sequence_names, sequences)]
+                for (seq, name) in zip(sequences, sequence_names)]
+        scores = []
+        for tophit in hmmscan(loaded_seqs, db_file, cpus=ncpu):
+            scores.append( [(h.name.decode(), h.score) for h in tophit if
+                    h.name.decode().split("_")[0] in allowed_species] )
+        if save_top_score_only:
+            scores = [sorted(h, key=lambda x: x[1])[-1] if
+                    len(h) > 0 else (None,None) for h in scores]
+        return scores
 
-        return [[(h.name.decode(), h.score) for h in tophit] for tophit in
-                hmmscan(loaded_seqs, db_file, cpus=ncpu)]
 
 
-    def score_offline_seqs(self, fasta_file, chain_types = "ALL", ncpu=0):
+    def score_offline_seqs(self, fasta_file, allowed_species = ['human', 'mouse'],
+            batch_size = 25, save_top_score_only = False,
+            chain_types = "ALL", ncpu=0):
         """Scores all the sequences in a fasta file.
 
         Args:
             fasta_file (str): A valid filepath to a fasta file.
+            allowed_species (list): A list of the species you would like to consider.
+                Defaults to human and mouse. Species not on the list are excluded
+                from hit results.
+            batch_size (int): The number of sequences to use in a batch when querying HMMer.
+                HMMer is MUCH more efficient when queried using multiple sequences at a time;
+                setting this number to 1 will slow down operations.
+                Increasing this number will however yield diminishing returns past a certain
+                point. Setting a very high value (e.g. 10000) will mean that 10000 sequences
+                are stored in memory at a time, which may be undesirable. The default of 25
+                is a good default for most purposes.
+            save_top_score_only (bool): If True, only the top bitscore, species and chain
+                are saved for each sequence (e.g. ("mouse_H", 100)). If False (default),
+                bit scores for all species and chains are returned.
             chain_types (str): One of 'ALL', 'HEAVY', 'LIGHT'. Determines which db
                 is used. ALL can be used to determine chain type as well if in doubt,
                 while HEAVY or LIGHT will be faster if you know for example that this
@@ -169,14 +198,34 @@ class AntibodyScoring:
         except Exception as exc:
             raise ValueError("Invalid filepath supplied.") from exc
 
+
+        allowed_species = set(allowed_species)
+
         db_file = self._check_chain_type(chain_types)
 
-        scores = []
+        scores, loaded_seqs = [], []
         with open(fasta_file, "r", encoding="utf-8") as fhandle:
             for record in SeqIO.parse(fhandle, 'fasta'):
-                loaded_seq = TextSequence(name=record.name.encode(),
-                        sequence=str(record.seq)).digitize(self.alphabet)
-                hits = list(hmmscan([loaded_seq], db_file, cpus=ncpu))
-                scores.append( [(hit.name.decode(), hit.score) for hit in hits[0]] )
+                loaded_seqs.append(TextSequence(name=record.name.encode(),
+                        sequence=str(record.seq)).digitize(self.alphabet))
+                if len(loaded_seqs) >= batch_size:
+                    batch_scores = []
+                    for tophit in hmmscan(loaded_seqs, db_file, cpus=ncpu):
+                        batch_scores.append( [(h.name.decode(), h.score) for h in tophit if
+                                h.name.decode().split("_")[0] in allowed_species] )
+                    if save_top_score_only:
+                        batch_scores = [h[0] for h in batch_scores]
+                    scores += batch_scores
+                    loaded_seqs = []
+
+            if len(loaded_seqs) > 0:
+                batch_scores = []
+                for tophit in hmmscan(loaded_seqs, db_file, cpus=ncpu):
+                    batch_scores.append( [(h.name.decode(), h.score) for h in tophit if
+                                h.name.decode().split("_")[0] in allowed_species] )
+                if save_top_score_only:
+                    batch_scores = [sorted(h, key=lambda x: x[1])[-1] if
+                            len(h) > 0 else (None,None) for h in batch_scores]
+                scores += batch_scores
 
         return scores
