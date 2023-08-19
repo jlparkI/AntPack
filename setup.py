@@ -1,13 +1,23 @@
 """The package setup file for AntPack."""
 import os
 import sys
+import platform
 from subprocess import getoutput
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 from setuptools import setup, find_packages, Extension
+import pybind11
 
 if sys.version_info[:2] < (3, 7):
     raise RuntimeError("Python version >= 3.7 required.")
+
+
+def using_clang():
+    """Check to see if we are using Clang."""
+    compiler = new_compiler()
+    customize_compiler(compiler)
+    compiler_ver = getoutput("{0} -v".format(compiler.compiler[0]))
+    return "clang" in compiler_ver
 
 
 
@@ -24,26 +34,62 @@ def get_version(setup_fpath):
     return version
 
 
-def using_clang():
-    """Check to see if we are using Clang."""
-    compiler = new_compiler()
-    customize_compiler(compiler)
-    compiler_ver = getoutput("{0} -v".format(compiler.compiler[0]))
-    return "clang" in compiler_ver
 
-
-
-if __name__ == "__main__":
+def main():
+    """Builds the package and extension."""
     home_dir = os.path.dirname(os.path.abspath(__file__))
+    read_me = os.path.join(home_dir, "README.md")
+    with open(read_me, "r", encoding="utf-8") as fhandle:
+        long_description = "".join(fhandle.readlines())
+
+    cpp_extra_link_args = []
+    cpp_extra_compile_args = [
+        "-std=c++11",
+        "-O3"
+    ]
+
+    # Mac-specific options
+    if platform.system() == "Darwin" and using_clang():
+        cpp_extra_compile_args.append("-stdlib=libc++")
+        cpp_extra_compile_args.append("-mmacosx-version-min=10.9")
+        cpp_extra_link_args.append("-stdlib=libc++")
+        cpp_extra_link_args.append("-mmacosx-version-min=10.7")
+
+    extensions=[
+        Extension("antpack.ext",
+            [
+                "antpack/extension/ext.cpp",
+                "antpack/extension/needle.cpp",
+                "antpack/extension/aligners.cpp"
+            ],
+            include_dirs=[
+                "antpack/ext",
+                pybind11.get_include(),
+                pybind11.get_include(user=True),
+            ],
+            language="c++",
+            extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden"], # needed by pybind
+            extra_link_args=cpp_extra_link_args,
+        )
+    ]
+
     setup(
         name="antpack",
         version=get_version(home_dir),
         description="A Python package for processing, manipulating and making inferences about antibody sequence data",
-        long_description="A Python package for processing, manipulating and making inferences about antibody sequence data",
+        long_description=long_description,
         packages=find_packages(),
         setup_requires=['pybind11>=2.4'],
         install_requires=['pybind11>=2.4', "numpy", "pyhmmer"],
         include_package_data=True,
         license="MIT",
+        ext_modules=extensions,
         python_requires=">=3.7",
     )
+
+
+
+
+
+if __name__ == "__main__":
+    main()
