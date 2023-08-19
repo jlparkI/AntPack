@@ -1,2 +1,17 @@
 [build-system]
-requires = ["setuptools", "wheel", "pyhmmer", "numpy"]
+requires = ["maturin>=1.2,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "AntPack"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+
+[tool.maturin]
+python-source = "python"
+features = ["pyo3/extension-module"]
