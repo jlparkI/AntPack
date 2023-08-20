@@ -1,5 +1,11 @@
 #include "aligners.h"
 
+// Codes for the pathways that can link a score
+// to the best-scoring parent.
+#define LEFT_TRANSFER 0
+#define DIAGONAL_TRANSFER 1
+#define UP_TRANSFER 2
+
 
 IMGTAligner::IMGTAligner(
                  py::array_t<double> scoreArray
@@ -31,17 +37,20 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
                 "sequence was passed to IMGTAligner."));
     }
 
+    int rowSize = query_sequence.length() + 1;
+
     std::vector<std::string> numbering;
-    int numElements = (query_sequence.length() + 1) * (this->numPositions + 1);
+    int numElements = rowSize * (this->numPositions + 1);
     double *needleScores = new double[ numElements ];
     unsigned int *queryAsIdx = new unsigned int[query_sequence.length()];
+    unsigned int *pathTrace = new unsigned int[ numElements ];
     auto scoreItr = this->scoreArray.unchecked<2>();
 
     // Translate the query sequence into an integer 0-21 encoding. This
     // is more verbose than using std::map but should be slightly faster
     // since compiler will convert to lookup table. If unexpected characters
-    // are encountered, abort (PyBind11 will ensure the exception goes back
-    // to Python).
+    // are encountered, abort (PyBind11 will ensure the exception is passed
+    // back to Python).
     for (size_t i=0; i < query_sequence.length(); i++){
         switch (query_sequence[i]){
             case 'A':
@@ -111,6 +120,7 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
             default:
                 delete[] queryAsIdx;
                 delete[] needleScores;
+                delete[] pathTrace;
                 throw std::runtime_error(std::string("The query string "
                 "passed to IMGTAligner.align contains nonstandard "
                         "amino acids or lowercase letters."));
@@ -119,19 +129,66 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
         }
     }
 
-    // Fill in the first row of the table.
+    // Fill in the first row of the tables.
     needleScores[0] = 0;
-    for (size_t i=1; i < query_sequence.length(); i++){
+    pathTrace[0] = 0;
+    for (size_t i=0; i < query_sequence.length(); i++){
         needleScores[i+1] = needleScores[i] + scoreItr(0,20);
+        pathTrace[i+1] = LEFT_TRANSFER;
     }
 
     // Now fill in the scoring grid, using the position-specific
-    // scores for indels and substitutions.
+    // scores for indels and substitutions, and add the appropriate
+    // pathway traces.
+    for (int i=1; i < this->numPositions + 1; i++){
+        int gridPos = i * rowSize;
+        int diagNeighbor = (i - 1) * rowSize;
+        int upperNeighbor = diagNeighbor + 1;
+        needleScores[gridPos] = diagNeighbor + scoreIter(i,20);
+        pathTrace[gridPos] = UP_TRANSFER;
+        gridPos++;
+
+        for (size_t j=0; j < query_sequence.length(); j++){
+            double lscore = needleScores[gridPos - 1] +
+                    scoreItr(i,20);
+            double uscore = needleScores[upperNeighbor] + 
+                    scoreItr(i,20);
+            double dscore = needleScores[diagNeighbor] + 
+                    scoreItr(i,queryAsIdx[j]);
+
+            // This is mildly naughty -- we don't consider the possibility
+            // of a tie. Realistically, ties are going to be both extremely
+            // rare and low-impact in this situation because of the way
+            // the positions are scored. For now we are defaulting to "match"
+            // if there is a tie.
+            if (lscore > uscore && lscore > dscore){
+                needleScores[gridPos] = lscore;
+                pathTrace[gridPos] = LEFT_TRANSFER;
+            }
+            else if (uscore > dscore){
+                needleScores[gridPos] = uscore;
+                pathTrace[gridPos] = UP_TRANSFER;
+            }
+            else{
+                needleScores[gridPos] = dscore;
+                pathTrace[gridPos] = DIAGONAL_TRANSFER;
+            }
+
+            gridPos++;
+            diagNeighbor++;
+            upperNeighbor++;
+        }
+    }
+
+    // Backtrace the path, and convert the backtrace to position numbering.
+    int i = this->numPositions + 1;
+    int j = query_sequence.length() + 1;
     for (int i=1; i < this->numPositions + 1; i++){
         int gridPos = i * query_sequence.length();
         int diagNeighbor = (i - 1) * query_sequence.length();
         int upperNeighbor = diagNeighbor + 1;
         needleScores[gridPos] = diagNeighbor + scoreIter(i,20);
+        pathTrace[gridPos] = UP_TRANSFER;
         gridPos++;
 
         for (size_t j=0; j < query_sequence.length(); j++){
@@ -141,6 +198,24 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
                     scoreItr(i,20);
             double dscore = needleScores[diagNeighbor] + 
                     scoreItr(i,queryAsIdx[j]);
+
+            // This is mildly naughty -- we don't consider the possibility
+            // of a tie. Realistically, ties are going to be both extremely
+            // rare and low-impact in this situation because of the way
+            // the positions are scored.
+            if (lscore > uscore && lscore > dscore){
+                needleScores[gridPos] = lscore;
+                pathTrace[gridPos] = LEFT_TRANSFER;
+            }
+            else if (uscore > dscore){
+                needleScores[gridPos] = uscore;
+                pathTrace[gridPos] = UP_TRANSFER;
+            }
+            else{
+                needleScores[gridPos] = dscore;
+                pathTrace[gridPos] = DIAGONAL_TRANSFER;
+            }
+
             gridPos++;
             diagNeighbor++;
             upperNeighbor++;
@@ -150,5 +225,6 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
 
     delete[] queryAsIdx;
     delete[] needleScores;
+    delete[] pathTrace;
     return numbering;
 }
