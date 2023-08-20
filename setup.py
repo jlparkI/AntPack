@@ -5,7 +5,7 @@ import platform
 from subprocess import getoutput
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
