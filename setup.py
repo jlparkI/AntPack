@@ -7,6 +7,7 @@ from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 from setuptools import setup, find_packages, Extension
 import pybind11
+from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 if sys.version_info[:2] < (3, 7):
     raise RuntimeError("Python version >= 3.7 required.")
@@ -56,16 +57,14 @@ def main():
         cpp_extra_link_args.append("-mmacosx-version-min=10.7")
 
     extensions=[
-        Extension("antpack.ext",
-            [
-                "antpack/extension/ext.cpp",
-                "antpack/extension/needle.cpp",
-                "antpack/extension/aligners.cpp"
+        Pybind11Extension("ant_ext",
+            sources=[
+                "antpack/ext/ant_ext.cpp",
+                "antpack/ext/aligners.cpp"
             ],
             include_dirs=[
                 "antpack/ext",
                 pybind11.get_include(),
-                pybind11.get_include(user=True),
             ],
             language="c++",
             extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden"], # needed by pybind
@@ -79,6 +78,7 @@ def main():
         description="A Python package for processing, manipulating and making inferences about antibody sequence data",
         long_description=long_description,
         packages=find_packages(),
+        cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
         install_requires=['pybind11>=2.4', "numpy", "pyhmmer"],
         include_package_data=True,
