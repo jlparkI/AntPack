@@ -30,27 +30,27 @@ IMGTAligner::IMGTAligner(
 
 
 
-std::vector<std::string> IMGTAligner::align(std::string query_sequence){
+std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string query_sequence){
 
+    std::vector<std::string> finalNumbering;
     if (query_sequence.length() == 0){
-        throw std::runtime_error(std::string("An empty query "
-                "sequence was passed to IMGTAligner."));
+        return std::tuple<std::vector<std::string>, std::string>{finalNumbering,
+                "An empty query string was passed"};
     }
 
     int rowSize = query_sequence.length() + 1;
 
-    std::vector<std::string> numbering;
     int numElements = rowSize * (this->numPositions + 1);
     double *needleScores = new double[ numElements ];
     unsigned int *queryAsIdx = new unsigned int[query_sequence.length()];
     unsigned int *pathTrace = new unsigned int[ numElements ];
+    unsigned int *initNumbering = new unsigned int[ this->numPositions ];
     auto scoreItr = this->scoreArray.unchecked<2>();
 
     // Translate the query sequence into an integer 0-21 encoding. This
     // is more verbose than using std::map but should be slightly faster
     // since compiler will convert to lookup table. If unexpected characters
-    // are encountered, abort (PyBind11 will ensure the exception is passed
-    // back to Python).
+    // are encountered, abort.
     for (size_t i=0; i < query_sequence.length(); i++){
         switch (query_sequence[i]){
             case 'A':
@@ -121,9 +121,9 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
                 delete[] queryAsIdx;
                 delete[] needleScores;
                 delete[] pathTrace;
-                throw std::runtime_error(std::string("The query string "
-                "passed to IMGTAligner.align contains nonstandard "
-                        "amino acids or lowercase letters."));
+                delete[] initNumbering;
+                return std::tuple<std::vector<std::string>, std::string>{finalNumbering,
+                        "The query sequence contains nonstandard amino acids or lowercase letters."};
                 break;
 
         }
@@ -144,7 +144,7 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
         int gridPos = i * rowSize;
         int diagNeighbor = (i - 1) * rowSize;
         int upperNeighbor = diagNeighbor + 1;
-        needleScores[gridPos] = diagNeighbor + scoreIter(i,20);
+        needleScores[gridPos] = diagNeighbor + scoreItr(i,20);
         pathTrace[gridPos] = UP_TRANSFER;
         gridPos++;
 
@@ -180,51 +180,77 @@ std::vector<std::string> IMGTAligner::align(std::string query_sequence){
         }
     }
 
-    // Backtrace the path, and convert the backtrace to position numbering.
-    int i = this->numPositions + 1;
-    int j = query_sequence.length() + 1;
-    for (int i=1; i < this->numPositions + 1; i++){
-        int gridPos = i * query_sequence.length();
-        int diagNeighbor = (i - 1) * query_sequence.length();
-        int upperNeighbor = diagNeighbor + 1;
-        needleScores[gridPos] = diagNeighbor + scoreIter(i,20);
-        pathTrace[gridPos] = UP_TRANSFER;
-        gridPos++;
+    // Set all members of initNumbering array to 0.
+    for (int i=0; i < this->numPositions; i++){
+        initNumbering[i] = 0;
+    }
 
-        for (size_t j=0; j < query_sequence.length(); j++){
-            double lscore = needleScores[gridPos - 1] +
-                    scoreItr(i,20);
-            double uscore = needleScores(upperNeighbor) + 
-                    scoreItr(i,20);
-            double dscore = needleScores[diagNeighbor] + 
-                    scoreItr(i,queryAsIdx[j]);
-
-            // This is mildly naughty -- we don't consider the possibility
-            // of a tie. Realistically, ties are going to be both extremely
-            // rare and low-impact in this situation because of the way
-            // the positions are scored.
-            if (lscore > uscore && lscore > dscore){
-                needleScores[gridPos] = lscore;
-                pathTrace[gridPos] = LEFT_TRANSFER;
-            }
-            else if (uscore > dscore){
-                needleScores[gridPos] = uscore;
-                pathTrace[gridPos] = UP_TRANSFER;
-            }
-            else{
-                needleScores[gridPos] = dscore;
-                pathTrace[gridPos] = DIAGONAL_TRANSFER;
-            }
-
-            gridPos++;
-            diagNeighbor++;
-            upperNeighbor++;
+    // Backtrace the path, and determine how many insertions there
+    // were at each position where there is an insertion.
+    int i = this->numPositions;
+    int j = query_sequence.length();
+    while (i > 0 || j > 0){
+        int gridPos = i * rowSize + j;
+        switch (pathTrace[gridPos]){
+            case LEFT_TRANSFER:
+                if (i > 0){
+                    initNumbering[i-1] += 1;
+                }
+                j -= 1;
+                break;
+            case UP_TRANSFER:
+                i -= 1;
+                break;
+            case DIAGONAL_TRANSFER:
+                initNumbering[i-1] += 1;
+                i -= 1;
+                j -= 1;
+                break;
+        }
+        // This should never happen, but just in case...
+        if (i < 0){
+            i = 0;
+        }
+        if (j < 0){
+            j = 0;
         }
     }
-    
+
+    // Check that there are no positions with > 51 insertions. If so, there is
+    // probably something badly wrong with the alignment; abort and return.
+    for (i=0; i < this->numPositions; i++){
+        if (initNumbering[i] >= 52){
+            return std::tuple<std::vector<std::string>, std::string>{finalNumbering,
+                "An alignment error occurred. There are more than 51 insertion codes at "
+                "a single IMGT position"};
+        }
+    }
+
+    // Build vector of IMGT numbers. Unfortunately the IMGT system adds letters
+    // forwards then backwards where there is > 1 insertion at a given position,
+    // an annoying quirk that adds some minor complications.
+    for (i=0; i < this->numPositions; i++){
+        if (initNumbering[i] == 0){
+            continue;
+        }
+        finalNumbering.push_back(std::to_string(i+1));
+        if (initNumbering[i] == 1){
+            continue;
+        }
+        int ceil_cutpoint, floor_cutpoint;
+        ceil_cutpoint = initNumbering[i] / 2;
+        floor_cutpoint = (initNumbering[i] - 1) / 2;
+        for (j=0; j < ceil_cutpoint; j++){
+            finalNumbering.push_back(std::to_string(i+1).append(alphabet[j]));
+        }
+        for (j=floor_cutpoint; j > 0; j--){
+            finalNumbering.push_back(std::to_string(i+2).append(alphabet[j-1]));
+        }
+    }
 
     delete[] queryAsIdx;
     delete[] needleScores;
     delete[] pathTrace;
-    return numbering;
+    delete[] initNumbering;
+    return std::tuple<std::vector<std::string>, std::string>{finalNumbering, ""};
 }
