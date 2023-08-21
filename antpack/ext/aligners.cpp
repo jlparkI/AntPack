@@ -228,7 +228,11 @@ std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string
 
     // Build vector of IMGT numbers. Unfortunately the IMGT system adds letters
     // forwards then backwards where there is > 1 insertion at a given position,
-    // an annoying quirk that adds some minor complications.
+    // an annoying quirk that adds some minor complications. Technically insertions
+    // should only occur at specific locations. We ensure this happens by using a
+    // custom PSSM, but of course given some really weird input sequence or serious
+    // alignment error, it may not. TODO: Add output check function that tests to
+    // ensure numbering is correct and flag sequence as possible error if not.
     for (i=0; i < this->numPositions; i++){
         if (initNumbering[i] == 0){
             continue;
@@ -240,11 +244,11 @@ std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string
         int ceil_cutpoint, floor_cutpoint;
         ceil_cutpoint = initNumbering[i] / 2;
         floor_cutpoint = (initNumbering[i] - 1) / 2;
-        for (j=0; j < ceil_cutpoint; j++){
-            finalNumbering.push_back(std::to_string(i+1).append(alphabet[j]));
+        for (j=0; j < floor_cutpoint; j++){
+            finalNumbering.push_back(std::to_string(i+1).append(this->alphabet[j]));
         }
-        for (j=floor_cutpoint; j > 0; j--){
-            finalNumbering.push_back(std::to_string(i+2).append(alphabet[j-1]));
+        for (j=ceil_cutpoint; j > 0; j--){
+            finalNumbering.push_back(std::to_string(i+2).append(this->alphabet[j-1]));
         }
     }
 
