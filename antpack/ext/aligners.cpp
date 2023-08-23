@@ -23,7 +23,7 @@ IMGTAligner::IMGTAligner(
     }
     if (info.shape[1] != this->numAAs){
         throw std::runtime_error(std::string("The scoreArray passed to "
-                "IMGTAligner must have 21 columns (1 per AA)"));
+                "IMGTAligner must have 21 columns (1 per AA plus 1 for gap penalties)"));
     }
     numPositions = info.shape[0];
 }
