@@ -3,6 +3,7 @@ genes = {"IG":["HV", "HJ", "KV", "KJ", "LV", "LJ"],
         "TR":["AV", "AJ", "BV", "BJ", "GV", "GJ", "DV", "DJ"]}
 genes["ALL"] = genes["IG"] + genes["TR"]
 
+
 urls = { "HV": "https://www.imgt.org/genedb/GENElect?query=7.3+IGHV&species=%s",
          "HJ": "https://www.imgt.org/genedb/GENElect?query=7.6+IGHJ&species=%s",
          "KV": "https://www.imgt.org/genedb/GENElect?query=7.3+IGKV&species=%s",
@@ -23,8 +24,18 @@ allowed_species = {"IG":["Homo+sapiens",
            "Rattus+norvegicus",
            "Oryctolagus+cuniculus",
            "Sus+scrofa",
+           "Macaca+mulatta",
            "Vicugna+pacos",
            "Bos+taurus"],
             "TR":["Homo+sapiens",
            "Mus"]}
 allowed_species["ALL"] = allowed_species["IG"]
+
+latin_to_common = {"Homo_sapiens":"human",
+           "Mus":"mouse",
+           "Rattus_norvegicus":"rat",
+           "Oryctolagus_cuniculus":"rabbit",
+           "Macaca_mulatta":"rhesus",
+           "Sus_scrofa":"pig",
+           "Vicugna_pacos":"alpaca",
+           "Bos_taurus":"cow"}

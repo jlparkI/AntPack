@@ -1,4 +1,4 @@
-"""Contains the AntibodySequenceAnnotator class, which provides the tools needed
+"""Contains the AntibodyAnnotator class, which provides the tools needed
 to parse antibody sequences (and makes use of the functions supplied in
 numbering_toolkit)."""
 import pyhmmer
@@ -7,7 +7,6 @@ from pyhmmer.easel import TextSequence
 
 from .constants import allowed_inputs
 
-from .domain_alignment import DomainAlignment
 
 
 
@@ -15,8 +14,7 @@ from .domain_alignment import DomainAlignment
 
 
 
-
-class AntibodySequenceAnnotator:
+class AntibodyAnnotator:
     """This class contains the tools needed to parse and number
     either a single sequence, a list of sequences, or a fasta file containing
     many sequences. If the latter, the class provides a generator so that
@@ -158,7 +156,5 @@ class AntibodySequenceAnnotator:
                 if sum(is_overlap) == 0:
                     retained_domains.append(domain)
             retained_domains = sorted(retained_domains, key=lambda x: domain.target_from)
-            all_alignments.append([DomainAlignment(domain, i, scheme, assign_germline) for
-                    i, domain in enumerate(retained_domains)])
 
         return all_alignments, all_scores
