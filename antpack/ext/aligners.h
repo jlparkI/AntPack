@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include "utilities.h"
 
 namespace py = pybind11;
 
@@ -13,8 +14,7 @@ class IMGTAligner {
     public:
         IMGTAligner(py::array_t<double> scoreArray);
 
-        std::tuple<std::vector<std::string>, int> align(std::string query_sequence);
-
+        std::tuple<std::vector<std::string>, int, double> align(std::string query_sequence);
     protected:
         py::array_t<double> scoreArray;
         int numPositions;

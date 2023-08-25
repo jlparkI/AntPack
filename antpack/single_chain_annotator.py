@@ -61,7 +61,7 @@ class SingleChainAnnotator:
                     "moved or was never properly installed.") from exc
 
         os.chdir(current_dir)
-        if len(self.score_matrix) != 2:
+        if len(self.score_matrix.shape) != 2:
             raise ValueError("The score matrix was located but has an unexpected shape. "
                     "Please report this error to the package maintainer.")
         if self.score_matrix.shape[0] != 128 or self.score_matrix.shape[1] != 21:
@@ -99,7 +99,11 @@ class SingleChainAnnotator:
             if not validate_sequence(sequence):
                 sequence_results.append((None, None, "invalid_sequence"))
                 continue
-            (numbering, err_code) = self.scoring_tool.align(sequence)
+            yaya1 = np.empty((self.score_matrix.shape[0]+1, len(sequence)+1))
+            yaya2 = yaya1.copy()
+            (numbering, err_code) = self.scoring_tool.align(sequence, yaya1, yaya2)
+            import pdb
+            pdb.set_trace()
             if err_code != 1:
                 sequence_results.append((None, None, "alignment_error"))
             else:

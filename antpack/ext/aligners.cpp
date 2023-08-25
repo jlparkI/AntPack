@@ -22,6 +22,7 @@
 
 
 
+
 IMGTAligner::IMGTAligner(
                  py::array_t<double> scoreArray
 ):
@@ -56,91 +57,19 @@ std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_s
 
     int numElements = rowSize * (this->numPositions + 1);
     double *needleScores = new double[ numElements ];
-    unsigned int *queryAsIdx = new unsigned int[query_sequence.length()];
-    unsigned int *pathTrace = new unsigned int[ numElements ];
-    unsigned int *initNumbering = new unsigned int[ this->numPositions ];
+    int *queryAsIdx = new int[query_sequence.length()];
+    int *pathTrace = new int[ numElements ];
+    int *initNumbering = new int[ this->numPositions ];
     auto scoreItr = this->scoreArray.unchecked<2>();
 
-    // Translate the query sequence into an integer 0-21 encoding. This
-    // is more verbose than using std::map but should be slightly faster
-    // since compiler will convert to lookup table. If unexpected characters
-    // are encountered, abort.
-    for (size_t i=0; i < query_sequence.length(); i++){
-        switch (query_sequence[i]){
-            case 'A':
-                queryAsIdx[i] = 0;
-                break;
-            case 'C':
-                queryAsIdx[i] = 1;
-                break;
-            case 'D':
-                queryAsIdx[i] = 2;
-                break;
-            case 'E':
-                queryAsIdx[i] = 3;
-                break;
-            case 'F':
-                queryAsIdx[i] = 4;
-                break;
-            case 'G':
-                queryAsIdx[i] = 5;
-                break;
-            case 'H':
-                queryAsIdx[i] = 6;
-                break;
-            case 'I':
-                queryAsIdx[i] = 7;
-                break;
-            case 'K':
-                queryAsIdx[i] = 8;
-                break;
-            case 'L':
-                queryAsIdx[i] = 9;
-                break;
-            case 'M':
-                queryAsIdx[i] = 10;
-                break;
-            case 'N':
-                queryAsIdx[i] = 11;
-                break;
-            case 'P':
-                queryAsIdx[i] = 12;
-                break;
-            case 'Q':
-                queryAsIdx[i] = 13;
-                break;
-            case 'R':
-                queryAsIdx[i] = 14;
-                break;
-            case 'S':
-                queryAsIdx[i] = 15;
-                break;
-            case 'T':
-                queryAsIdx[i] = 16;
-                break;
-            case 'V':
-                queryAsIdx[i] = 17;
-                break;
-            case 'W':
-                queryAsIdx[i] = 18;
-                break;
-            case 'Y':
-                queryAsIdx[i] = 19;
-                break;
-            case '-':
-                queryAsIdx[i] = 20;
-                break;
 
-            default:
-                delete[] queryAsIdx;
-                delete[] needleScores;
-                delete[] pathTrace;
-                delete[] initNumbering;
-                return std::tuple<std::vector<std::string>, int>{finalNumbering,
+    if (!convert_sequence_to_array(queryAsIdx, query_sequence)){
+        delete[] queryAsIdx;
+        delete[] needleScores;
+        delete[] pathTrace;
+        delete[] initNumbering;
+        return std::tuple<std::vector<std::string>, int>{finalNumbering,
                         INVALID_SEQUENCE};
-                break;
-
-        }
     }
 
     // Fill in the first row of the tables.
@@ -149,6 +78,8 @@ std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_s
     for (size_t i=0; i < query_sequence.length(); i++){
         needleScores[i+1] = needleScores[i] + scoreItr(0,20);
         pathTrace[i+1] = LEFT_TRANSFER;
+        needleIter(0,i+1) = needleScores[i] + scoreItr(0,20);
+        pathIter(0,i+1) = LEFT_TRANSFER;
     }
 
     // Now fill in the scoring grid, using the position-specific
@@ -158,17 +89,17 @@ std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_s
         int gridPos = i * rowSize;
         int diagNeighbor = (i - 1) * rowSize;
         int upperNeighbor = diagNeighbor + 1;
-        needleScores[gridPos] = diagNeighbor + scoreItr(i,20);
+        needleScores[gridPos] = needleScores[diagNeighbor] + scoreItr(i-1,20);
         pathTrace[gridPos] = UP_TRANSFER;
         gridPos++;
 
         for (size_t j=0; j < query_sequence.length(); j++){
             double lscore = needleScores[gridPos - 1] +
-                    scoreItr(i,20);
+                    scoreItr(i-1,20);
             double uscore = needleScores[upperNeighbor] + 
-                    scoreItr(i,20);
+                    scoreItr(i-1,20);
             double dscore = needleScores[diagNeighbor] + 
-                    scoreItr(i,queryAsIdx[j]);
+                    scoreItr(i-1,queryAsIdx[j]);
 
             // This is mildly naughty -- we don't consider the possibility
             // of a tie. Realistically, ties are going to be both extremely
@@ -282,15 +213,15 @@ std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_s
                 ceil_cutpoint = initNumbering[i] / 2;
                 floor_cutpoint = (initNumbering[i] - 1) / 2;
                 for (j=0; j < floor_cutpoint; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + "." + std::to_string(j));
+                    finalNumbering.push_back(std::to_string(i+1) + "_" + std::to_string(j));
                 }
                 for (j=ceil_cutpoint; j > 0; j--){
-                    finalNumbering.push_back(std::to_string(i+2) + "." + std::to_string(j-1));
+                    finalNumbering.push_back(std::to_string(i+2) + "_" + std::to_string(j-1));
                 }
                 break;
             default:
                 for (j=0; j < initNumbering[i]; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + "." + std::to_string(j));
+                    finalNumbering.push_back(std::to_string(i+1) + "_" + std::to_string(j));
                 }
                 break;
         }
