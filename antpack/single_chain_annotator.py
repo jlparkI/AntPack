@@ -7,6 +7,7 @@ present, so it is useful when you have a large number of sequences of
 known chain type to process."""
 import os
 import numpy as np
+from Bio import SeqIO
 from .constants import allowed_inputs
 from ant_ext import IMGTAligner, validate_sequence
 
@@ -67,66 +68,82 @@ class SingleChainAnnotator:
             raise ValueError("The score matrix was located but has an unexpected shape. "
                     "Please report this error to the package maintainer.")
 
+        self.scoring_tool = IMGTAligner(self.score_matrix)
 
 
-    def _in_memory_checks(self, sequences, scheme):
-        """Checks user inputs for in-memory sequence analysis.
+
+    def analyze_online_seqs(self, sequences, scheme="imgt"):
+        """Numbers and scores a list of input sequences.
 
         Args:
-            sequences (list): A list of sequence strings.
-            sequence_names (list): A list of names for each sequence.
+            sequences (list): A list of strings, each of which is a sequence
+                containing the usual 20 amino acids.
             scheme (str): The numbering scheme. Should be one of 'imgt', 'martin',
                 'chothia', 'kabat', 'aho', 'wolfguy'.
 
-        Raises:
-            ValueError: A ValueError is raised if inappropriate inputs are detected.
+        Returns:
+            sequence_results (list): A list of tuples of (sequence numbering, score,
+                None). If a sequence is invalid, the tuple is (None, None, error message),
+                where error message is a string. The results are in the same order
+                as the inputs.
         """
         if scheme not in allowed_inputs.allowed_schemes:
             raise ValueError(f"Input scheme {scheme} is not allowed; "
                 "should be one of {allowed_inputs.allowed_schemes}")
         if not isinstance(sequences, list):
             raise ValueError("sequences should be a list of strings.")
+
+
+        sequence_results = []
         for sequence in sequences:
             if not validate_sequence(sequence):
-                raise ValueError(f"Sequence {sequence} contains nonstandard "
-                        "amino acids.")
+                sequence_results.append((None, None, "invalid_sequence"))
+                continue
+            (numbering, err_code) = self.scoring_tool.align(sequence)
+            if err_code != 1:
+                sequence_results.append((None, None, "alignment_error"))
+            else:
+                sequence_results.append((numbering, 0, None))
+
+        return sequence_results
 
 
-    def analyze_online_seqs(self, sequences, sequence_names, scheme="imgt",
-            get_all_scores=False, assign_germline=False, bit_score_threshold=80,
-            ncpu=0):
-        """Numbers and scores a list of input sequences.
+    def analyze_fasta(self, fasta_file, scheme="imgt"):
+        """A generator that numbers and scores sequences from a fasta
+        file. Since it is a generator it will only load one sequence at
+        a time. You should in your code when retrieving results from
+        this generator ensure that the error code for each sequence is None
+        before doing anything else with the results.
 
         Args:
-            sequences (list): A list of strings, each of which is a sequence
-                containing the usual 20 amino acids.
-            sequence_names (list): A list of strings, each of which is the
-                name of the corresponding sequence in sequences.
+            fasta_file (str): A filepath to a valid fasta file.
             scheme (str): The numbering scheme. Should be one of 'imgt', 'martin',
                 'chothia', 'kabat', 'aho', 'wolfguy'.
-            get_all_scores (bool): If True, in addition to numbering the top hit for
-                each sequence, bitscores are returned for all hits rather than just the
-                top one. This is useful in instances where we would like to know for
-                example what the bitscore is against mouse even though the sequence
-                is in fact human.
-            assign_germline (bool): If True, indicate the germline genes that most
-                closely correspond to the search sequences.
-            bit_score_threshold (float): The bit score threshold for a hit to
-                be considered a hit.
-            ncpu (int): The number of threads hmmer is allowed to use. If 0, it will
-                be autoselected.
+
+        Returns:
+            sequence_results (list): A list of tuples of (sequence numbering, score,
+                None). If a sequence is invalid, the tuple is (None, None, error message),
+                where error message is a string. The results are in the same order
+                as the inputs.
+
+        Raises:
+            ValueError: A ValueError is raised if unacceptable inputs are supplied.
         """
+        if scheme not in allowed_inputs.allowed_schemes:
+            raise ValueError(f"Input scheme {scheme} is not allowed; "
+                "should be one of {allowed_inputs.allowed_schemes}")
+        if not os.path.isfile(fasta_file):
+            raise ValueError("Nonexistent file path supplied.")
 
-
-        self._in_memory_checks(sequences, sequence_names, scheme)
-
-        loaded_seqs = [TextSequence(name=name.encode(), sequence=seq).digitize(self.alphabet)
-                for (name, seq) in zip(sequence_names, sequences)]
-
-        all_hits = list(hmmscan(self.hmm_db, loaded_seqs, cpus=ncpu))
-        alignments, score_list = self._parse_hmmer_hits(all_hits, scheme, bit_score_threshold,
-                                get_all_scores, assign_germline)
-
-        if get_all_scores:
-            return alignments, score_list
-        return alignments
+        with open(fasta_file, "r", encoding="utf-8") as fhandle:
+            for seqrecord in SeqIO.parse(fhandle, "fasta"):
+                sequence = str(seqrecord.seq)
+                if not validate_sequence(sequence):
+                    result = (None, None, "invalid_sequence")
+                else:
+                    (numbering, err_code) = self.scoring_tool.align(sequence)
+                    if err_code != 1:
+                        result = (None, None, "alignment_error")
+                    else:
+                        result = (numbering, 0, None)
+                yield result

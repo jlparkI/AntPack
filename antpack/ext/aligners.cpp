@@ -6,6 +6,20 @@
 #define DIAGONAL_TRANSFER 1
 #define UP_TRANSFER 2
 
+// Codes for errors that may be encountered.
+#define INVALID_SEQUENCE 0
+#define NO_ERROR 1
+#define FATAL_RUNTIME_ERROR 2
+
+// These are "magic number" positions in the IMGT framework at
+// which "forwards-backwards" insertion numbering must be applied.
+// This is a nuisance, but is out of our control -- the IMGT #ing
+// system has this quirk built-in... Note that because IMGT numbers
+// from 1, these positions are the actual IMGT position - 1.
+#define CDR1_INSERTION_PT 31
+#define CDR2_INSERTION_PT 59
+#define CDR3_INSERTION_PT 110
+
 
 
 IMGTAligner::IMGTAligner(
@@ -30,12 +44,12 @@ IMGTAligner::IMGTAligner(
 }
 
 
-std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string query_sequence){
+std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_sequence){
 
     std::vector<std::string> finalNumbering;
     if (query_sequence.length() == 0){
-        return std::tuple<std::vector<std::string>, std::string>{finalNumbering,
-                "An empty query string was passed"};
+        return std::tuple<std::vector<std::string>, int>{finalNumbering,
+                INVALID_SEQUENCE};
     }
 
     int rowSize = query_sequence.length() + 1;
@@ -122,8 +136,8 @@ std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string
                 delete[] needleScores;
                 delete[] pathTrace;
                 delete[] initNumbering;
-                return std::tuple<std::vector<std::string>, std::string>{finalNumbering,
-                        "The query sequence contains nonstandard amino acids or lowercase letters."};
+                return std::tuple<std::vector<std::string>, int>{finalNumbering,
+                        INVALID_SEQUENCE};
                 break;
 
         }
@@ -186,15 +200,26 @@ std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string
     }
 
     // Backtrace the path, and determine how many insertions there
-    // were at each position where there is an insertion.
+    // were at each position where there is an insertion. Determine
+    // how many gaps exist at the beginning and end of the sequence
+    // as well (the "N-terminus" and "C-terminus").
     int i = this->numPositions;
     int j = query_sequence.length();
+    int numNTermGaps = 0;
+    int numCTermGaps = 0;
+
     while (i > 0 || j > 0){
         int gridPos = i * rowSize + j;
         switch (pathTrace[gridPos]){
             case LEFT_TRANSFER:
-                if (i > 0){
+                if (i > 0 && i < this->numPositions){
                     initNumbering[i-1] += 1;
+                }
+                else if (i == 0){
+                    numNTermGaps += 1;
+                }
+                else{
+                    numCTermGaps += 1;
                 }
                 j -= 1;
                 break;
@@ -206,6 +231,16 @@ std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string
                 i -= 1;
                 j -= 1;
                 break;
+            // This should never happen -- if it does, report it as a
+            // SERIOUS error.
+            default:
+                delete[] queryAsIdx;
+                delete[] needleScores;
+                delete[] pathTrace;
+                delete[] initNumbering;
+                return std::tuple<std::vector<std::string>, int>{finalNumbering,
+                        FATAL_RUNTIME_ERROR};
+                break;
         }
         // This should never happen, but just in case...
         if (i < 0){
@@ -216,45 +251,61 @@ std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string
         }
     }
 
-    // Check that there are no positions with > 51 insertions. If so, there is
-    // probably something badly wrong with the alignment; abort and return.
-    for (i=0; i < this->numPositions; i++){
-        if (initNumbering[i] >= 52){
-            return std::tuple<std::vector<std::string>, std::string>{finalNumbering,
-                "An alignment error occurred. There are more than 51 insertion codes at "
-                "a single IMGT position"};
-        }
+    // Add gaps at the beginning of the numbering corresponding to the
+    // number of N-terminal insertions. This ensures the numbering has
+    // the same length as the input sequence.
+    for (i=0; i < numNTermGaps; i++){
+        finalNumbering.push_back("-");
     }
 
-    // Build vector of IMGT numbers. Unfortunately the IMGT system adds letters
+    // Build vector of IMGT numbers. Unfortunately the IMGT system adds insertion codes
     // forwards then backwards where there is > 1 insertion at a given position,
-    // an annoying quirk that adds some minor complications. Technically insertions
-    // should only occur at specific locations. We ensure this happens by using a
-    // custom PSSM, but of course given some really weird input sequence or serious
-    // alignment error, it may not. TODO: Add output check function that tests to
-    // ensure numbering is correct and flag sequence as possible error if not.
+    // but ONLY if the insertion is at an expected position in the CDRs!
+    // Everywhere else, insertions are recognized by just placing in
+    // the usual order (?!!!?) This annoying quirk adds some complications.
     for (i=0; i < this->numPositions; i++){
         if (initNumbering[i] == 0){
             continue;
         }
+        // The +1 here and hereafter is because IMGT numbers from 1.
         finalNumbering.push_back(std::to_string(i+1));
         if (initNumbering[i] == 1){
             continue;
         }
-        int ceil_cutpoint, floor_cutpoint;
-        ceil_cutpoint = initNumbering[i] / 2;
-        floor_cutpoint = (initNumbering[i] - 1) / 2;
-        for (j=0; j < floor_cutpoint; j++){
-            finalNumbering.push_back(std::to_string(i+1).append(this->alphabet[j]));
+        // These are the positions for which we need to deploy forward-backward
+        // lettering (because the IMGT system is weird, but also the default...)
+        switch (i){
+            case CDR1_INSERTION_PT:
+            case CDR2_INSERTION_PT:
+            case CDR3_INSERTION_PT:
+                int ceil_cutpoint, floor_cutpoint;
+                ceil_cutpoint = initNumbering[i] / 2;
+                floor_cutpoint = (initNumbering[i] - 1) / 2;
+                for (j=0; j < floor_cutpoint; j++){
+                    finalNumbering.push_back(std::to_string(i+1) + "." + std::to_string(j));
+                }
+                for (j=ceil_cutpoint; j > 0; j--){
+                    finalNumbering.push_back(std::to_string(i+2) + "." + std::to_string(j-1));
+                }
+                break;
+            default:
+                for (j=0; j < initNumbering[i]; j++){
+                    finalNumbering.push_back(std::to_string(i+1) + "." + std::to_string(j));
+                }
+                break;
         }
-        for (j=ceil_cutpoint; j > 0; j--){
-            finalNumbering.push_back(std::to_string(i+2).append(this->alphabet[j-1]));
-        }
+    }
+
+    // Add gaps at the end of the numbering corresponding to the
+    // number of C-terminal insertions. This ensures the numbering has
+    // the same length as the input sequence.
+    for (i=0; i < numCTermGaps; i++){
+        finalNumbering.push_back("-");
     }
 
     delete[] queryAsIdx;
     delete[] needleScores;
     delete[] pathTrace;
     delete[] initNumbering;
-    return std::tuple<std::vector<std::string>, std::string>{finalNumbering, ""};
+    return std::tuple<std::vector<std::string>, int>{finalNumbering, NO_ERROR};
 }
