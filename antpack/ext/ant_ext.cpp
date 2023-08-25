@@ -7,11 +7,14 @@
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
 #include "aligners.h"
+#include "utilities.h"
 
 namespace py = pybind11;
 using namespace std;
 
 PYBIND11_MODULE(ant_ext, m){
+    m.def("validate_sequence", &validate_sequence);
+
     py::class_<IMGTAligner>(m, "IMGTAligner")
         .def(py::init<py::array_t<double>>())
         .def("align", &IMGTAligner::align);

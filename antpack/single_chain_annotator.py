@@ -8,7 +8,7 @@ known chain type to process."""
 import os
 import numpy as np
 from .constants import allowed_inputs
-
+from ant_ext import IMGTAligner, validate_sequence
 
 
 
@@ -68,17 +68,6 @@ class SingleChainAnnotator:
                     "Please report this error to the package maintainer.")
 
 
-    def _validate_sequence(self, sequence):
-        """
-        Check whether a sequence is a protein sequence or is exceptionally long / contains
-        nonstandard characters.
-        """
-        if len(sequence) > 1000:
-            raise ValueError(f"The submitted sequence {sequence} is too long "
-                "to be an antibody sequence.")
-        if len([s for s in sequence if s not in allowed_inputs.allowed_amino_acids]) > 0:
-            raise ValueError(f"Submitted sequence {sequence} contains non-amino-acid characters.")
-
 
     def _in_memory_checks(self, sequences, scheme):
         """Checks user inputs for in-memory sequence analysis.
@@ -98,7 +87,9 @@ class SingleChainAnnotator:
         if not isinstance(sequences, list):
             raise ValueError("sequences should be a list of strings.")
         for sequence in sequences:
-            self._validate_sequence(sequence)
+            if not validate_sequence(sequence):
+                raise ValueError(f"Sequence {sequence} contains nonstandard "
+                        "amino acids.")
 
 
     def analyze_online_seqs(self, sequences, sequence_names, scheme="imgt",

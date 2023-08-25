@@ -3,4 +3,4 @@
 __version__ = "0.0.1"
 
 from .imgt_db_update_tools import build_consensus_alignment
-from .sequence_annotator import AntibodyAnnotator
+from .single_chain_annotator import SingleChainAnnotator

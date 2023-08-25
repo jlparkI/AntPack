@@ -7,6 +7,7 @@
 #define UP_TRANSFER 2
 
 
+
 IMGTAligner::IMGTAligner(
                  py::array_t<double> scoreArray
 ):
@@ -27,7 +28,6 @@ IMGTAligner::IMGTAligner(
     }
     numPositions = info.shape[0];
 }
-
 
 
 std::tuple<std::vector<std::string>, std::string> IMGTAligner::align(std::string query_sequence){
