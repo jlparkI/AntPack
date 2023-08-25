@@ -99,13 +99,11 @@ class SingleChainAnnotator:
             if not validate_sequence(sequence):
                 sequence_results.append((None, None, "invalid_sequence"))
                 continue
-            yaya1 = np.empty((self.score_matrix.shape[0]+1, len(sequence)+1))
-            yaya2 = yaya1.copy()
-            (numbering, err_code) = self.scoring_tool.align(sequence, yaya1, yaya2)
-            import pdb
-            pdb.set_trace()
-            if err_code != 1:
-                sequence_results.append((None, None, "alignment_error"))
+            (numbering, err_code) = self.scoring_tool.align(sequence)
+            if err_code == 0:
+                sequence_results.append((None, None, "invalid_sequence"))
+            elif err_code == 2 or len(sequence) != len(numbering):
+                sequence_results.append((None, None, "fatal_alignment_error"))
             else:
                 sequence_results.append((numbering, 0, None))
 
@@ -150,4 +148,4 @@ class SingleChainAnnotator:
                         result = (None, None, "alignment_error")
                     else:
                         result = (numbering, 0, None)
-                yield result
+                yield seqrecord, result
