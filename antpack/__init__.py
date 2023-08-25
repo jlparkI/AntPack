@@ -2,4 +2,4 @@
 #Only change if building a new version.
 __version__ = "0.0.1"
 
-from .imgt_db_update_tools import IMGTBuilder
+from .imgt_db_update_tools import build_consensus_alignment
