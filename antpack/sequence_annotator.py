@@ -1,10 +1,12 @@
-"""Contains the AntibodyAnnotator class, which provides the tools needed
-to parse antibody sequences (and makes use of the functions supplied in
-numbering_toolkit)."""
-import pyhmmer
-from pyhmmer.hmmer import hmmscan
-from pyhmmer.easel import TextSequence
-
+"""Contains the SingleChainAnnotator class, which provides the tools needed
+to parse antibody sequences of known chain type. A separate class is maintained
+to handle sequences of unknown chain type or that may contain multiple
+chains. SingleChainAnnotator is however substantially faster since it does
+not need to determine the type of chain or whether multiple chains are
+present, so it is useful when you have a large number of sequences of
+known chain type to process."""
+import os
+import numpy as np
 from .constants import allowed_inputs
 
 
@@ -14,22 +16,56 @@ from .constants import allowed_inputs
 
 
 
-class AntibodyAnnotator:
+class SingleChainAnnotator:
     """This class contains the tools needed to parse and number
     either a single sequence, a list of sequences, or a fasta file containing
-    many sequences. If the latter, the class provides a generator so that
-    you can analyze one sequence at a time (without loading all into memory
-    simultaneously).
+    many sequences that belong to a single known chain type. If you do not
+    know the chain type, or if your sequences contain e.g. both heavy and
+    light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
     """
 
-    def __init__(self):
+    def __init__(self, species = "all", chain = "H"):
         """Class constructor.
 
         Args:
+            species (str): Must be one of "alpaca", "cow", "human",
+                "mouse", "pig", "rabbit", "rat", "rhesus", "all".
+            chain (str): Must be one of "H", "K", "L", "KL", "A", "B", "D", "G".
+                Note that not all chains are supported for all species. "A",
+                "B", "D", "G" for example are supported for human, mouse and all
+                but not for rabbit, rat, rhesus or pig.
         """
+        if species not in ["alpaca", "cow", "human", "mouse", "pig", "rabbit",
+                "rat", "rhesus", "all"]:
+            raise ValueError(f"Unrecognized species {species} supplied.")
+        if chain not in ["H", "K", "L", "A", "B", "D", "G"]:
+            raise ValueError(f"Unrecognized chain {chain} supplied.")
+        if chain in ["A", "B", "D", "G"] and species not in ["human", "mouse"]:
+            raise ValueError(f"Unsupported chain-species combo {chain} {species} supplied.")
+        if chain in ["H"] and species in ["rat"]:
+            raise ValueError(f"Unsupported chain-species combo {chain} {species} supplied.")
 
-        self.hmm_db = None
-        self.alphabet = pyhmmer.easel.Alphabet.amino()
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        try:
+            os.chdir(os.path.join(project_path, "consensus_data"))
+            if species == "all":
+                filename = f"CONSENSUS_{chain}.npy"
+            else:
+                filename = f"CONSENSUS_{species}_{chain}.npy"
+            self.score_matrix = np.load(filename)
+        except Exception as exc:
+            os.chdir(current_dir)
+            raise ValueError("The consensus data for the package either has been deleted or "
+                    "moved or was never properly installed.") from exc
+
+        os.chdir(current_dir)
+        if len(self.score_matrix) != 2:
+            raise ValueError("The score matrix was located but has an unexpected shape. "
+                    "Please report this error to the package maintainer.")
+        if self.score_matrix.shape[0] != 128 or self.score_matrix.shape[1] != 21:
+            raise ValueError("The score matrix was located but has an unexpected shape. "
+                    "Please report this error to the package maintainer.")
 
 
     def _validate_sequence(self, sequence):
@@ -44,7 +80,7 @@ class AntibodyAnnotator:
             raise ValueError(f"Submitted sequence {sequence} contains non-amino-acid characters.")
 
 
-    def _in_memory_checks(self, sequences, sequence_names, scheme):
+    def _in_memory_checks(self, sequences, scheme):
         """Checks user inputs for in-memory sequence analysis.
 
         Args:
@@ -56,18 +92,11 @@ class AntibodyAnnotator:
         Raises:
             ValueError: A ValueError is raised if inappropriate inputs are detected.
         """
-        if self.hmm_db is None:
-            raise ValueError("An hmm profile has not been added! Consider using "
-                    "IMGT Builder to generate a profile if you do not already "
-                    "have one.")
         if scheme not in allowed_inputs.allowed_schemes:
             raise ValueError(f"Input scheme {scheme} is not allowed; "
                 "should be one of {allowed_inputs.allowed_schemes}")
-        if not isinstance(sequences, list) or not isinstance(sequence_names, list):
-            raise ValueError("Both sequences and sequence_names should be lists of strings.")
-        if len(sequences) != len(sequence_names):
-            raise ValueError("Sequences and sequence_names must have the same length.")
-
+        if not isinstance(sequences, list):
+            raise ValueError("sequences should be a list of strings.")
         for sequence in sequences:
             self._validate_sequence(sequence)
 
@@ -110,51 +139,3 @@ class AntibodyAnnotator:
         if get_all_scores:
             return alignments, score_list
         return alignments
-
-
-
-
-    ## Parsing and recognising domain hits from hmmscan ##
-    def _check_for_overlap(self, domain1, domain2):
-        """Ensure that two domains do not overlap / are not redundant."""
-        domain1, domain2 = sorted( [domain1, domain2], key=lambda x: x.target_from  )
-        return domain2.target_from < domain1.target_to
-
-
-    def _parse_hmmer_hits(self, all_hits, scheme, bit_score_threshold=80, keep_all_scores=False,
-                assign_germline=False):
-        """Parses the hits returned by pyhmmer.
-
-        Args:
-            all_hits (list): A list of TopHits objects. Each TopHits is the set of hits
-                for the corresponding sequence from the input list.
-            scheme (str): The numbering scheme. Should be one of 'imgt', 'martin',
-                'chothia', 'kabat', 'aho', 'wolfguy'.
-            bit_score_threshold (int): Bit scores below this threshold are
-                not considered hits and are removed.
-            keep_all_scores (bool): If True, store scores for all profile hits
-            assign_germline (bool): If True, indicate the germline genes that most
-                closely correspond to the search sequences.
-        """
-        all_alignments = []
-        all_scores = []
-
-        for hit_list in all_hits:
-            clean_hit_list = [hit for hit in hit_list if hit.score >
-                    bit_score_threshold]
-            if keep_all_scores:
-                all_scores.append([(h.name.decode(), h.score) for h in clean_hit_list])
-            if len(clean_hit_list) == 0:
-                all_alignments.append([])
-                continue
-            best_hit  = max( (v, i) for i, v in enumerate(clean_hit_list) )[0]
-
-            retained_domains = []
-            for domain in best_hit.domains:
-                is_overlap = [self._check_for_overlap(previous_domain, domain) for previous_domain
-                        in retained_domains]
-                if sum(is_overlap) == 0:
-                    retained_domains.append(domain)
-            retained_domains = sorted(retained_domains, key=lambda x: domain.target_from)
-
-        return all_alignments, all_scores

@@ -24,27 +24,57 @@ def write_consensus_file(target_dir, current_dir, alignment_fname):
             already live in target_dir.
     """
     os.chdir(target_dir)
-    array_key_dict = {}
+    separate_species_dict = {}
+    combined_dict = {}
 
     with open(alignment_fname, "r", encoding="utf-8") as fhandle:
         read_now = False
         for line in fhandle:
             if line.startswith("#=GF"):
                 read_now = True
-                _, chain = line.strip().split()[-1].split("_")
-                if chain not in array_key_dict:
-                    array_key_dict[chain] = []
+                species, chain = line.strip().split()[-1].split("_")
+                if chain not in combined_dict:
+                    combined_dict[chain] = []
+                    separate_species_dict[chain] = {}
+                if species not in separate_species_dict[chain]:
+                    separate_species_dict[chain][species] = []
             elif line.startswith("#=GC RF"):
                 read_now = False
             elif read_now:
-                array_key_dict[chain].append(line.strip().split()[-1])
+                separate_species_dict[chain][species].append(line.strip().split()[-1])
+                combined_dict[chain].append(line.strip().split()[-1])
 
     with open("CONSENSUS.txt", "w+", encoding="utf-8") as fhandle:
-        for chain_type, seq_list in array_key_dict.items():
+        for chain_type, seq_list in combined_dict.items():
             fhandle.write(f"# CHAIN {chain_type}\n")
+            position_key = {i:set() for i in range(len(seq_list[0]))}
             for sequence in seq_list:
-                fhandle.write(f"{sequence}\n")
+                for i, letter in enumerate(sequence):
+                    position_key[i].add(letter)
+            for i in range(len(seq_list[0])):
+                observed_aas = sorted(list(position_key[i]))
+                fhandle.write(f"{i+1},")
+                fhandle.write(",".join(observed_aas))
+                fhandle.write("\n")
+            fhandle.write("//\n\n")
             save_consensus_array(seq_list, chain_type)
+    
+    with open("CONSENSUS_separate_species.txt", "w+", encoding="utf-8") as fhandle:
+        for chain_type in separate_species_dict.keys():
+            for species, seq_list in separate_species_dict[chain_type].items():
+                fhandle.write(f"# CHAIN {chain_type} {species}\n")
+                position_key = {i:set() for i in range(len(seq_list[0]))}
+                for sequence in seq_list:
+                    for i, letter in enumerate(sequence):
+                        position_key[i].add(letter)
+                for i in range(len(seq_list[0])):
+                    observed_aas = sorted(list(position_key[i]))
+                    fhandle.write(f"{i+1},")
+                    fhandle.write(",".join(observed_aas))
+                    fhandle.write("\n")
+                fhandle.write("//\n\n")
+                output_name = "_".join([species, chain_type])
+                save_consensus_array(seq_list, output_name)
 
     os.chdir(current_dir)
 
@@ -109,4 +139,4 @@ def save_consensus_array(sequences, chain_type):
 
             key_array[i,j] = score * score_weight
 
-    np.save(f"CONSENSUS_chain_{chain_type}.npy", key_array)
+    np.save(f"CONSENSUS_{chain_type}.npy", key_array)
