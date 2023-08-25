@@ -78,8 +78,6 @@ std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_s
     for (size_t i=0; i < query_sequence.length(); i++){
         needleScores[i+1] = needleScores[i] + scoreItr(0,20);
         pathTrace[i+1] = LEFT_TRANSFER;
-        needleIter(0,i+1) = needleScores[i] + scoreItr(0,20);
-        pathIter(0,i+1) = LEFT_TRANSFER;
     }
 
     // Now fill in the scoring grid, using the position-specific
