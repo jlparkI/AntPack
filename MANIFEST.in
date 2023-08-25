@@ -1,3 +1,4 @@
 include LICENSE
 recursive-include antpack/hmm_dbs *
+recursive-include antpack/consensus_data *
 recursive-include dependencies/ *

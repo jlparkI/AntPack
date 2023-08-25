@@ -225,6 +225,7 @@ std::tuple<std::vector<std::string>, int> IMGTAligner::align(std::string query_s
         }
     }
 
+
     // Add gaps at the end of the numbering corresponding to the
     // number of C-terminal insertions. This ensures the numbering has
     // the same length as the input sequence.
