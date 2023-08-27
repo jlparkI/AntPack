@@ -79,7 +79,7 @@ class SingleChainAnnotator:
         os.chdir(current_dir)
         self.scoring_tools = []
 
-        for score_matrix in score_matrices:
+        for (score_matrix, con_map) in zip(score_matrices, consensus_maps):
             if len(score_matrix.shape) != 2:
                 raise ValueError("A score matrix was located but has an unexpected shape. "
                         "Please report this error to the package maintainer.")
@@ -87,7 +87,11 @@ class SingleChainAnnotator:
                 raise ValueError("A score matrix was located but has an unexpected shape. "
                         "Please report this error to the package maintainer.")
 
-            self.scoring_tools.append(IMGTAligner(score_matrix))
+            try:
+                self.scoring_tools.append(IMGTAligner(score_matrix, con_map))
+            except:
+                import pdb
+                pdb.set_trace()
 
 
 
@@ -124,8 +128,9 @@ class SingleChainAnnotator:
                     raise RuntimeError("Problem with consensus file.")
                 if int(position) - 1 != last_position:
                     raise RuntimeError("Problem with consensus file.")
+                last_position += 1
                 expected_imgt_positions[position] += 1
-                aas = line.strip().split(",")
+                aas = line.strip().split(",")[1:]
                 if "-" in aas:
                     consensus.append([])
                     continue
