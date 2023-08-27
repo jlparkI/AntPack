@@ -216,7 +216,7 @@ class SingleChainAnnotator:
                     best_result = (None, None, "invalid_sequence")
                 else:
                     results = []
-                    for (chain, scoring_tool) in self.scoring_tools:
+                    for (chain, scoring_tool) in zip(self.chains, self.scoring_tools):
                         numbering, percent_ident, err_code = scoring_tool.align(sequence)
                         results.append((numbering, percent_ident, chain, err_code))
                     results = sorted(results, key=lambda x: x[1])
