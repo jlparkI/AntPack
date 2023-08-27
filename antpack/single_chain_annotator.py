@@ -166,15 +166,18 @@ class SingleChainAnnotator:
             if not validate_sequence(sequence):
                 sequence_results.append((None, None, "invalid_sequence"))
                 continue
-            results = sorted([scoring_tool.align(sequence) for scoring_tool in
-                        self.scoring_tools], key=lambda x: x[1])
-            numbering, percent_ident, err_code = results[-1]
+            results = []
+            for (chain, scoring_tool) in self.scoring_tools:
+                numbering, percent_ident, err_code = scoring_tool.align(sequence)
+                results.append((numbering, percent_ident, chain, err_code))
+            results = sorted(results, key=lambda x: x[1])
+            numbering, percent_ident, chain, err_code = results[-1]
             if err_code == 0:
-                sequence_results.append((None, None, "invalid_sequence"))
+                sequence_results.append((None, None, None, "invalid_sequence"))
             elif err_code == 2 or len(sequence) != len(numbering):
-                sequence_results.append((None, None, "fatal_alignment_error"))
+                sequence_results.append((None, None, None, "fatal_alignment_error"))
             else:
-                sequence_results.append((numbering, percent_ident, None))
+                sequence_results.append((numbering, percent_ident, chain, None))
 
         return sequence_results
 
@@ -212,11 +215,14 @@ class SingleChainAnnotator:
                 if not validate_sequence(sequence):
                     best_result = (None, None, "invalid_sequence")
                 else:
-                    results = sorted([scoring_tool.align(sequence) for scoring_tool in
-                        self.scoring_tools], key=lambda x: x[1])
-                    numbering, percent_ident, err_code = results[-1]
+                    results = []
+                    for (chain, scoring_tool) in self.scoring_tools:
+                        numbering, percent_ident, err_code = scoring_tool.align(sequence)
+                        results.append((numbering, percent_ident, chain, err_code))
+                    results = sorted(results, key=lambda x: x[1])
+                    numbering, percent_ident, chain, err_code = results[-1]
                     if err_code != 1:
-                        best_result = (None, None, "alignment_error")
+                        best_result = (None, None, None, "alignment_error")
                     else:
-                        best_result = (numbering, percent_ident, None)
+                        best_result = (numbering, percent_ident, chain, None)
                 yield seqrecord, best_result
