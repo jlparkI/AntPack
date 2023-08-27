@@ -35,6 +35,7 @@ def build_consensus_files(target_dir, current_dir, alignment_fname):
                 species, chain = line.strip().split()[-1].split("_")
                 if chain not in combined_dict:
                     separate_species_dict[chain] = {}
+                    combined_dict[chain] = []
                 if species not in separate_species_dict[chain]:
                     separate_species_dict[chain][species] = []
             elif line.startswith("#=GC RF"):
@@ -59,7 +60,7 @@ def build_consensus_files(target_dir, current_dir, alignment_fname):
 def write_consensus_file(sequences, chain_type):
     """Writes a consensus file with a list of the amino acids observed
     at each position."""
-    with open("CONSENSUS_{chain_type}.txt", "w+", encoding="utf-8") as fhandle:
+    with open(f"CONSENSUS_{chain_type}.txt", "w+", encoding="utf-8") as fhandle:
         fhandle.write(f"# CHAIN {chain_type}\n")
         position_key = {i:set() for i in range(len(sequences[0]))}
         for sequence in sequences:
