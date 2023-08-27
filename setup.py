@@ -80,7 +80,7 @@ def main():
         packages=find_packages(),
         cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
-        install_requires=['pybind11>=2.4', "numpy", "pyhmmer"],
+        install_requires=['pybind11>=2.4', "numpy"],
         include_package_data=True,
         license="MIT",
         ext_modules=extensions,

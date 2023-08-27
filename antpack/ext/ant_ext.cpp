@@ -16,6 +16,7 @@ PYBIND11_MODULE(ant_ext, m){
     m.def("validate_sequence", &validate_sequence);
 
     py::class_<IMGTAligner>(m, "IMGTAligner")
-        .def(py::init<py::array_t<double>>())
+        .def(py::init<py::array_t<double>,
+                std::vector<std::vector<std::string>>>())
         .def("align", &IMGTAligner::align);
 }

@@ -1,4 +1,0 @@
-numpy==1.25.2
-psutil==5.9.5
-pyhmmer==0.9.0
-scipy==1.11.1

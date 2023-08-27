@@ -9,7 +9,7 @@ from Bio.Align import substitution_matrices
 from ..constants.allowed_inputs import allowed_aa_list
 
 
-def write_consensus_file(target_dir, current_dir, alignment_fname):
+def build_consensus_files(target_dir, current_dir, alignment_fname):
     """Builds a consensus for the amino acids at each position for each
     chain type. Currently combines all species (it may sometimes be
     desirable to separate species -- will consider this later).
@@ -34,7 +34,6 @@ def write_consensus_file(target_dir, current_dir, alignment_fname):
                 read_now = True
                 species, chain = line.strip().split()[-1].split("_")
                 if chain not in combined_dict:
-                    combined_dict[chain] = []
                     separate_species_dict[chain] = {}
                 if species not in separate_species_dict[chain]:
                     separate_species_dict[chain][species] = []
@@ -44,39 +43,35 @@ def write_consensus_file(target_dir, current_dir, alignment_fname):
                 separate_species_dict[chain][species].append(line.strip().split()[-1])
                 combined_dict[chain].append(line.strip().split()[-1])
 
-    with open("CONSENSUS.txt", "w+", encoding="utf-8") as fhandle:
-        for chain_type, seq_list in combined_dict.items():
-            fhandle.write(f"# CHAIN {chain_type}\n")
-            position_key = {i:set() for i in range(len(seq_list[0]))}
-            for sequence in seq_list:
-                for i, letter in enumerate(sequence):
-                    position_key[i].add(letter)
-            for i in range(len(seq_list[0])):
-                observed_aas = sorted(list(position_key[i]))
-                fhandle.write(f"{i+1},")
-                fhandle.write(",".join(observed_aas))
-                fhandle.write("\n")
-            fhandle.write("//\n\n")
-            save_consensus_array(seq_list, chain_type)
-    
-    with open("CONSENSUS_separate_species.txt", "w+", encoding="utf-8") as fhandle:
-        for chain_type in separate_species_dict.keys():
-            for species, seq_list in separate_species_dict[chain_type].items():
-                fhandle.write(f"# CHAIN {chain_type} {species}\n")
-                position_key = {i:set() for i in range(len(seq_list[0]))}
-                for sequence in seq_list:
-                    for i, letter in enumerate(sequence):
-                        position_key[i].add(letter)
-                for i in range(len(seq_list[0])):
-                    observed_aas = sorted(list(position_key[i]))
-                    fhandle.write(f"{i+1},")
-                    fhandle.write(",".join(observed_aas))
-                    fhandle.write("\n")
-                fhandle.write("//\n\n")
-                output_name = "_".join([species, chain_type])
-                save_consensus_array(seq_list, output_name)
+    for chain_type, seq_list in combined_dict.items():
+        write_consensus_file(seq_list, chain_type)
+        save_consensus_array(seq_list, chain_type)
+
+    for chain_type in separate_species_dict.keys():
+        for species, seq_list in separate_species_dict[chain_type].items():
+            output_name = "_".join([species, chain_type])
+            save_consensus_array(seq_list, output_name)
+            write_consensus_file(seq_list, output_name)
 
     os.chdir(current_dir)
+
+
+def write_consensus_file(sequences, chain_type):
+    """Writes a consensus file with a list of the amino acids observed
+    at each position."""
+    with open("CONSENSUS_{chain_type}.txt", "w+", encoding="utf-8") as fhandle:
+        fhandle.write(f"# CHAIN {chain_type}\n")
+        position_key = {i:set() for i in range(len(sequences[0]))}
+        for sequence in sequences:
+            for i, letter in enumerate(sequence):
+                position_key[i].add(letter)
+        for i in range(len(sequences[0])):
+            observed_aas = sorted(list(position_key[i]))
+            fhandle.write(f"{i+1},")
+            fhandle.write(",".join(observed_aas))
+            fhandle.write("\n")
+        fhandle.write("//\n\n")
+
 
 
 def save_consensus_array(sequences, chain_type):

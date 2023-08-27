@@ -9,7 +9,8 @@
 
 
 //Checks a query sequence to ensure it contains only recognized
-//amino acids.
+//amino acids. This function is directly available to Python
+// callers through the wrapper.
 int validate_sequence(std::string query_sequence){
     bool validQuery = true;
 
