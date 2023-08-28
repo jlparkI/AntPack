@@ -7,6 +7,7 @@ import os
 import numpy as np
 from Bio.Align import substitution_matrices
 from ..constants.allowed_inputs import allowed_aa_list
+from ..constants.hmmbuild_constants import insertion_positions, conserved_positions, cdrs
 
 
 def build_consensus_files(target_dir, current_dir, alignment_fname):
@@ -86,11 +87,6 @@ def save_consensus_array(sequences, chain_type):
     blosum = substitution_matrices.load("BLOSUM62")
     blosum_key = {letter:i for i, letter in enumerate(blosum.alphabet)}
 
-    insertion_positions = {33, 61, 111}
-    conserved_positions = {23:["C"], 41:["W"], 104:["C"], 118:["F", "W"]}
-    cdrs = {27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
-            56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
-            105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117}
     key_array = np.zeros((128, 21))
     len_distro = [len(s) for s in sequences]
 
@@ -112,7 +108,7 @@ def save_consensus_array(sequences, chain_type):
             score_weight = 5.0
             key_array[i,20] = -55.0
         elif position in cdrs and position not in insertion_positions:
-            key_array[i,20] = -26.0
+            key_array[i,20] = cdrs[position]
         elif position in insertion_positions:
             key_array[i,20] = -1.0
         elif position in [1,128]:

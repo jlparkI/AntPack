@@ -257,21 +257,37 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
             case CDR1_INSERTION_PT:
             case CDR2_INSERTION_PT:
             case CDR3_INSERTION_PT:
+                if (initNumbering[i] > this->alphabet.size()){
+                    delete[] queryAsIdx;
+                    delete[] needleScores;
+                    delete[] pathTrace;
+                    delete[] initNumbering;
+                    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
+                        percentIdentity, FATAL_RUNTIME_ERROR};
+                }
                 int ceil_cutpoint, floor_cutpoint;
                 ceil_cutpoint = initNumbering[i] / 2;
                 floor_cutpoint = (initNumbering[i] - 1) / 2;
                 for (j=0; j < floor_cutpoint; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + "_" + std::to_string(j));
+                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j]);
                     positionKey.push_back(-1);
                 }
                 for (j=ceil_cutpoint; j > 0; j--){
-                    finalNumbering.push_back(std::to_string(i+2) + "_" + std::to_string(j-1));
+                    finalNumbering.push_back(std::to_string(i+2) + this->alphabet[j-1]);
                     positionKey.push_back(-1);
                 }
                 break;
             default:
+                if (initNumbering[i] > this->alphabet.size()){
+                    delete[] queryAsIdx;
+                    delete[] needleScores;
+                    delete[] pathTrace;
+                    delete[] initNumbering;
+                    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
+                        percentIdentity, FATAL_RUNTIME_ERROR};
+                }
                 for (j=0; j < initNumbering[i]; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + "_" + std::to_string(j));
+                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j]);
                     positionKey.push_back(-1);
                 }
                 break;
