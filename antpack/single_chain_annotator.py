@@ -25,12 +25,17 @@ class SingleChainAnnotator:
     light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
     """
 
-    def __init__(self, species = "all", chains = ["H"]):
+    def __init__(self, species = ["all"], chains = ["H"]):
         """Class constructor.
 
         Args:
-            species (str): Must be one of "alpaca", "cow", "human",
-                "mouse", "pig", "rabbit", "rat", "rhesus", "all".
+            species (str): A list of species to check. Each list element must
+                be one of "alpaca", "cow", "human", "mouse", "pig", "rabbit",
+                "rat", "rhesus", "all". If "all" is in the list, all other
+                entries are ignored, and the sequences are aligned using
+                a consensus sequence formed from the corresponding chains
+                for all species. Using specific species is usually preferable
+                but slower.
             chain (list): A list of chains. Each must be one of "H", "K", "L",
                 "KL", "A", "B", "D", "G". Note that not all chains are
                 supported for all species. "A", "B", "D", "G" for example
@@ -41,57 +46,61 @@ class SingleChainAnnotator:
             ValueError: A ValueError is raised if unacceptable inputs are
                 supplied.
         """
-        if species not in ["alpaca", "cow", "human", "mouse", "pig", "rabbit",
+        for specie in species:
+            if specie not in ["alpaca", "cow", "human", "mouse", "pig", "rabbit",
                 "rat", "rhesus", "all"]:
-            raise ValueError(f"Unrecognized species {species} supplied.")
+                raise ValueError(f"Unrecognized species {specie} supplied.")
         if len(chains) == 0:
             raise ValueError("Must supply at least one chain.")
         for chain in chains:
             if chain not in ["H", "K", "L", "A", "B", "D", "G"]:
                 raise ValueError(f"Unrecognized chain {chain} supplied.")
-            if chain in ["A", "B", "D", "G"] and species not in ["human", "mouse"]:
-                raise ValueError(f"Unsupported chain-species combo {chain} {species} supplied.")
+            if chain in ["A", "B", "D", "G"]:
+                for specie in species:
+                    if specie not in ["human", "mouse"]:
+                        raise ValueError("Unsupported chain-species combo "
+                            f"{chain} {specie} supplied.")
             if chain in ["H"] and species in ["rat"]:
-                raise ValueError(f"Unsupported chain-species combo {chain} {species} supplied.")
+                for specie in species:
+                    if specie in ["rat"]:
+                        raise ValueError("Unsupported chain-species combo "
+                                    f"{chain} {specie} supplied.")
 
-        self.chains = chains
+        # If 'all' was supplied, disregard all other entries.
+        if "all" in species:
+            selected_species = ["all"]
+        else:
+            selected_species = species
 
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
-        score_matrices, consensus_maps = [], []
+        self.scoring_tools, self.chains = [], []
 
         try:
             os.chdir(os.path.join(project_path, "consensus_data"))
             for chain in chains:
-                if species == "all":
-                    npy_filename = f"CONSENSUS_{chain}.npy"
-                    text_file = f"CONSENSUS_{chain}.txt"
-                else:
-                    npy_filename = f"CONSENSUS_{species}_{chain}.npy"
-                    text_file = f"CONSENSUS_{species}_{chain}.txt"
-                score_matrices.append(np.load(npy_filename))
-                consensus_maps.append(self._load_consensus_map(text_file))
+                for specie in selected_species:
+                    if specie == "all":
+                        npy_filename = f"CONSENSUS_{chain}.npy"
+                        text_file = f"CONSENSUS_{chain}.txt"
+                        self.chains.append(chain)
+                    else:
+                        npy_filename = f"CONSENSUS_{specie}_{chain}.npy"
+                        text_file = f"CONSENSUS_{specie}_{chain}.txt"
+                        self.chains.append("_".join([specie, chain]))
+                    score_matrix = np.load(npy_filename)
+                    con_map = self._load_consensus_map(text_file)
+                    # Note that IMGTAligner class constructor checks the input score
+                    # matrix to ensure the right dimensions; if it does not like these,
+                    # it will throw an exception that the PyBind wrapper will hand
+                    # off to Python.
+                    self.scoring_tools.append(IMGTAligner(score_matrix, con_map))
         except Exception as exc:
             os.chdir(current_dir)
             raise ValueError("The consensus data for the package either has been deleted or "
                     "moved or was never properly installed.") from exc
 
         os.chdir(current_dir)
-        self.scoring_tools = []
-
-        for (score_matrix, con_map) in zip(score_matrices, consensus_maps):
-            if len(score_matrix.shape) != 2:
-                raise ValueError("A score matrix was located but has an unexpected shape. "
-                        "Please report this error to the package maintainer.")
-            if score_matrix.shape[0] != 128 or score_matrix.shape[1] != 21:
-                raise ValueError("A score matrix was located but has an unexpected shape. "
-                        "Please report this error to the package maintainer.")
-
-            try:
-                self.scoring_tools.append(IMGTAligner(score_matrix, con_map))
-            except:
-                import pdb
-                pdb.set_trace()
 
 
 

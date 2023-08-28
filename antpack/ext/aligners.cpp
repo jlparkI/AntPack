@@ -17,8 +17,8 @@
 // This is a nuisance, but is out of our control -- the IMGT #ing
 // system has this quirk built-in... Note that because IMGT numbers
 // from 1, these positions are the actual IMGT position - 1.
-#define CDR1_INSERTION_PT 31
-#define CDR2_INSERTION_PT 59
+#define CDR1_INSERTION_PT 32
+#define CDR2_INSERTION_PT 60
 #define CDR3_INSERTION_PT 110
 
 
@@ -98,7 +98,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     double *needleScores = new double[ numElements ];
     int *queryAsIdx = new int[query_sequence.length()];
     int *pathTrace = new int[ numElements ];
-    int *initNumbering = new int[ this->numPositions ];
+    int unsigned *initNumbering = new unsigned int[ this->numPositions ];
     auto scoreItr = this->scoreArray.unchecked<2>();
 
 
@@ -286,8 +286,8 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                     return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
                         percentIdentity, FATAL_RUNTIME_ERROR};
                 }
-                for (j=0; j < initNumbering[i]; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j]);
+                for (j=1; j < initNumbering[i]; j++){
+                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j-1]);
                     positionKey.push_back(-1);
                 }
                 break;

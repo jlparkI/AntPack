@@ -43,7 +43,7 @@ class IMGTAligner {
                                     "WW", "XX", "YY", "ZZ", "AAA", "BBB", "CCC", "DDD", 
                                     "EEE", "FFF", "GGG", "HHH", "III", "JJJ", "KKK", "LLL",
                                     "MMM", "NNN", "OOO", "PPP", "QQQ", "RRR", "SSS", "TTT",
-                                    "UUU", "VVV", "WWW", "XXX", "YYY", "ZZZ"}
+                                    "UUU", "VVV", "WWW", "XXX", "YYY", "ZZZ"};
 };
 
 #endif
