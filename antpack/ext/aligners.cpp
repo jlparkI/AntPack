@@ -1,26 +1,6 @@
 #include "aligners.h"
 #include "utilities.h"
 
-// Codes for the pathways that can link a score
-// to the best-scoring parent.
-#define LEFT_TRANSFER 0
-#define DIAGONAL_TRANSFER 1
-#define UP_TRANSFER 2
-
-// Codes for errors that may be encountered.
-#define INVALID_SEQUENCE 0
-#define NO_ERROR 1
-#define FATAL_RUNTIME_ERROR 2
-
-// These are "magic number" positions in the IMGT framework at
-// which "forwards-backwards" insertion numbering must be applied.
-// This is a nuisance, but is out of our control -- the IMGT #ing
-// system has this quirk built-in... Note that because IMGT numbers
-// from 1, these positions are the actual IMGT position - 1.
-#define CDR1_INSERTION_PT 32
-#define CDR2_INSERTION_PT 60
-#define CDR3_INSERTION_PT 110
-
 
 
 
@@ -37,9 +17,9 @@ IMGTAligner::IMGTAligner(
         throw std::runtime_error(std::string("The scoreArray passed to "
                 "IMGTAligner must be a 2d array"));
     }
-    if (info.shape[1] != this->numAAs){
+    if (info.shape[1] != NUM_AAS){
         throw std::runtime_error(std::string("The scoreArray passed to "
-                "IMGTAligner must have 21 columns (1 per AA plus 1 for gap penalties)"));
+                "IMGTAligner must have 22 columns (1 per AA plus 2 for gap penalties)"));
     }
     if (info.shape[0] != NUM_IMGT_POSITIONS){
         throw std::runtime_error(std::string("The scoreArray passed to "
@@ -76,8 +56,6 @@ IMGTAligner::IMGTAligner(
             consensusMap[i].insert(AA[0]);
         }
     }
-
-    numPositions = info.shape[0];
 }
 
 
@@ -93,12 +71,12 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     std::vector<int> positionKey;
 
     int rowSize = query_sequence.length() + 1;
-    int numElements = rowSize * (this->numPositions + 1);
+    int numElements = rowSize * (NUM_IMGT_POSITIONS + 1);
 
     double *needleScores = new double[ numElements ];
     int *queryAsIdx = new int[query_sequence.length()];
     int *pathTrace = new int[ numElements ];
-    int unsigned *initNumbering = new unsigned int[ this->numPositions ];
+    int unsigned *initNumbering = new unsigned int[ NUM_IMGT_POSITIONS ];
     auto scoreItr = this->scoreArray.unchecked<2>();
 
 
@@ -111,38 +89,79 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                         percentIdentity, INVALID_SEQUENCE};
     }
 
-    // Fill in the first row of the tables.
+    // Fill in the first row of the tables. We use a default score here
+    // to ensure that insertions in the template only are highly tolerated
+    // at the beginning of the sequence, UNLESS we are at a highly conserved
+    // position.
     needleScores[0] = 0;
     pathTrace[0] = 0;
     for (size_t i=0; i < query_sequence.length(); i++){
-        needleScores[i+1] = needleScores[i] + scoreItr(0,20);
+        switch (i){
+            case HIGHLY_CONSERVED_POSITION_1:
+            case HIGHLY_CONSERVED_POSITION_2:
+            case HIGHLY_CONSERVED_POSITION_3:
+            case HIGHLY_CONSERVED_POSITION_4:
+                needleScores[i+1] = needleScores[i] - scoreItr(i-1,QUERY_GAP_COLUMN);
+                break;
+            default:
+                needleScores[i+1] = needleScores[i] - 1;
+                break;
+        }
         pathTrace[i+1] = LEFT_TRANSFER;
     }
 
     // Now fill in the scoring grid, using the position-specific
     // scores for indels and substitutions, and add the appropriate
     // pathway traces.
-    for (int i=1; i < this->numPositions + 1; i++){
+    for (int i=1; i < NUM_IMGT_POSITIONS + 1; i++){
         int gridPos = i * rowSize;
         int diagNeighbor = (i - 1) * rowSize;
         int upperNeighbor = diagNeighbor + 1;
-        needleScores[gridPos] = needleScores[diagNeighbor] + scoreItr(i-1,20);
+        // The first column assigns a low penalty for gaps so that n-terminal
+        // deletions if encountered are accepted, UNLESS we are at a highly
+        // conserved position.
+        needleScores[gridPos] = needleScores[diagNeighbor] - 1;
         pathTrace[gridPos] = UP_TRANSFER;
         gridPos++;
 
         for (size_t j=0; j < query_sequence.length(); j++){
-            double lscore = needleScores[gridPos - 1] +
-                    scoreItr(i-1,20);
-            double uscore = needleScores[upperNeighbor] + 
-                    scoreItr(i-1,20);
-            double dscore = needleScores[diagNeighbor] + 
-                    scoreItr(i-1,queryAsIdx[j]);
+            double lscore, uscore, dscore;
+            dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
+
+            // Notice that we use a default score for the last
+            // row only, so that insertions in the query are well-tolerated there.
+            switch (i){
+                case HIGHLY_CONSERVED_POSITION_1:
+                case HIGHLY_CONSERVED_POSITION_2:
+                case HIGHLY_CONSERVED_POSITION_3:
+                case HIGHLY_CONSERVED_POSITION_4:
+                    lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
+                    break;
+                case NUM_IMGT_POSITIONS:
+                    lscore = needleScores[gridPos - 1] - 1;
+                    break;
+                default:
+                    lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
+                    break;
+            }
+            // Likewise, we use a default score for the last column, so that c-terminal
+            // deletions if encountered are well-tolerated.
+            if (j < (query_sequence.length() - 1)){
+                uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+            }
+            else if (j == HIGHLY_CONSERVED_POSITION_1 || j == HIGHLY_CONSERVED_POSITION_2
+                || j == HIGHLY_CONSERVED_POSITION_3 || j == HIGHLY_CONSERVED_POSITION_4){
+                uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+            }
+            else{
+                uscore = needleScores[upperNeighbor] - 1;
+            }
 
             // This is mildly naughty -- we don't consider the possibility
-            // of a tie. Realistically, ties are going to be both extremely
-            // rare and low-impact in this situation because of the way
-            // the positions are scored. For now we are defaulting to "match"
-            // if there is a tie.
+            // of a tie, which could lead to a branched alignment. Realistically,
+            // ties are going to be rare and low-impact in this situation because
+            // of the way the positions are scored. For now we are defaulting to
+            // "match" if there is a tie.
             if (lscore > uscore && lscore > dscore){
                 needleScores[gridPos] = lscore;
                 pathTrace[gridPos] = LEFT_TRANSFER;
@@ -162,8 +181,9 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         }
     }
 
+
     // Set all members of initNumbering array to 0.
-    for (int i=0; i < this->numPositions; i++){
+    for (int i=0; i < NUM_IMGT_POSITIONS; i++){
         initNumbering[i] = 0;
     }
 
@@ -171,7 +191,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     // were at each position where there is an insertion. Determine
     // how many gaps exist at the beginning and end of the sequence
     // as well (the "N-terminus" and "C-terminus").
-    int i = this->numPositions;
+    int i = NUM_IMGT_POSITIONS;
     int j = query_sequence.length();
     int numNTermGaps = 0;
     int numCTermGaps = 0;
@@ -180,7 +200,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         int gridPos = i * rowSize + j;
         switch (pathTrace[gridPos]){
             case LEFT_TRANSFER:
-                if (i > 0 && i < this->numPositions){
+                if (i > 0 && i < NUM_IMGT_POSITIONS){
                     initNumbering[i-1] += 1;
                 }
                 else if (i == 0){
@@ -237,7 +257,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     // We also create the positionKey here which we can quickly use to determine
     // percent identity by referencing this->consensusMap, which indicates
     // what AAs are expected at each position.
-    for (i=0; i < this->numPositions; i++){
+    for (i=0; i < NUM_IMGT_POSITIONS; i++){
         if (initNumbering[i] == 0){
             continue;
         }
@@ -286,8 +306,8 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                     return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
                         percentIdentity, FATAL_RUNTIME_ERROR};
                 }
-                for (j=1; j < initNumbering[i]; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j-1]);
+                for (size_t k=1; k < initNumbering[i]; k++){
+                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
                     positionKey.push_back(-1);
                 }
                 break;
@@ -298,7 +318,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     // Add gaps at the end of the numbering corresponding to the
     // number of C-terminal insertions. This ensures the numbering has
     // the same length as the input sequence.
-    for (i=0; i < numCTermGaps; i++){
+    for (int k=0; k < numCTermGaps; k++){
         finalNumbering.push_back("-");
         positionKey.push_back(-1);
     }

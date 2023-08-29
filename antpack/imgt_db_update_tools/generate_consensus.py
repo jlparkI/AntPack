@@ -7,7 +7,7 @@ import os
 import numpy as np
 from Bio.Align import substitution_matrices
 from ..constants.allowed_inputs import allowed_aa_list
-from ..constants.hmmbuild_constants import insertion_positions, conserved_positions, cdrs
+from ..constants.hmmbuild_constants import insertion_positions, conserved_positions, cdrs, special_positions
 
 
 def build_consensus_files(target_dir, current_dir, alignment_fname):
@@ -66,7 +66,10 @@ def write_consensus_file(sequences, chain_type):
         position_key = {i:set() for i in range(len(sequences[0]))}
         for sequence in sequences:
             for i, letter in enumerate(sequence):
-                position_key[i].add(letter)
+                if i + 1 in cdrs:
+                    position_key[i].add('-')
+                else:
+                    position_key[i].add(letter)
         for i in range(len(sequences[0])):
             observed_aas = sorted(list(position_key[i]))
             fhandle.write(f"{i+1},")
@@ -87,7 +90,7 @@ def save_consensus_array(sequences, chain_type):
     blosum = substitution_matrices.load("BLOSUM62")
     blosum_key = {letter:i for i, letter in enumerate(blosum.alphabet)}
 
-    key_array = np.zeros((128, 21))
+    key_array = np.zeros((128, 22))
     len_distro = [len(s) for s in sequences]
 
     if max(len_distro) != min(len_distro):
@@ -95,26 +98,25 @@ def save_consensus_array(sequences, chain_type):
 
     for i in range(len_distro[0]):
         position = i + 1
-        observed_aas = set()
-        for seq in sequences:
-            observed_aas.add(seq[i])
-        observed_aas = list(observed_aas)
-
-        #First, choose the w2 weight which increases the cost of deviating
-        #from expected at conserved positions. Then, choose the gap penalty
-        #(column 20 of key array)
-        score_weight = 1.0
-        if position in conserved_positions:
-            score_weight = 5.0
-            key_array[i,20] = -55.0
-        elif position in cdrs and position not in insertion_positions:
-            key_array[i,20] = cdrs[position]
-        elif position in insertion_positions:
-            key_array[i,20] = -1.0
-        elif position in [1,128]:
-            key_array[i,20] = 0.0
+        if position in cdrs:
+            observed_aas = ['-']
         else:
-            key_array[i,20] = -26.0
+            observed_aas = set()
+            for seq in sequences:
+                observed_aas.add(seq[i])
+            observed_aas = list(observed_aas)
+
+        #Choose the gap penalty
+        #for template (column 20) and for query (column 21) of key array.
+        if position in conserved_positions:
+            key_array[i,20:] = -60
+        elif position in special_positions:
+            key_array[i,20] = special_positions[position][0]
+            key_array[i,21:] = special_positions[position][1]
+        elif position in cdrs:
+            key_array[i,20:] = cdrs[position]
+        else:
+            key_array[i,20:] = -26.0
 
         #Next, fill in the scores for other amino acid substitutions. If a conserved
         #residue, use the ones we specify here. Otherwise, use the best possible
@@ -123,12 +125,12 @@ def save_consensus_array(sequences, chain_type):
         for j, letter in enumerate(allowed_aa_list):
             letter_blosum_idx = blosum_key[letter]
             if position in conserved_positions:
-                score = max([blosum[letter_blosum_idx, blosum_key[k]] for k in
-                    conserved_positions[position]])
+                if letter in conserved_positions[position]:
+                    key_array[i,j] = 5
+                else:
+                    key_array[i,j] = -60
             else:
-                score = max([blosum[letter_blosum_idx, blosum_key[k]] if k != "-" else 0 for k in
+                key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if k != "-" else 0 for k in
                     observed_aas])
-
-            key_array[i,j] = score * score_weight
 
     np.save(f"CONSENSUS_{chain_type}.npy", key_array)

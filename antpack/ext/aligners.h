@@ -13,6 +13,40 @@ namespace py = pybind11;
 
 // The IMGT numbering system will always have (at least) 128 positions.
 #define NUM_IMGT_POSITIONS 128
+// We have 22 AAs -- the 20 standard aminos then a gap in query penalty
+// vs gap in template -- thus, 22 expected values.
+#define NUM_AAS 22
+
+// Codes for the pathways that can link a score
+// to the best-scoring parent.
+#define LEFT_TRANSFER 0
+#define DIAGONAL_TRANSFER 1
+#define UP_TRANSFER 2
+
+// Codes for errors that may be encountered.
+#define INVALID_SEQUENCE 0
+#define NO_ERROR 1
+#define FATAL_RUNTIME_ERROR 2
+
+// These are "magic number" positions in the IMGT framework at
+// which "forwards-backwards" insertion numbering must be applied.
+// This is a nuisance, but is out of our control -- the IMGT #ing
+// system has this quirk built-in... Note that because IMGT numbers
+// from 1, these positions are the actual IMGT position - 1.
+#define CDR1_INSERTION_PT 31
+#define CDR2_INSERTION_PT 59
+#define CDR3_INSERTION_PT 110
+
+// Four highly conserved positions which must be respected when forming an
+// alignment. These are again the IMGT positions -1 due to the numbering from 1.
+#define HIGHLY_CONSERVED_POSITION_1 22
+#define HIGHLY_CONSERVED_POSITION_2 40
+#define HIGHLY_CONSERVED_POSITION_3 103
+#define HIGHLY_CONSERVED_POSITION_4 117
+
+// The columns of the score matrix that are accessed for gap penalties.
+#define QUERY_GAP_COLUMN 20
+#define TEMPLATE_GAP_COLUMN 21
 
 
 class IMGTAligner {
@@ -22,12 +56,13 @@ class IMGTAligner {
 
         std::tuple<std::vector<std::string>, double, int> 
                 align(std::string query_sequence);
+        void cleanupCDRRegions(unsigned int *initNumbering);
+
     protected:
-        py::array_t<double> scoreArray;
-        int numPositions;
         int numRestrictedPositions;
-        const int numAAs=21;
+        py::array_t<double> scoreArray;
         std::array<std::set<char>, NUM_IMGT_POSITIONS> consensusMap;
+
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here
         // for consistency and ease of comparison. This does limit the number of possible
@@ -35,7 +70,7 @@ class IMGTAligner {
         // at some point in the sequence, there is almost certainly an error in the alignment, and
         // that's how we handle this eventuality if it occurs. (Indeed, it is very rare to have
         // more than a few at any given position, so the size of alphabet here is overkill.)
-        std::vector<std::string> alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I",
+        const std::vector<std::string> alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I",
                                     "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
                                     "V", "W", "X", "Y", "Z", "AA", "BB", "CC", "DD", "EE",
                                     "FF", "GG", "HH", "II", "JJ", "KK", "LL", "MM", "NN",
