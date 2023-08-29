@@ -7,7 +7,8 @@ import os
 import numpy as np
 from Bio.Align import substitution_matrices
 from ..constants.allowed_inputs import allowed_aa_list
-from ..constants.hmmbuild_constants import insertion_positions, conserved_positions, cdrs, special_positions
+from ..constants.hmmbuild_constants import heavy_conserved_positions
+from ..constants.hmmbuild_constants import light_conserved_positions, cdrs, special_positions
 
 
 def build_consensus_files(target_dir, current_dir, alignment_fname):
@@ -90,6 +91,14 @@ def save_consensus_array(sequences, chain_type):
     blosum = substitution_matrices.load("BLOSUM62")
     blosum_key = {letter:i for i, letter in enumerate(blosum.alphabet)}
 
+
+    if chain_type.endswith("L") or chain_type.endswith("K"):
+        conserved_positions = light_conserved_positions
+    elif chain_type.endswith("H"):
+        conserved_positions = heavy_conserved_positions
+    else:
+        return
+
     key_array = np.zeros((128, 22))
     len_distro = [len(s) for s in sequences]
 
@@ -116,7 +125,7 @@ def save_consensus_array(sequences, chain_type):
         elif position in cdrs:
             key_array[i,20:] = cdrs[position]
         else:
-            key_array[i,20:] = -26.0
+            key_array[i,20:] = -25.0
 
         #Next, fill in the scores for other amino acid substitutions. If a conserved
         #residue, use the ones we specify here. Otherwise, use the best possible
@@ -125,8 +134,8 @@ def save_consensus_array(sequences, chain_type):
         for j, letter in enumerate(allowed_aa_list):
             letter_blosum_idx = blosum_key[letter]
             if position in conserved_positions:
-                if letter in conserved_positions[position]:
-                    key_array[i,j] = 5
+                if letter == conserved_positions[position]:
+                    key_array[i,j] = 10
                 else:
                     key_array[i,j] = -60
             else:

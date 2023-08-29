@@ -27,14 +27,15 @@ namespace py = pybind11;
 #define INVALID_SEQUENCE 0
 #define NO_ERROR 1
 #define FATAL_RUNTIME_ERROR 2
+#define TOO_MANY_INSERTIONS 3
 
 // These are "magic number" positions in the IMGT framework at
 // which "forwards-backwards" insertion numbering must be applied.
 // This is a nuisance, but is out of our control -- the IMGT #ing
 // system has this quirk built-in... Note that because IMGT numbers
 // from 1, these positions are the actual IMGT position - 1.
-#define CDR1_INSERTION_PT 31
-#define CDR2_INSERTION_PT 59
+#define CDR1_INSERTION_PT 32
+#define CDR2_INSERTION_PT 60
 #define CDR3_INSERTION_PT 110
 
 // Four highly conserved positions which must be respected when forming an
@@ -48,6 +49,9 @@ namespace py = pybind11;
 #define QUERY_GAP_COLUMN 20
 #define TEMPLATE_GAP_COLUMN 21
 
+// A default gap penalty for gaps at the beginning and end of the sequence.
+#define DEFAULT_GAP_PENALTY -1
+
 
 class IMGTAligner {
     public:
@@ -56,9 +60,10 @@ class IMGTAligner {
 
         std::tuple<std::vector<std::string>, double, int> 
                 align(std::string query_sequence);
-        void cleanupCDRRegions(unsigned int *initNumbering);
 
     protected:
+        void fillNeedleScoringTable(double *needleScores, int *pathTrace,
+                    int querySeqLen, int rowSize, int *queryAsIdx);
         int numRestrictedPositions;
         py::array_t<double> scoreArray;
         std::array<std::set<char>, NUM_IMGT_POSITIONS> consensusMap;

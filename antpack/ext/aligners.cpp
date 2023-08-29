@@ -77,7 +77,6 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     int *queryAsIdx = new int[query_sequence.length()];
     int *pathTrace = new int[ numElements ];
     int unsigned *initNumbering = new unsigned int[ NUM_IMGT_POSITIONS ];
-    auto scoreItr = this->scoreArray.unchecked<2>();
 
 
     if (!convert_sequence_to_array(queryAsIdx, query_sequence)){
@@ -89,98 +88,9 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                         percentIdentity, INVALID_SEQUENCE};
     }
 
-    // Fill in the first row of the tables. We use a default score here
-    // to ensure that insertions in the template only are highly tolerated
-    // at the beginning of the sequence, UNLESS we are at a highly conserved
-    // position.
-    needleScores[0] = 0;
-    pathTrace[0] = 0;
-    for (size_t i=0; i < query_sequence.length(); i++){
-        switch (i){
-            case HIGHLY_CONSERVED_POSITION_1:
-            case HIGHLY_CONSERVED_POSITION_2:
-            case HIGHLY_CONSERVED_POSITION_3:
-            case HIGHLY_CONSERVED_POSITION_4:
-                needleScores[i+1] = needleScores[i] - scoreItr(i-1,QUERY_GAP_COLUMN);
-                break;
-            default:
-                needleScores[i+1] = needleScores[i] - 1;
-                break;
-        }
-        pathTrace[i+1] = LEFT_TRANSFER;
-    }
-
-    // Now fill in the scoring grid, using the position-specific
-    // scores for indels and substitutions, and add the appropriate
-    // pathway traces.
-    for (int i=1; i < NUM_IMGT_POSITIONS + 1; i++){
-        int gridPos = i * rowSize;
-        int diagNeighbor = (i - 1) * rowSize;
-        int upperNeighbor = diagNeighbor + 1;
-        // The first column assigns a low penalty for gaps so that n-terminal
-        // deletions if encountered are accepted, UNLESS we are at a highly
-        // conserved position.
-        needleScores[gridPos] = needleScores[diagNeighbor] - 1;
-        pathTrace[gridPos] = UP_TRANSFER;
-        gridPos++;
-
-        for (size_t j=0; j < query_sequence.length(); j++){
-            double lscore, uscore, dscore;
-            dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
-
-            // Notice that we use a default score for the last
-            // row only, so that insertions in the query are well-tolerated there.
-            switch (i){
-                case HIGHLY_CONSERVED_POSITION_1:
-                case HIGHLY_CONSERVED_POSITION_2:
-                case HIGHLY_CONSERVED_POSITION_3:
-                case HIGHLY_CONSERVED_POSITION_4:
-                    lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
-                    break;
-                case NUM_IMGT_POSITIONS:
-                    lscore = needleScores[gridPos - 1] - 1;
-                    break;
-                default:
-                    lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
-                    break;
-            }
-            // Likewise, we use a default score for the last column, so that c-terminal
-            // deletions if encountered are well-tolerated.
-            if (j < (query_sequence.length() - 1)){
-                uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
-            }
-            else if (j == HIGHLY_CONSERVED_POSITION_1 || j == HIGHLY_CONSERVED_POSITION_2
-                || j == HIGHLY_CONSERVED_POSITION_3 || j == HIGHLY_CONSERVED_POSITION_4){
-                uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
-            }
-            else{
-                uscore = needleScores[upperNeighbor] - 1;
-            }
-
-            // This is mildly naughty -- we don't consider the possibility
-            // of a tie, which could lead to a branched alignment. Realistically,
-            // ties are going to be rare and low-impact in this situation because
-            // of the way the positions are scored. For now we are defaulting to
-            // "match" if there is a tie.
-            if (lscore > uscore && lscore > dscore){
-                needleScores[gridPos] = lscore;
-                pathTrace[gridPos] = LEFT_TRANSFER;
-            }
-            else if (uscore > dscore){
-                needleScores[gridPos] = uscore;
-                pathTrace[gridPos] = UP_TRANSFER;
-            }
-            else{
-                needleScores[gridPos] = dscore;
-                pathTrace[gridPos] = DIAGONAL_TRANSFER;
-            }
-
-            gridPos++;
-            diagNeighbor++;
-            upperNeighbor++;
-        }
-    }
-
+    // Fill in the scoring table.
+    fillNeedleScoringTable(needleScores, pathTrace,
+                    query_sequence.length(), rowSize, queryAsIdx);
 
     // Set all members of initNumbering array to 0.
     for (int i=0; i < NUM_IMGT_POSITIONS; i++){
@@ -230,13 +140,6 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                         percentIdentity, FATAL_RUNTIME_ERROR};
                 break;
         }
-        // This should never happen, but just in case...
-        if (i < 0){
-            i = 0;
-        }
-        if (j < 0){
-            j = 0;
-        }
     }
 
     // Add gaps at the beginning of the numbering corresponding to the
@@ -261,14 +164,19 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         if (initNumbering[i] == 0){
             continue;
         }
-        // The +1 here and hereafter is because IMGT numbers from 1.
-        // Position key maps the IMGT numbering to integers that access
-        // this->consensusMap.
-        finalNumbering.push_back(std::to_string(i+1));
-        positionKey.push_back(i);
-        if (initNumbering[i] == 1){
-            continue;
+        // Highly unlikely given the size of the alphabet we've used that
+        // we will ever run into a problem where there are too many insertions,
+        // but at least possible.
+        if (initNumbering[i] > this->alphabet.size()){
+                    delete[] queryAsIdx;
+                    delete[] needleScores;
+                    delete[] pathTrace;
+                    delete[] initNumbering;
+                    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
+                        percentIdentity, TOO_MANY_INSERTIONS};
         }
+        int ceil_cutpoint, floor_cutpoint;
+
         // These are the positions for which we need to deploy forward-backward
         // lettering (because the IMGT system is weird, but also the default...)
         // positionKey is set to -1 for all insertions to indicate these should
@@ -276,16 +184,24 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         switch (i){
             case CDR1_INSERTION_PT:
             case CDR2_INSERTION_PT:
-            case CDR3_INSERTION_PT:
-                if (initNumbering[i] > this->alphabet.size()){
-                    delete[] queryAsIdx;
-                    delete[] needleScores;
-                    delete[] pathTrace;
-                    delete[] initNumbering;
-                    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                        percentIdentity, FATAL_RUNTIME_ERROR};
+                ceil_cutpoint = initNumbering[i] / 2;
+                floor_cutpoint = (initNumbering[i] - 1) / 2;
+                for (j=0; j < floor_cutpoint; j++){
+                    finalNumbering.push_back(std::to_string(i) + this->alphabet[j]);
+                    positionKey.push_back(-1);
                 }
-                int ceil_cutpoint, floor_cutpoint;
+                for (j=ceil_cutpoint; j > 0; j--){
+                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j-1]);
+                    positionKey.push_back(-1);
+                }
+    
+                finalNumbering.push_back(std::to_string(i+1));
+                positionKey.push_back(i);
+                break;
+
+            case CDR3_INSERTION_PT:
+                finalNumbering.push_back(std::to_string(i+1));
+                positionKey.push_back(i);
                 ceil_cutpoint = initNumbering[i] / 2;
                 floor_cutpoint = (initNumbering[i] - 1) / 2;
                 for (j=0; j < floor_cutpoint; j++){
@@ -298,14 +214,8 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                 }
                 break;
             default:
-                if (initNumbering[i] > this->alphabet.size()){
-                    delete[] queryAsIdx;
-                    delete[] needleScores;
-                    delete[] pathTrace;
-                    delete[] initNumbering;
-                    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                        percentIdentity, FATAL_RUNTIME_ERROR};
-                }
+                finalNumbering.push_back(std::to_string(i+1));
+                positionKey.push_back(i);
                 for (size_t k=1; k < initNumbering[i]; k++){
                     finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
                     positionKey.push_back(-1);
@@ -341,6 +251,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         }
     }
     
+    
     percentIdentity /= this->numRestrictedPositions;
 
     delete[] queryAsIdx;
@@ -349,4 +260,149 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     delete[] initNumbering;
     return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
                     percentIdentity, NO_ERROR};
+}
+
+
+// Fill in the scoring table created by caller, using the position-specific
+// scores for indels and substitutions, and add the appropriate
+// pathway traces.
+void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
+                    int querySeqLen, int rowSize, int *queryAsIdx){
+    double lscore, uscore, dscore;
+    int i, j, gridPos, diagNeighbor, upperNeighbor;
+    auto scoreItr = this->scoreArray.unchecked<2>();
+
+
+    // Fill in the first row of the tables. We use a default score here
+    // to ensure that insertions in the template only are highly tolerated
+    // at the beginning of the sequence, UNLESS we are at a highly conserved
+    // position.
+    needleScores[0] = 0;
+    pathTrace[0] = 0;
+    for (i=0; i < querySeqLen; i++){
+        needleScores[i+1] = needleScores[i] + DEFAULT_GAP_PENALTY;
+        pathTrace[i+1] = LEFT_TRANSFER;
+    }
+
+
+    // This first loop goes up to the last row only (the last row)
+    // is handled separately since it requires special logic).
+    // Handling the last row separately is about 10 - 15% faster than
+    // using if else statements to determine when the last row is
+    // reached inside this loop.
+    for (i=1; i < NUM_IMGT_POSITIONS; i++){
+
+        gridPos = i * rowSize;
+        diagNeighbor = (i - 1) * rowSize;
+        upperNeighbor = diagNeighbor + 1;
+        // The first column assigns a low penalty for gaps so that n-terminal
+        // deletions if encountered are accepted, UNLESS we are at a highly
+        // conserved position.
+        needleScores[gridPos] = needleScores[diagNeighbor] + DEFAULT_GAP_PENALTY;
+        pathTrace[gridPos] = UP_TRANSFER;
+        gridPos++;
+
+        for (j=0; j < (querySeqLen - 1); j++){
+            dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
+            lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
+            uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+
+            // This is mildly naughty -- we don't consider the possibility
+            // of a tie, which could lead to a branched alignment. Realistically,
+            // ties are going to be rare and low-impact in this situation because
+            // of the way the positions are scored. For now we are defaulting to
+            // "match" if there is a tie.
+            if (lscore > uscore && lscore > dscore){
+                needleScores[gridPos] = lscore;
+                pathTrace[gridPos] = LEFT_TRANSFER;
+            }
+            else if (uscore > dscore){
+                needleScores[gridPos] = uscore;
+                pathTrace[gridPos] = UP_TRANSFER;
+            }
+            else{
+                needleScores[gridPos] = dscore;
+                pathTrace[gridPos] = DIAGONAL_TRANSFER;
+            }
+
+            gridPos++;
+            diagNeighbor++;
+            upperNeighbor++;
+        }
+
+        j = querySeqLen - 1;
+        dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
+        lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
+        // We use a default score for the last column, so that c-terminal
+        // deletions if encountered are well-tolerated.
+        uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
+        if (lscore > uscore && lscore > dscore){
+            needleScores[gridPos] = lscore;
+            pathTrace[gridPos] = LEFT_TRANSFER;
+        }
+        else if (uscore > dscore){
+            needleScores[gridPos] = uscore;
+            pathTrace[gridPos] = UP_TRANSFER;
+        }
+        else{
+            needleScores[gridPos] = dscore;
+            pathTrace[gridPos] = DIAGONAL_TRANSFER;
+        }
+    }
+
+
+
+    // Now handle the last row.
+    i = NUM_IMGT_POSITIONS;
+    gridPos = i * rowSize;
+    diagNeighbor = (i - 1) * rowSize;
+    upperNeighbor = diagNeighbor + 1;
+    // The first column assigns a low penalty for gaps so that n-terminal
+    // deletions if encountered are accepted, UNLESS we are at a highly
+    // conserved position.
+    needleScores[gridPos] = needleScores[diagNeighbor] - 1;
+    pathTrace[gridPos] = UP_TRANSFER;
+    gridPos++;
+
+    for (j=0; j < (querySeqLen - 1); j++){
+        double lscore, uscore, dscore;
+        dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
+        lscore = needleScores[gridPos - 1] + DEFAULT_GAP_PENALTY;
+        uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+
+        if (lscore > uscore && lscore > dscore){
+            needleScores[gridPos] = lscore;
+            pathTrace[gridPos] = LEFT_TRANSFER;
+        }
+        else if (uscore > dscore){
+            needleScores[gridPos] = uscore;
+            pathTrace[gridPos] = UP_TRANSFER;
+        }
+        else{
+            needleScores[gridPos] = dscore;
+            pathTrace[gridPos] = DIAGONAL_TRANSFER;
+        }
+
+        gridPos++;
+        diagNeighbor++;
+        upperNeighbor++;
+    }
+
+    // And, finally, the last column of the last row.
+    j = querySeqLen - 1;
+    dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
+    lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
+    uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
+    if (lscore > uscore && lscore > dscore){
+        needleScores[gridPos] = lscore;
+        pathTrace[gridPos] = LEFT_TRANSFER;
+    }
+    else if (uscore > dscore){
+        needleScores[gridPos] = uscore;
+        pathTrace[gridPos] = UP_TRANSFER;
+    }
+    else{
+        needleScores[gridPos] = dscore;
+        pathTrace[gridPos] = DIAGONAL_TRANSFER;
+    }
 }
