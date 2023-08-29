@@ -171,7 +171,7 @@ class SingleChainAnnotator:
         sequence_results = []
         for sequence in sequences:
             if not validate_sequence(sequence):
-                sequence_results.append(([], 0.0, "Invalid sequence supplied -- nonstandard AAs"))
+                sequence_results.append(([], 0.0, "", "Invalid sequence supplied -- nonstandard AAs"))
                 continue
             results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
             results = sorted(results, key=lambda x: x[1])
@@ -180,7 +180,7 @@ class SingleChainAnnotator:
         return sequence_results
 
 
-    def analyze_fasta(self, fasta_file, scheme="imgt"):
+    def analyze_fasta(self, fasta_file):
         """A generator that numbers and scores sequences from a fasta
         file. Since it is a generator it will only load one sequence at
         a time. You should in your code when retrieving results from
@@ -189,8 +189,6 @@ class SingleChainAnnotator:
 
         Args:
             fasta_file (str): A filepath to a valid fasta file.
-            scheme (str): The numbering scheme. Should be one of 'imgt', 'martin',
-                'chothia', 'kabat', 'aho', 'wolfguy'.
 
         Returns:
             sequence_results (list): A list of tuples of (sequence numbering, score,
@@ -201,9 +199,6 @@ class SingleChainAnnotator:
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are supplied.
         """
-        if scheme not in allowed_inputs.allowed_schemes:
-            raise ValueError(f"Input scheme {scheme} is not allowed; "
-                "should be one of {allowed_inputs.allowed_schemes}")
         if not os.path.isfile(fasta_file):
             raise ValueError("Nonexistent file path supplied.")
 
@@ -211,7 +206,7 @@ class SingleChainAnnotator:
             for seqrecord in SeqIO.parse(fhandle, "fasta"):
                 sequence = str(seqrecord.seq)
                 if not validate_sequence(sequence):
-                    best_result = (None, None, "invalid_sequence")
+                    best_result = ([], 0.0, "", "invalid_sequence")
                 else:
                     results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
                     results = sorted(results, key=lambda x: x[1])

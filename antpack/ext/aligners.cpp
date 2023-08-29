@@ -301,7 +301,8 @@ std::tuple<std::vector<std::string>, double, std::string,
             }
         }
     }
-    
+
+
 
     percentIdentity /= this->numRestrictedPositions;
 

@@ -75,17 +75,11 @@ class IMGTAligner {
         const std::string chainName;
         std::vector<std::set<char>> consensusMap;
         std::array<std::string, 6> errorCodeToMessage {"",
-                "The sequence contains invalid characters",
-                "A fatal runtime error occurred in IMGTAligner. This is very unusual. "
-                        "Please report",
-                "More than 72 insertions were found. This is highly unlikely for an "
-                    "antibody and suggests a problem with this sequence",
-                "The alignment length does not match the length of the input sequence. "
-                    "This is an unusual error; please report.",
-                "The sequence does not have an expected amino acid at one or more "
-                    "conserved positions 23, 41, 104, 118, 119, 121. Either it is "
-                    "not an antibody, OR there was a serious alignment error, "
-                    "OR it contains a large deletion."};
+                "Sequence contains invalid characters",
+                "Fatal runtime error in IMGTAligner. Unusual. Please report",
+                "> 72 insertions. Suggests a problem with this sequence",
+                "Alignment length != length of input sequence. Unusual. Please report.",
+                "Unexpected AA at conserved position."};
 
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here
