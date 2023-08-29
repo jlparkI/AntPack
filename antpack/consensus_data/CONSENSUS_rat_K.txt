@@ -8,7 +8,7 @@
 7,A,Q,S,T
 8,A,P,S
 9,A,E,L,P,S,T,V
-10,-,F,L,S,V
+10,-
 11,L,M,V
 12,A,F,P,S,W
 13,A,I,L,M,T,V

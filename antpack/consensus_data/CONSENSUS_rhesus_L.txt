@@ -79,8 +79,8 @@
 78,A,G,S,V
 79,F,L,S
 80,I,K,L,M,N,Q,R,S,T,W
-81,-,D,E
-82,-,A,D,S,T
+81,-
+82,-
 83,A,L,S,W
 84,A,G,S,T
 85,A,D,G,N,S,T

@@ -6,9 +6,11 @@
 
 IMGTAligner::IMGTAligner(
                  py::array_t<double> scoreArray,
-                 std::vector<std::vector<std::string>> consensus
+                 std::vector<std::vector<std::string>> consensus,
+                 std::string chainName
 ):
-    scoreArray(scoreArray)
+    scoreArray(scoreArray),
+    chainName(chainName)
 {
     py::buffer_info info = scoreArray.request();
     // Note that exceptions thrown here are go back to Python via
@@ -21,17 +23,20 @@ IMGTAligner::IMGTAligner(
         throw std::runtime_error(std::string("The scoreArray passed to "
                 "IMGTAligner must have 22 columns (1 per AA plus 2 for gap penalties)"));
     }
-    if (info.shape[0] != NUM_IMGT_POSITIONS){
+    if (info.shape[0] != NUM_HEAVY_IMGT_POSITIONS && info.shape[0] !=
+                NUM_LIGHT_IMGT_POSITIONS){
         throw std::runtime_error(std::string("The scoreArray passed to "
                 "IMGTAligner must have the expected number of positions "
                 "for the IMGT numbering system."));
     }
-    if (consensus.size() != NUM_IMGT_POSITIONS){
+    if (consensus.size() != NUM_HEAVY_IMGT_POSITIONS && consensus.size() !=
+                NUM_LIGHT_IMGT_POSITIONS){
         throw std::runtime_error(std::string("The consensus sequence passed to "
                 "IMGTAligner must have the expected number of positions "
                 "for the IMGT numbering system."));
     }
 
+    numPositions = info.shape[0];
     // Update the consensus map to indicate which letters are expected at
     // which IMGT positions. An empty set at a given position means that
     // ANY letter at that position is considered acceptable. These are
@@ -40,6 +45,7 @@ IMGTAligner::IMGTAligner(
     numRestrictedPositions = 0;
 
     for (size_t i = 0; i < consensus.size(); i++){
+        consensusMap.push_back(std::set<char> {});
         if (consensus[i].empty()){
             continue;
         }
@@ -59,24 +65,41 @@ IMGTAligner::IMGTAligner(
 }
 
 
-std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string query_sequence){
+
+
+
+
+std::tuple<std::vector<std::string>, double, std::string,
+        std::string> IMGTAligner::align(std::string query_sequence){
 
     std::vector<std::string> finalNumbering;
     double percentIdentity = 0;
+    std::string errorMessage;
+
+    // A list of allowed error codes. These will be mapped to strings that explain
+    // in more detail by the IMGTAligner class.
+    enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
+            tooManyInsertions  = 3, alignmentWrongLength = 4,
+            unacceptableConservedPositions = 5};
+    allowedErrorCodes errorCode;
+
     if (query_sequence.length() == 0){
-        return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                percentIdentity, INVALID_SEQUENCE};
+        errorCode = invalidSequence;
+        errorMessage = this->errorCodeToMessage[errorCode];
+        return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
     }
 
     std::vector<int> positionKey;
 
     int rowSize = query_sequence.length() + 1;
-    int numElements = rowSize * (NUM_IMGT_POSITIONS + 1);
+    int numElements = rowSize * (this->numPositions + 1);
 
     double *needleScores = new double[ numElements ];
     int *queryAsIdx = new int[query_sequence.length()];
     int *pathTrace = new int[ numElements ];
-    int unsigned *initNumbering = new unsigned int[ NUM_IMGT_POSITIONS ];
+    int unsigned *initNumbering = new unsigned int[ this->numPositions ];
 
 
     if (!convert_sequence_to_array(queryAsIdx, query_sequence)){
@@ -84,8 +107,11 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         delete[] needleScores;
         delete[] pathTrace;
         delete[] initNumbering;
-        return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                        percentIdentity, INVALID_SEQUENCE};
+        errorCode = invalidSequence;
+        errorMessage = this->errorCodeToMessage[errorCode];
+        return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
     }
 
     // Fill in the scoring table.
@@ -93,7 +119,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                     query_sequence.length(), rowSize, queryAsIdx);
 
     // Set all members of initNumbering array to 0.
-    for (int i=0; i < NUM_IMGT_POSITIONS; i++){
+    for (int i=0; i < this->numPositions; i++){
         initNumbering[i] = 0;
     }
 
@@ -101,7 +127,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     // were at each position where there is an insertion. Determine
     // how many gaps exist at the beginning and end of the sequence
     // as well (the "N-terminus" and "C-terminus").
-    int i = NUM_IMGT_POSITIONS;
+    int i = this->numPositions;
     int j = query_sequence.length();
     int numNTermGaps = 0;
     int numCTermGaps = 0;
@@ -110,7 +136,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         int gridPos = i * rowSize + j;
         switch (pathTrace[gridPos]){
             case LEFT_TRANSFER:
-                if (i > 0 && i < NUM_IMGT_POSITIONS){
+                if (i > 0 && i < this->numPositions){
                     initNumbering[i-1] += 1;
                 }
                 else if (i == 0){
@@ -136,8 +162,11 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                 delete[] needleScores;
                 delete[] pathTrace;
                 delete[] initNumbering;
-                return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                        percentIdentity, FATAL_RUNTIME_ERROR};
+                errorCode = fatalRuntimeError;
+                errorMessage = this->errorCodeToMessage[errorCode];
+                return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
                 break;
         }
     }
@@ -160,7 +189,7 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
     // We also create the positionKey here which we can quickly use to determine
     // percent identity by referencing this->consensusMap, which indicates
     // what AAs are expected at each position.
-    for (i=0; i < NUM_IMGT_POSITIONS; i++){
+    for (i=0; i < this->numPositions; i++){
         if (initNumbering[i] == 0){
             continue;
         }
@@ -172,8 +201,11 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
                     delete[] needleScores;
                     delete[] pathTrace;
                     delete[] initNumbering;
-                    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                        percentIdentity, TOO_MANY_INSERTIONS};
+                    errorCode = tooManyInsertions;
+                    errorMessage = this->errorCodeToMessage[errorCode];
+                    return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
         }
         int ceil_cutpoint, floor_cutpoint;
 
@@ -233,10 +265,17 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         positionKey.push_back(-1);
     }
 
+
     // positionKey is now the same length as finalNumbering and indicates at
     // each position whether that position maps to a standard 1 - 128 IMGT
     // position and if so what. Now use this to calculate percent identity,
     // excluding those positions at which IMGT tolerates any amino acid.
+    // At the same time, we can check whether the expected amino acids are
+    // present at the highly conserved residues. The consensus map will
+    // have only one possible amino acid at those positions.
+
+    int numRequiredPositionsFound = 0;
+
     for (size_t k=0; k < positionKey.size(); k++){
         int imgtStdPosition = positionKey[k];
         if (imgtStdPosition < 0){
@@ -248,19 +287,57 @@ std::tuple<std::vector<std::string>, double, int> IMGTAligner::align(std::string
         if (this->consensusMap[imgtStdPosition].find(query_sequence[k]) !=
                 this->consensusMap[imgtStdPosition].end()){
             percentIdentity += 1;
+            switch (imgtStdPosition){
+                case HIGHLY_CONSERVED_POSITION_1:
+                case HIGHLY_CONSERVED_POSITION_2:
+                case HIGHLY_CONSERVED_POSITION_3:
+                case HIGHLY_CONSERVED_POSITION_4:
+                case HIGHLY_CONSERVED_POSITION_5:
+                case HIGHLY_CONSERVED_POSITION_6:
+                    numRequiredPositionsFound += 1;
+                    break;
+                default:
+                    break;
+            }
         }
     }
     
-    
+
     percentIdentity /= this->numRestrictedPositions;
+
+
 
     delete[] queryAsIdx;
     delete[] needleScores;
     delete[] pathTrace;
     delete[] initNumbering;
-    return std::tuple<std::vector<std::string>, double, int>{finalNumbering,
-                    percentIdentity, NO_ERROR};
+
+    errorCode = noError;
+    // Check to make sure query sequence and numbering are same length. If not,
+    // this is a fatal error. (This should be extremely rare -- we have not
+    // encountered it so far).
+    if (query_sequence.length() != finalNumbering.size()){
+        errorCode = alignmentWrongLength;
+        errorMessage = this->errorCodeToMessage[errorCode];
+        return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
+    }
+    if (numRequiredPositionsFound != 6){
+        errorCode = unacceptableConservedPositions;
+    }
+
+    errorMessage = this->errorCodeToMessage[errorCode];
+    return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
 }
+
+
+
+
+
+
 
 
 // Fill in the scoring table created by caller, using the position-specific
@@ -271,7 +348,6 @@ void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
     double lscore, uscore, dscore;
     int i, j, gridPos, diagNeighbor, upperNeighbor;
     auto scoreItr = this->scoreArray.unchecked<2>();
-
 
     // Fill in the first row of the tables. We use a default score here
     // to ensure that insertions in the template only are highly tolerated
@@ -290,7 +366,7 @@ void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
     // Handling the last row separately is about 10 - 15% faster than
     // using if else statements to determine when the last row is
     // reached inside this loop.
-    for (i=1; i < NUM_IMGT_POSITIONS; i++){
+    for (i=1; i < this->numPositions; i++){
 
         gridPos = i * rowSize;
         diagNeighbor = (i - 1) * rowSize;
@@ -335,7 +411,19 @@ void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
         // We use a default score for the last column, so that c-terminal
         // deletions if encountered are well-tolerated.
-        uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
+        switch (i){
+            case HIGHLY_CONSERVED_POSITION_1:
+            case HIGHLY_CONSERVED_POSITION_2:
+            case HIGHLY_CONSERVED_POSITION_3:
+            case HIGHLY_CONSERVED_POSITION_4:
+            case HIGHLY_CONSERVED_POSITION_5:
+            case HIGHLY_CONSERVED_POSITION_6:
+                uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+                break;
+            default:
+                uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
+                break;
+        }
         if (lscore > uscore && lscore > dscore){
             needleScores[gridPos] = lscore;
             pathTrace[gridPos] = LEFT_TRANSFER;
@@ -353,7 +441,7 @@ void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
 
 
     // Now handle the last row.
-    i = NUM_IMGT_POSITIONS;
+    i = this->numPositions;
     gridPos = i * rowSize;
     diagNeighbor = (i - 1) * rowSize;
     upperNeighbor = diagNeighbor + 1;

@@ -17,6 +17,7 @@ PYBIND11_MODULE(ant_ext, m){
 
     py::class_<IMGTAligner>(m, "IMGTAligner")
         .def(py::init<py::array_t<double>,
-                std::vector<std::vector<std::string>>>())
+                std::vector<std::vector<std::string>>,
+                std::string>())
         .def("align", &IMGTAligner::align);
 }

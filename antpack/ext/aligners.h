@@ -12,7 +12,11 @@
 namespace py = pybind11;
 
 // The IMGT numbering system will always have (at least) 128 positions.
-#define NUM_IMGT_POSITIONS 128
+// Technically light chains also have 128, but due to another weird quirk
+// position 128 is never used for light chains.
+#define NUM_HEAVY_IMGT_POSITIONS 128
+#define NUM_LIGHT_IMGT_POSITIONS 127
+
 // We have 22 AAs -- the 20 standard aminos then a gap in query penalty
 // vs gap in template -- thus, 22 expected values.
 #define NUM_AAS 22
@@ -23,12 +27,6 @@ namespace py = pybind11;
 #define DIAGONAL_TRANSFER 1
 #define UP_TRANSFER 2
 
-// Codes for errors that may be encountered.
-#define INVALID_SEQUENCE 0
-#define NO_ERROR 1
-#define FATAL_RUNTIME_ERROR 2
-#define TOO_MANY_INSERTIONS 3
-
 // These are "magic number" positions in the IMGT framework at
 // which "forwards-backwards" insertion numbering must be applied.
 // This is a nuisance, but is out of our control -- the IMGT #ing
@@ -38,35 +36,56 @@ namespace py = pybind11;
 #define CDR2_INSERTION_PT 60
 #define CDR3_INSERTION_PT 110
 
-// Four highly conserved positions which must be respected when forming an
-// alignment. These are again the IMGT positions -1 due to the numbering from 1.
-#define HIGHLY_CONSERVED_POSITION_1 22
-#define HIGHLY_CONSERVED_POSITION_2 40
-#define HIGHLY_CONSERVED_POSITION_3 103
-#define HIGHLY_CONSERVED_POSITION_4 117
-
 // The columns of the score matrix that are accessed for gap penalties.
 #define QUERY_GAP_COLUMN 20
 #define TEMPLATE_GAP_COLUMN 21
 
+// Highly conserved positions in the IMGT scheme. These are the IMGT #s - 1.
+#define HIGHLY_CONSERVED_POSITION_1 22
+#define HIGHLY_CONSERVED_POSITION_2 40
+#define HIGHLY_CONSERVED_POSITION_3 103
+#define HIGHLY_CONSERVED_POSITION_4 117
+#define HIGHLY_CONSERVED_POSITION_5 118
+#define HIGHLY_CONSERVED_POSITION_6 120
+
 // A default gap penalty for gaps at the beginning and end of the sequence.
 #define DEFAULT_GAP_PENALTY -1
+
+// Codes for heavy and light chains.
+#define HEAVY_CHAIN 0
+#define LIGHT_CHAIN 1
 
 
 class IMGTAligner {
     public:
         IMGTAligner(py::array_t<double> scoreArray,
-                std::vector<std::vector<std::string>> consensus);
+                std::vector<std::vector<std::string>> consensus,
+                std::string chainName);
 
-        std::tuple<std::vector<std::string>, double, int> 
-                align(std::string query_sequence);
+        std::tuple<std::vector<std::string>, double,
+                std::string, std::string> align(std::string query_sequence);
 
     protected:
         void fillNeedleScoringTable(double *needleScores, int *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx);
+
+        int numPositions;
         int numRestrictedPositions;
         py::array_t<double> scoreArray;
-        std::array<std::set<char>, NUM_IMGT_POSITIONS> consensusMap;
+        const std::string chainName;
+        std::vector<std::set<char>> consensusMap;
+        std::array<std::string, 6> errorCodeToMessage {"",
+                "The sequence contains invalid characters",
+                "A fatal runtime error occurred in IMGTAligner. This is very unusual. "
+                        "Please report",
+                "More than 72 insertions were found. This is highly unlikely for an "
+                    "antibody and suggests a problem with this sequence",
+                "The alignment length does not match the length of the input sequence. "
+                    "This is an unusual error; please report.",
+                "The sequence does not have an expected amino acid at one or more "
+                    "conserved positions 23, 41, 104, 118, 119, 121. Either it is "
+                    "not an antibody, OR there was a serious alignment error, "
+                    "OR it contains a large deletion."};
 
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here

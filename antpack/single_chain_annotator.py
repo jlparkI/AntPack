@@ -34,10 +34,11 @@ class SingleChainAnnotator:
                 "rat", "rhesus", "all". If "all" is in the list, all other
                 entries are ignored, and the sequences are aligned using
                 a consensus sequence formed from the corresponding chains
-                for all species. Using specific species is usually preferable
-                but slower.
+                for all species. We recommend using ["all"] (the
+                default). It is sometimes possible to get slightly better
+                alignments by using specific species.
             chain (list): A list of chains. Each must be one of "H", "K", "L",
-                "KL", "A", "B", "D", "G". Note that not all chains are
+                "A", "B", "D", "G". Note that not all chains are
                 supported for all species. "A", "B", "D", "G" for example
                 are supported for human, mouse and all but not for rabbit,
                 rat, rhesus or pig.
@@ -74,7 +75,7 @@ class SingleChainAnnotator:
 
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
-        self.scoring_tools, self.chains = [], []
+        self.scoring_tools = []
 
         try:
             os.chdir(os.path.join(project_path, "consensus_data"))
@@ -83,18 +84,18 @@ class SingleChainAnnotator:
                     if specie == "all":
                         npy_filename = f"CONSENSUS_{chain}.npy"
                         text_file = f"CONSENSUS_{chain}.txt"
-                        self.chains.append(chain)
+                        chain_name = chain
                     else:
                         npy_filename = f"CONSENSUS_{specie}_{chain}.npy"
                         text_file = f"CONSENSUS_{specie}_{chain}.txt"
-                        self.chains.append("_".join([specie, chain]))
+                        chain_name = "_".join([specie, chain])
                     score_matrix = np.load(npy_filename)
                     con_map = self._load_consensus_map(text_file)
                     # Note that IMGTAligner class constructor checks the input score
                     # matrix to ensure the right dimensions; if it does not like these,
                     # it will throw an exception that the PyBind wrapper will hand
                     # off to Python.
-                    self.scoring_tools.append(IMGTAligner(score_matrix, con_map))
+                    self.scoring_tools.append(IMGTAligner(score_matrix, con_map, chain_name))
         except Exception as exc:
             os.chdir(current_dir)
             raise ValueError("The consensus data for the package either has been deleted or "
@@ -148,7 +149,7 @@ class SingleChainAnnotator:
 
 
 
-    def analyze_online_seqs(self, sequences, scheme="imgt"):
+    def analyze_online_seqs(self, sequences):
         """Numbers and scores a list of input sequences.
 
         Args:
@@ -163,9 +164,6 @@ class SingleChainAnnotator:
                 where error message is a string. The results are in the same order
                 as the inputs.
         """
-        if scheme not in allowed_inputs.allowed_schemes:
-            raise ValueError(f"Input scheme {scheme} is not allowed; "
-                "should be one of {allowed_inputs.allowed_schemes}")
         if not isinstance(sequences, list):
             raise ValueError("sequences should be a list of strings.")
 
@@ -173,20 +171,11 @@ class SingleChainAnnotator:
         sequence_results = []
         for sequence in sequences:
             if not validate_sequence(sequence):
-                sequence_results.append((None, None, "invalid_sequence"))
+                sequence_results.append(([], 0.0, "Invalid sequence supplied -- nonstandard AAs"))
                 continue
-            results = []
-            for (chain, scoring_tool) in zip(self.chains, self.scoring_tools):
-                numbering, percent_ident, err_code = scoring_tool.align(sequence)
-                results.append((numbering, percent_ident, chain, err_code))
+            results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
             results = sorted(results, key=lambda x: x[1])
-            numbering, percent_ident, chain, err_code = results[-1]
-            if err_code == 0:
-                sequence_results.append((None, None, None, "invalid_sequence"))
-            elif err_code == 2 or len(sequence) != len(numbering):
-                sequence_results.append((None, None, None, "fatal_alignment_error"))
-            else:
-                sequence_results.append((numbering, percent_ident, chain, None))
+            sequence_results.append(results[-1])
 
         return sequence_results
 
@@ -224,14 +213,7 @@ class SingleChainAnnotator:
                 if not validate_sequence(sequence):
                     best_result = (None, None, "invalid_sequence")
                 else:
-                    results = []
-                    for (chain, scoring_tool) in zip(self.chains, self.scoring_tools):
-                        numbering, percent_ident, err_code = scoring_tool.align(sequence)
-                        results.append((numbering, percent_ident, chain, err_code))
+                    results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
                     results = sorted(results, key=lambda x: x[1])
-                    numbering, percent_ident, chain, err_code = results[-1]
-                    if err_code != 1:
-                        best_result = (None, None, None, "alignment_error")
-                    else:
-                        best_result = (numbering, percent_ident, chain, None)
+                    best_result = results[-1]
                 yield seqrecord, best_result
