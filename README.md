@@ -1,18 +1,21 @@
 # AntPack
 
 AntPack is a toolkit for data processing, statistical inference and
-machine learning for antibody sequences. For installation and how to
+machine learning for antibody sequences. It is currently in highly
+active development. For installation and how to
 use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
 ### Antibody numbering
 
-AntPack is orders of magnitude faster for numbering antibody sequences than existing
-tools in the literature (e.g. ANARCI, AbRSA), while providing >= reliability.
+Numbering antibody sequences is an important precursor for many statistical inference /
+machine learning applications. AntPack is orders of magnitude faster for numbering
+antibody sequences than existing tools in the literature (e.g. ANARCI, AbRSA),
+while providing >= reliability.
 
 ### Mapping antibody sequence space
 
-We're building a set of human-interpretable statistical models of antibody sequence space --
+We're building a set of human-interpretable machine learning models of antibody sequence space --
 more on this project soon!
 
 
