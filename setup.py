@@ -5,7 +5,7 @@ import platform
 from subprocess import getoutput
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
@@ -77,7 +77,7 @@ def main():
         version=get_version(home_dir),
         description="A Python package for processing, manipulating and making inferences about antibody sequence data",
         long_description=long_description,
-        packages=find_packages(),
+        packages=find_namespace_packages(),
         cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
         install_requires=['pybind11>=2.4', "numpy"],

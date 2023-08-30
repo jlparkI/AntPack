@@ -2,7 +2,7 @@
 
 AntPack is a toolkit for data processing, statistical inference and
 machine learning for antibody sequences. For installation and how to
-use, see the docs at :
+use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
 ### Antibody numbering
