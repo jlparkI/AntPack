@@ -85,6 +85,7 @@ def main():
         license="MIT",
         ext_modules=extensions,
         python_requires=">=3.7",
+        package_data={"": ["*.h", "*.c", "*.cu", "*.cpp"]}
     )
 
 

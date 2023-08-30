@@ -1,0 +1,5 @@
+biopython
+pybind11
+fastrlock>=0.4
+numpy>=1.10.0
+nbsphinx

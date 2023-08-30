@@ -1,3 +1,4 @@
 include LICENSE
+recursive-include antpack/ext *
 recursive-include antpack/consensus_data *
 recursive-include tests/test_data *

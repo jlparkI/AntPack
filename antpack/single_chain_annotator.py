@@ -25,7 +25,7 @@ class SingleChainAnnotator:
     light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
     """
 
-    def __init__(self, species = ["all"], chains = ["H"]):
+    def __init__(self, species = ["all"], chains = ["H"], scheme = "imgt"):
         """Class constructor.
 
         Args:
@@ -35,13 +35,15 @@ class SingleChainAnnotator:
                 entries are ignored, and the sequences are aligned using
                 a consensus sequence formed from the corresponding chains
                 for all species. We recommend using ["all"] (the
-                default). It is sometimes possible to get slightly better
-                alignments by using specific species.
+                default), unless the species is known.
             chain (list): A list of chains. Each must be one of "H", "K", "L",
                 "A", "B", "D", "G". Note that not all chains are
                 supported for all species. "A", "B", "D", "G" for example
                 are supported for human, mouse and all but not for rabbit,
                 rat, rhesus or pig.
+            scheme (str): The numbering scheme. Must be one of "imgt",
+                "chothia", "kabat", "aho". Currently only IMGT is supported;
+                the others will be added soon.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are
@@ -66,6 +68,9 @@ class SingleChainAnnotator:
                     if specie in ["rat"]:
                         raise ValueError("Unsupported chain-species combo "
                                     f"{chain} {specie} supplied.")
+
+        if scheme not in ["imgt"]:
+            raise ValueError("Unsupported scheme supplied.")
 
         # If 'all' was supplied, disregard all other entries.
         if "all" in species:
@@ -159,10 +164,11 @@ class SingleChainAnnotator:
                 'chothia', 'kabat', 'aho', 'wolfguy'.
 
         Returns:
-            sequence_results (list): A list of tuples of (sequence numbering, score,
-                None). If a sequence is invalid, the tuple is (None, None, error message),
-                where error message is a string. The results are in the same order
-                as the inputs.
+            sequence_results (list): A list of tuples of (sequence numbering, percent_identity,
+                chain_name, error_message). If no error was encountered, the error
+                message is "". An alignment with low percent identity (e.g. < 0.85)
+                may indicate a sequence that is not really an antibody, that contains
+                a large deletion, or is not of the selected chain type.
         """
         if not isinstance(sequences, list):
             raise ValueError("sequences should be a list of strings.")
@@ -183,18 +189,19 @@ class SingleChainAnnotator:
     def analyze_fasta(self, fasta_file):
         """A generator that numbers and scores sequences from a fasta
         file. Since it is a generator it will only load one sequence at
-        a time. You should in your code when retrieving results from
-        this generator ensure that the error code for each sequence is None
-        before doing anything else with the results.
+        a time.
 
         Args:
             fasta_file (str): A filepath to a valid fasta file.
 
         Returns:
-            sequence_results (list): A list of tuples of (sequence numbering, score,
-                None). If a sequence is invalid, the tuple is (None, None, error message),
-                where error message is a string. The results are in the same order
-                as the inputs.
+            seqrecord (SeqRecord): A BioPython seqrecord object with all the details of the
+                sequence.
+            best_result (tuple): A tuple of (sequence numbering, percent_identity,
+                chain_name, error_message). If no error was encountered, the error
+                message is "". An alignment with low percent identity (e.g. < 0.85)
+                may indicate a sequence that is not really an antibody, that contains
+                a large deletion, or is not of the selected chain type.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are supplied.
