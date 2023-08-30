@@ -160,8 +160,6 @@ class SingleChainAnnotator:
         Args:
             sequences (list): A list of strings, each of which is a sequence
                 containing the usual 20 amino acids.
-            scheme (str): The numbering scheme. Should be one of 'imgt', 'martin',
-                'chothia', 'kabat', 'aho', 'wolfguy'.
 
         Returns:
             sequence_results (list): A list of tuples of (sequence numbering, percent_identity,
@@ -184,6 +182,31 @@ class SingleChainAnnotator:
             sequence_results.append(results[-1])
 
         return sequence_results
+
+
+    def analyze_seq(self, sequence):
+        """Numbers and scores a single input sequence.
+
+        Args:
+            sequence (str): A string which is a sequence
+                containing the usual 20 amino acids.
+
+        Returns:
+            sequence_results (tuple): A tuple of (sequence numbering, percent_identity,
+                chain_name, error_message). If no error was encountered, the error
+                message is "". An alignment with low percent identity (e.g. < 0.85)
+                may indicate a sequence that is not really an antibody, that contains
+                a large deletion, or is not of the selected chain type.
+        """
+        if not validate_sequence(sequence):
+            sequence_results = ([], 0.0, "", "Invalid sequence supplied -- nonstandard AAs")
+        else:
+            results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
+            results = sorted(results, key=lambda x: x[1])
+            sequence_results = results[-1]
+
+        return sequence_results
+
 
 
     def analyze_fasta(self, fasta_file):

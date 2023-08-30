@@ -12,9 +12,9 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         # Pass inappropriate settings and make sure an error is raised.
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = "brick")
+            imgt = SingleChainAnnotator(species = "dinosaur")
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = ["brick"])
+            imgt = SingleChainAnnotator(species = ["woolly yak"])
         with self.assertRaises(ValueError):
             imgt = SingleChainAnnotator(species = ["human"], chains="VK")
         with self.assertRaises(ValueError):
@@ -37,6 +37,11 @@ class TestSingleChainAnnotator(unittest.TestCase):
         results = imgt.analyze_online_seqs(["Y-K"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
 
+        results = imgt.analyze_seq("Y-K")
+        self.assertTrue(results[3].startswith("Invalid sequence"))
+        results = imgt.analyze_seq("yAy")
+        self.assertTrue(results[3].startswith("Invalid sequence"))
+
 
     def test_chain_recognition(self):
         """Ensure that single chain annotator can correctly recognize the
@@ -57,9 +62,18 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(results[1][2] == "L")
         self.assertTrue(results[2][2] == "H")
 
+        r1 = imgt.analyze_seq(known_K)
+        r2 = imgt.analyze_seq(known_L)
+        r3 = imgt.analyze_seq(known_H)
+        self.assertTrue(r1[2] == "K")
+        self.assertTrue(r2[2] == "L")
+        self.assertTrue(r3[2] == "H")
+
         bad_chain = known_H[:100]
         results = imgt.analyze_online_seqs([bad_chain])
         self.assertTrue(results[0][3].startswith("Unexpected"))
+        results = imgt.analyze_seq(bad_chain)
+        self.assertTrue(results[3].startswith("Unexpected"))
 
 
     def test_performance(self):

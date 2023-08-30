@@ -14,11 +14,19 @@ sequence without any issues.
 **NOTE: MultiChainAnnotator is not yet implemented / not available
 in v0.0.1 -- but will be in the next version**.
 
-Here's SingleChainAnnotator:
+Here's how to use ``SingleChainAnnotator``:::
+
+  from antpack import SingleChainAnnotator
+  aligner = SingleChainAnnotator(species=["all"], chains=["H", "K", "L"])
+
+
+You can then use the ``analyze_online_seqs`` (for a list of sequences), ``analyze_fasta``
+(a generator for analyzing sequences in a fasta file) or ``analyze_seq`` (for analyzing
+a single sequence). Details on these methods are below.
 
 .. autoclass:: antpack.SingleChainAnnotator
    :special-members: __init__
-   :members: analyze_online_seqs, analyze_fasta
+   :members: analyze_online_seqs, analyze_fasta, analyze_seq
 
 
 Notice that ``SingleChainAnnotator`` does not have a multithreading
