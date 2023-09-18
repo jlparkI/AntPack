@@ -12,34 +12,34 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         # Pass inappropriate settings and make sure an error is raised.
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = "dinosaur")
+            aligner = SingleChainAnnotator(species = "dinosaur")
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = ["woolly yak"])
+            aligner = SingleChainAnnotator(species = ["woolly yak"])
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = ["human"], chains="VK")
+            aligner = SingleChainAnnotator(species = ["human"], chains="VK")
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = ["human"], chains=["VK"])
+            aligner = SingleChainAnnotator(species = ["human"], chains=["VK"])
         with self.assertRaises(ValueError):
-            imgt = SingleChainAnnotator(species = ["rat"], chains=["A"])
+            aligner = SingleChainAnnotator(species = ["rat"], chains=["A"])
 
 
         # Pass dummy sequences with errors.
-        imgt = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
+        aligner = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
         with self.assertRaises(ValueError):
-            imgt.analyze_online_seqs("YYY")
+            aligner.analyze_online_seqs("YYY")
 
-        results = imgt.analyze_online_seqs(["YaY"])
+        results = aligner.analyze_online_seqs(["YaY"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        results = imgt.analyze_online_seqs(["YBW"])
+        results = aligner.analyze_online_seqs(["YBW"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        results = imgt.analyze_online_seqs(["Y K"])
+        results = aligner.analyze_online_seqs(["Y K"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        results = imgt.analyze_online_seqs(["Y-K"])
+        results = aligner.analyze_online_seqs(["Y-K"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
 
-        results = imgt.analyze_seq("Y-K")
+        results = aligner.analyze_seq("Y-K")
         self.assertTrue(results[3].startswith("Invalid sequence"))
-        results = imgt.analyze_seq("yAy")
+        results = aligner.analyze_seq("yAy")
         self.assertTrue(results[3].startswith("Invalid sequence"))
 
 
@@ -48,7 +48,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         input chain when supplied with something that could be L or H,
         and ensure it can correctly detect sequences with large deletions
         that remove one or more conserved residues."""
-        imgt = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
+        aligner = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
 
         known_K = ("DIVMTQSPSSLTVTAGEKVTMSCKSSQSLLSSGNQKNYLTWYQQIPGQPPKLLIYWASTR"
                     "ESGVPDRFTGSGSGTDFTLTINSVQAEDLAVYYCQNDYTYPLTFGAGTKLELKRTV")
@@ -57,22 +57,22 @@ class TestSingleChainAnnotator(unittest.TestCase):
         known_H = ("VHLQQSGAELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYN"
                     "ENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA")
 
-        results = imgt.analyze_online_seqs([known_K, known_L, known_H])
+        results = aligner.analyze_online_seqs([known_K, known_L, known_H])
         self.assertTrue(results[0][2] == "K")
         self.assertTrue(results[1][2] == "L")
         self.assertTrue(results[2][2] == "H")
 
-        r1 = imgt.analyze_seq(known_K)
-        r2 = imgt.analyze_seq(known_L)
-        r3 = imgt.analyze_seq(known_H)
+        r1 = aligner.analyze_seq(known_K)
+        r2 = aligner.analyze_seq(known_L)
+        r3 = aligner.analyze_seq(known_H)
         self.assertTrue(r1[2] == "K")
         self.assertTrue(r2[2] == "L")
         self.assertTrue(r3[2] == "H")
 
         bad_chain = known_H[:100]
-        results = imgt.analyze_online_seqs([bad_chain])
+        results = aligner.analyze_online_seqs([bad_chain])
         self.assertTrue(results[0][3].startswith("Unexpected"))
-        results = imgt.analyze_seq(bad_chain)
+        results = aligner.analyze_seq(bad_chain)
         self.assertTrue(results[3].startswith("Unexpected"))
 
 
@@ -94,8 +94,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 seqs.append(line_elements[0])
                 comparator_numbering.append(line_elements[1].split("_"))
 
-        imgt = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
-        results = imgt.analyze_online_seqs(seqs)
+        aligner = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
+        results = aligner.analyze_online_seqs(seqs)
         total_comparisons, num_correct = 0, 0
         for result, comparator in zip(results, comparator_numbering):
             if result[3] != '':
