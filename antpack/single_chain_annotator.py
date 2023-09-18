@@ -59,6 +59,9 @@ class SingleChainAnnotator:
             if chain not in ["H", "K", "L", "A", "B", "D", "G"]:
                 raise ValueError(f"Unrecognized chain {chain} supplied.")
             if chain in ["A", "B", "D", "G"]:
+                if scheme not in ["imgt"]:
+                    raise ValueError("Only IMGT numbering is currently available for T-cell "
+                            "receptor sequences.")
                 for specie in species:
                     if specie not in ["human", "mouse"]:
                         raise ValueError("Unsupported chain-species combo "
@@ -69,7 +72,7 @@ class SingleChainAnnotator:
                         raise ValueError("Unsupported chain-species combo "
                                     f"{chain} {specie} supplied.")
 
-        if scheme not in ["imgt"]:
+        if scheme not in ["imgt", "chothia", "kabat"]:
             raise ValueError("Unsupported scheme supplied.")
 
         # If 'all' was supplied, disregard all other entries.
