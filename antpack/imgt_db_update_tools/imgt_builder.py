@@ -16,7 +16,7 @@ import os
 import requests
 from .imgt_html_parser import IMGT_HTML_Parser
 from .alignment_formatting_tools import build_stockholm_alignments
-from .generate_consensus import build_consensus_files
+from .generate_consensus import build_imgt_consensus_files, build_kabat_scoring
 from ..constants import hmmbuild_constants as hmbc
 
 
@@ -67,7 +67,11 @@ def build_consensus_alignment(output_path, muscle_fpath, cleanup = True):
     if os.path.isfile(os.path.join(output_path, "ALL_ALIGNED.stockholm")):
         os.remove(os.path.join(output_path, "ALL_ALIGNED.stockholm"))
     build_stockholm_alignments(output_path, selected_species, muscle_fpath)
-    build_consensus_files(output_path, current_dir, "ALL_ALIGNED.stockholm")
+    build_imgt_consensus_files(output_path, current_dir, "ALL_ALIGNED.stockholm")
+
+    #The Kabat and Chothia consensus files are built separately and nothing needs to be
+    #downloaded.
+    build_kabat_scoring(output_path, current_dir)
 
     if cleanup:
         for cleanup_file in cleanup_files:

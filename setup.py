@@ -59,7 +59,7 @@ def main():
         Pybind11Extension("ant_ext",
             sources=[
                 "antpack/ext/ant_ext.cpp",
-                "antpack/ext/aligners.cpp",
+                "antpack/ext/aligner.cpp",
                 "antpack/ext/utilities.cpp"
             ],
             include_dirs=[

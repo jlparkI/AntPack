@@ -1,44 +1,76 @@
-#include "aligners.h"
+#include "aligner.h"
 #include "utilities.h"
 
 
 
 
-IMGTAligner::IMGTAligner(
+BasicAligner::BasicAligner(
                  py::array_t<double> scoreArray,
                  std::vector<std::vector<std::string>> consensus,
-                 std::string chainName
+                 std::string chainName,
+                 std::string scheme
 ):
     scoreArray(scoreArray),
-    chainName(chainName)
+    chainName(chainName),
+    scheme(scheme)
 {
     py::buffer_info info = scoreArray.request();
     // Note that exceptions thrown here are go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
     if (info.shape.size() != 2){
         throw std::runtime_error(std::string("The scoreArray passed to "
-                "IMGTAligner must be a 2d array"));
+                "BasicAligner must be a 2d array"));
     }
     if (info.shape[1] != NUM_AAS){
         throw std::runtime_error(std::string("The scoreArray passed to "
-                "IMGTAligner must have 22 columns (1 per AA plus 2 for gap penalties)"));
+                "BasicAligner must have 22 columns (1 per AA plus 2 for gap penalties)"));
     }
-    if (info.shape[0] != NUM_HEAVY_IMGT_POSITIONS && info.shape[0] !=
+
+    // Check that the number of positions in the scoring and consensus is as expected,
+    // and set the list of highly conserved positions according to the selected scheme.
+    if (scheme == "imgt"){
+        this->highlyConservedPositions = {HIGHLY_CONSERVED_IMGT_1, HIGHLY_CONSERVED_IMGT_2,
+                                        HIGHLY_CONSERVED_IMGT_3, HIGHLY_CONSERVED_IMGT_4,
+                                        HIGHLY_CONSERVED_IMGT_5, HIGHLY_CONSERVED_IMGT_6};
+        if (info.shape[0] != NUM_HEAVY_IMGT_POSITIONS && info.shape[0] !=
                 NUM_LIGHT_IMGT_POSITIONS){
-        throw std::runtime_error(std::string("The scoreArray passed to "
-                "IMGTAligner must have the expected number of positions "
-                "for the IMGT numbering system."));
+            throw std::runtime_error(std::string("The scoreArray passed to "
+                "BasicAligner must have the expected number of positions "
+                "for the numbering system."));
+        }
+        if (consensus.size() != NUM_HEAVY_IMGT_POSITIONS && consensus.size() !=
+                NUM_LIGHT_IMGT_POSITIONS){
+            throw std::runtime_error(std::string("The consensus sequence passed to "
+                "BasicAligner must have the expected number of positions "
+                "for the numbering system."));
+        }
     }
-    if (consensus.size() != NUM_HEAVY_IMGT_POSITIONS && consensus.size() !=
-                NUM_LIGHT_IMGT_POSITIONS){
-        throw std::runtime_error(std::string("The consensus sequence passed to "
-                "IMGTAligner must have the expected number of positions "
-                "for the IMGT numbering system."));
+    else if (scheme == "chothia" || scheme == "kabat"){
+        this->highlyConservedPositions = {HIGHLY_CONSERVED_CHOTHIA_KABAT_1,
+                    HIGHLY_CONSERVED_CHOTHIA_KABAT_2, HIGHLY_CONSERVED_CHOTHIA_KABAT_3,
+                    HIGHLY_CONSERVED_CHOTHIA_KABAT_4, HIGHLY_CONSERVED_CHOTHIA_KABAT_5,
+                    HIGHLY_CONSERVED_CHOTHIA_KABAT_6};
+        if (info.shape[0] != NUM_HEAVY_CHOTHIA_KABAT_POSITIONS && info.shape[0] !=
+                NUM_LIGHT_CHOTHIA_KABAT_POSITIONS){
+            throw std::runtime_error(std::string("The scoreArray passed to "
+                "BasicAligner must have the expected number of positions "
+                "for the numbering system."));
+        }
+        if (consensus.size() != NUM_HEAVY_CHOTHIA_KABAT_POSITIONS && consensus.size() !=
+                NUM_LIGHT_CHOTHIA_KABAT_POSITIONS){
+            throw std::runtime_error(std::string("The consensus sequence passed to "
+                "BasicAligner must have the expected number of positions "
+                "for the numbering system."));
+        }
+    }
+    else{
+        throw std::runtime_error(std::string("Currently BasicAligner only recognizes "
+                    "schemes 'chothia', 'kabat', 'imgt'."));
     }
 
     numPositions = info.shape[0];
     // Update the consensus map to indicate which letters are expected at
-    // which IMGT positions. An empty set at a given position means that
+    // which positions. An empty set at a given position means that
     // ANY letter at that position is considered acceptable. These are
     // excluded from percent identity calculation. numRestrictedPositions
     // indicates how many are INCLUDED in percent identity.
@@ -70,14 +102,14 @@ IMGTAligner::IMGTAligner(
 
 
 std::tuple<std::vector<std::string>, double, std::string,
-        std::string> IMGTAligner::align(std::string query_sequence){
+        std::string> BasicAligner::align(std::string query_sequence){
 
     std::vector<std::string> finalNumbering;
     double percentIdentity = 0;
     std::string errorMessage;
 
     // A list of allowed error codes. These will be mapped to strings that explain
-    // in more detail by the IMGTAligner class.
+    // in more detail by the BasicAligner class.
     enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
             tooManyInsertions  = 3, alignmentWrongLength = 4,
             unacceptableConservedPositions = 5};
@@ -189,14 +221,15 @@ std::tuple<std::vector<std::string>, double, std::string,
     // We also create the positionKey here which we can quickly use to determine
     // percent identity by referencing this->consensusMap, which indicates
     // what AAs are expected at each position.
-    for (i=0; i < this->numPositions; i++){
-        if (initNumbering[i] == 0){
-            continue;
-        }
-        // Highly unlikely given the size of the alphabet we've used that
-        // we will ever run into a problem where there are too many insertions,
-        // but at least possible.
-        if (initNumbering[i] > this->alphabet.size()){
+    if (this->scheme == "imgt"){
+        for (i=0; i < this->numPositions; i++){
+            if (initNumbering[i] == 0){
+                continue;
+            }
+            // Highly unlikely given the size of the alphabet we've used that
+            // we will ever run into a problem where there are too many insertions,
+            // but at least possible.
+            if (initNumbering[i] > this->alphabet.size()){
                     delete[] queryAsIdx;
                     delete[] needleScores;
                     delete[] pathTrace;
@@ -206,53 +239,82 @@ std::tuple<std::vector<std::string>, double, std::string,
                     return std::tuple<std::vector<std::string>, double, std::string,
                         std::string>{finalNumbering, percentIdentity,
                             this->chainName, errorMessage};
-        }
-        int ceil_cutpoint, floor_cutpoint;
+            }
+            int ceil_cutpoint, floor_cutpoint;
 
-        // These are the positions for which we need to deploy forward-backward
-        // lettering (because the IMGT system is weird, but also the default...)
-        // positionKey is set to -1 for all insertions to indicate these should
-        // not be considered for calculating percent identity.
-        switch (i){
-            case CDR1_INSERTION_PT:
-            case CDR2_INSERTION_PT:
-                ceil_cutpoint = initNumbering[i] / 2;
-                floor_cutpoint = (initNumbering[i] - 1) / 2;
-                for (j=0; j < floor_cutpoint; j++){
-                    finalNumbering.push_back(std::to_string(i) + this->alphabet[j]);
-                    positionKey.push_back(-1);
-                }
-                for (j=ceil_cutpoint; j > 0; j--){
-                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j-1]);
-                    positionKey.push_back(-1);
-                }
+            // These are the positions for which we need to deploy forward-backward
+            // lettering (because the IMGT system is weird, but also the default...)
+            // positionKey is set to -1 for all insertions to indicate these should
+            // not be considered for calculating percent identity.
+            switch (i){
+                case CDR1_INSERTION_PT:
+                case CDR2_INSERTION_PT:
+                    ceil_cutpoint = initNumbering[i] / 2;
+                    floor_cutpoint = (initNumbering[i] - 1) / 2;
+                    for (j=0; j < floor_cutpoint; j++){
+                        finalNumbering.push_back(std::to_string(i) + this->alphabet[j]);
+                        positionKey.push_back(-1);
+                    }
+                    for (j=ceil_cutpoint; j > 0; j--){
+                        finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j-1]);
+                        positionKey.push_back(-1);
+                    }
     
-                finalNumbering.push_back(std::to_string(i+1));
-                positionKey.push_back(i);
-                break;
+                    finalNumbering.push_back(std::to_string(i+1));
+                    positionKey.push_back(i);
+                    break;
 
-            case CDR3_INSERTION_PT:
-                finalNumbering.push_back(std::to_string(i+1));
-                positionKey.push_back(i);
-                ceil_cutpoint = initNumbering[i] / 2;
-                floor_cutpoint = (initNumbering[i] - 1) / 2;
-                for (j=0; j < floor_cutpoint; j++){
-                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j]);
-                    positionKey.push_back(-1);
-                }
-                for (j=ceil_cutpoint; j > 0; j--){
-                    finalNumbering.push_back(std::to_string(i+2) + this->alphabet[j-1]);
-                    positionKey.push_back(-1);
-                }
-                break;
-            default:
-                finalNumbering.push_back(std::to_string(i+1));
-                positionKey.push_back(i);
-                for (size_t k=1; k < initNumbering[i]; k++){
-                    finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
-                    positionKey.push_back(-1);
-                }
-                break;
+                case CDR3_INSERTION_PT:
+                    finalNumbering.push_back(std::to_string(i+1));
+                    positionKey.push_back(i);
+                    ceil_cutpoint = initNumbering[i] / 2;
+                    floor_cutpoint = (initNumbering[i] - 1) / 2;
+                    for (j=0; j < floor_cutpoint; j++){
+                        finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j]);
+                        positionKey.push_back(-1);
+                    }
+                    for (j=ceil_cutpoint; j > 0; j--){
+                        finalNumbering.push_back(std::to_string(i+2) + this->alphabet[j-1]);
+                        positionKey.push_back(-1);
+                    }
+                    break;
+                default:
+                    finalNumbering.push_back(std::to_string(i+1));
+                    positionKey.push_back(i);
+                    for (size_t k=1; k < initNumbering[i]; k++){
+                        finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
+                        positionKey.push_back(-1);
+                    }
+                    break;
+            }
+        }
+    }
+    // Build vector of numbers for other schemes (relatively simpler).
+    else{
+        for (i=0; i < this->numPositions; i++){
+            if (initNumbering[i] == 0){
+                continue;
+            }
+            // Highly unlikely given the size of the alphabet we've used that
+            // we will ever run into a problem where there are too many insertions,
+            // but at least possible.
+            if (initNumbering[i] > this->alphabet.size()){
+                    delete[] queryAsIdx;
+                    delete[] needleScores;
+                    delete[] pathTrace;
+                    delete[] initNumbering;
+                    errorCode = tooManyInsertions;
+                    errorMessage = this->errorCodeToMessage[errorCode];
+                    return std::tuple<std::vector<std::string>, double, std::string,
+                        std::string>{finalNumbering, percentIdentity,
+                            this->chainName, errorMessage};
+            }
+            finalNumbering.push_back(std::to_string(i+1));
+            positionKey.push_back(i);
+            for (size_t k=1; k < initNumbering[i]; k++){
+                finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
+                positionKey.push_back(-1);
+            }
         }
     }
 
@@ -267,46 +329,34 @@ std::tuple<std::vector<std::string>, double, std::string,
 
 
     // positionKey is now the same length as finalNumbering and indicates at
-    // each position whether that position maps to a standard 1 - 128 IMGT
+    // each position whether that position maps to a standard 
     // position and if so what. Now use this to calculate percent identity,
-    // excluding those positions at which IMGT tolerates any amino acid.
-    // At the same time, we can check whether the expected amino acids are
-    // present at the highly conserved residues. The consensus map will
-    // have only one possible amino acid at those positions.
+    // excluding those positions at which the numbering system tolerates any
+    // amino acid (i.e. CDRs). At the same time, we can check whether the
+    // expected amino acids are present at the highly conserved residues.
+    // The consensus map will have only one possible amino acid at those positions.
 
     int numRequiredPositionsFound = 0;
 
     for (size_t k=0; k < positionKey.size(); k++){
-        int imgtStdPosition = positionKey[k];
-        if (imgtStdPosition < 0){
+        int schemeStdPosition = positionKey[k];
+        if (schemeStdPosition < 0){
             continue;
         }
-        if (this->consensusMap[imgtStdPosition].empty()){
+        if (this->consensusMap[schemeStdPosition].empty()){
             continue;
         }
-        if (this->consensusMap[imgtStdPosition].find(query_sequence[k]) !=
-                this->consensusMap[imgtStdPosition].end()){
+        if (this->consensusMap[schemeStdPosition].find(query_sequence[k]) !=
+                this->consensusMap[schemeStdPosition].end()){
             percentIdentity += 1;
-            switch (imgtStdPosition){
-                case HIGHLY_CONSERVED_POSITION_1:
-                case HIGHLY_CONSERVED_POSITION_2:
-                case HIGHLY_CONSERVED_POSITION_3:
-                case HIGHLY_CONSERVED_POSITION_4:
-                case HIGHLY_CONSERVED_POSITION_5:
-                case HIGHLY_CONSERVED_POSITION_6:
+            if(std::binary_search(this->highlyConservedPositions.begin(),
+                this->highlyConservedPositions.end(), schemeStdPosition)){
                     numRequiredPositionsFound += 1;
-                    break;
-                default:
-                    break;
             }
         }
     }
 
-
-
     percentIdentity /= this->numRestrictedPositions;
-
-
 
     delete[] queryAsIdx;
     delete[] needleScores;
@@ -344,7 +394,7 @@ std::tuple<std::vector<std::string>, double, std::string,
 // Fill in the scoring table created by caller, using the position-specific
 // scores for indels and substitutions, and add the appropriate
 // pathway traces.
-void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
+void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx){
     double lscore, uscore, dscore;
     int i, j, gridPos, diagNeighbor, upperNeighbor;
@@ -412,19 +462,13 @@ void IMGTAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
         // We use a default score for the last column, so that c-terminal
         // deletions if encountered are well-tolerated.
-        switch (i){
-            case HIGHLY_CONSERVED_POSITION_1:
-            case HIGHLY_CONSERVED_POSITION_2:
-            case HIGHLY_CONSERVED_POSITION_3:
-            case HIGHLY_CONSERVED_POSITION_4:
-            case HIGHLY_CONSERVED_POSITION_5:
-            case HIGHLY_CONSERVED_POSITION_6:
-                uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
-                break;
-            default:
-                uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
-                break;
+        if (std::binary_search(this->highlyConservedPositions.begin(),
+                    this->highlyConservedPositions.end(), i))
+            uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+        else{
+            uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
         }
+
         if (lscore > uscore && lscore > dscore){
             needleScores[gridPos] = lscore;
             pathTrace[gridPos] = LEFT_TRANSFER;

@@ -4,6 +4,7 @@
 #include <pybind11/numpy.h>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include <tuple>
 #include <set>
 #include <array>
@@ -16,6 +17,10 @@ namespace py = pybind11;
 // position 128 is never used for light chains.
 #define NUM_HEAVY_IMGT_POSITIONS 128
 #define NUM_LIGHT_IMGT_POSITIONS 127
+
+// Expected number of positions for Chothia, Kabat.
+#define NUM_HEAVY_CHOTHIA_KABAT_POSITIONS 113
+#define NUM_LIGHT_CHOTHIA_KABAT_POSITIONS 107
 
 // We have 22 AAs -- the 20 standard aminos then a gap in query penalty
 // vs gap in template -- thus, 22 expected values.
@@ -41,26 +46,32 @@ namespace py = pybind11;
 #define TEMPLATE_GAP_COLUMN 21
 
 // Highly conserved positions in the IMGT scheme. These are the IMGT #s - 1.
-#define HIGHLY_CONSERVED_POSITION_1 22
-#define HIGHLY_CONSERVED_POSITION_2 40
-#define HIGHLY_CONSERVED_POSITION_3 103
-#define HIGHLY_CONSERVED_POSITION_4 117
-#define HIGHLY_CONSERVED_POSITION_5 118
-#define HIGHLY_CONSERVED_POSITION_6 120
+#define HIGHLY_CONSERVED_IMGT_1 22
+#define HIGHLY_CONSERVED_IMGT_2 40
+#define HIGHLY_CONSERVED_IMGT_3 103
+#define HIGHLY_CONSERVED_IMGT_4 117
+#define HIGHLY_CONSERVED_IMGT_5 118
+#define HIGHLY_CONSERVED_IMGT_6 120
+
+
+// Highly conserved positions in the Chothia / Kabat schemes. These are the #s - 1.
+#define HIGHLY_CONSERVED_CHOTHIA_KABAT_1 22
+#define HIGHLY_CONSERVED_CHOTHIA_KABAT_2 40
+#define HIGHLY_CONSERVED_CHOTHIA_KABAT_3 103
+#define HIGHLY_CONSERVED_CHOTHIA_KABAT_4 117
+#define HIGHLY_CONSERVED_CHOTHIA_KABAT_5 118
+#define HIGHLY_CONSERVED_CHOTHIA_KABAT_6 120
+
 
 // A default gap penalty for gaps at the beginning and end of the sequence.
 #define DEFAULT_GAP_PENALTY -1
 
-// Codes for heavy and light chains.
-#define HEAVY_CHAIN 0
-#define LIGHT_CHAIN 1
 
-
-class IMGTAligner {
+class BasicAligner {
     public:
-        IMGTAligner(py::array_t<double> scoreArray,
+        BasicAligner(py::array_t<double> scoreArray,
                 std::vector<std::vector<std::string>> consensus,
-                std::string chainName);
+                std::string chainName, std::string scheme);
 
         std::tuple<std::vector<std::string>, double,
                 std::string, std::string> align(std::string query_sequence);
@@ -73,7 +84,9 @@ class IMGTAligner {
         int numRestrictedPositions;
         py::array_t<double> scoreArray;
         const std::string chainName;
+        std::string scheme;
         std::vector<std::set<char>> consensusMap;
+        std::vector<int> highlyConservedPositions;
         std::array<std::string, 6> errorCodeToMessage {"",
                 "Sequence contains invalid characters",
                 "Fatal runtime error in IMGTAligner. Unusual. Please report",

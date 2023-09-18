@@ -9,7 +9,7 @@ import os
 import numpy as np
 from Bio import SeqIO
 from .constants import allowed_inputs
-from ant_ext import IMGTAligner, validate_sequence
+from ant_ext import BasicAligner, validate_sequence
 
 
 
@@ -99,11 +99,12 @@ class SingleChainAnnotator:
                         chain_name = "_".join([specie, chain])
                     score_matrix = np.load(npy_filename)
                     con_map = self._load_consensus_map(text_file)
-                    # Note that IMGTAligner class constructor checks the input score
+                    # Note that BasicAligner class constructor checks the input score
                     # matrix to ensure the right dimensions; if it does not like these,
                     # it will throw an exception that the PyBind wrapper will hand
                     # off to Python.
-                    self.scoring_tools.append(IMGTAligner(score_matrix, con_map, chain_name))
+                    self.scoring_tools.append(BasicAligner(score_matrix, con_map,
+                                chain_name, scheme))
         except Exception as exc:
             os.chdir(current_dir)
             raise ValueError("The consensus data for the package either has been deleted or "
