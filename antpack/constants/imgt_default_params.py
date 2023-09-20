@@ -1,4 +1,9 @@
 """Defines important defaults for the IMGT numbering scheme."""
+import copy
+
+#The expected length of the heavy and light chains
+NUM_HEAVY = 128
+NUM_LIGHT = 127
 
 ############################The following are alignment parameters that
 #were selected to try to ensure a good alignment. Making large changes
@@ -6,8 +11,6 @@
 
 DEFAULT_QUERY_GAP_PENALTY = -25
 DEFAULT_TEMPLATE_GAP_PENALTY = -25
-
-light_blank_positions = {10, 81, 82}
 
 #These are positions that are essentially mandatory. A sequence that deviates
 #from one of these is an alignment issue or has a very large deletion. Note that
@@ -27,7 +30,8 @@ HIGHLY_CONSERVED_BONUS = 60
 
 #These are positions where either A) a blank in the query sequence is very common or
 #B) insertions are very common. We want special template and query gap penalties for
-#these positions. One or two of these are chain dependent.
+#these positions. One or two of these are chain dependent. The first value is
+#the query gap column, the second is the template gap column.
 heavy_special_positions = {10:[-11.0,-1.0], 73:[-11.0,-1.0],
         33:[-1.0,-1.0], 61:[-1.0,-1.0], 111:[-1.0,-1.0]}
 
@@ -35,11 +39,13 @@ light_special_positions = {10:[-11.0,-1.0], 73:[-11.0,-1.0],
         33:[-1.0,-1.0], 61:[-1.0,-1.0], 81:[-5.0,-1.0],
         82:[-11.0,-1.0], 111:[-1.0,-1.0]}
 
-# These are Kabat-defined CDRs. We have a specially defined gap penalty for each to ensure they are filled
-#in the correct order.
-cdrs = {27:-5.1, 28:-4.6, 29:-4.1, 30:-3.6, 31:-3.1, 32:-2.6, 33:-2.5, 34:-3, 35:-3.5, 36:-4, 37:-4.5, 38:-5,
+#IMGT-defined CDRs. We have a specially defined gap penalty for each to ensure they are filled
+#in the correct order. For IMGT, light and heavy cdrs have the same definition.
+heavy_cdrs = {27:-5.1, 28:-4.6, 29:-4.1, 30:-3.6, 31:-3.1, 32:-2.6, 33:-2.5, 34:-3, 35:-3.5,
+        36:-4, 37:-4.5, 38:-5,
         # CDR 2
         56:-5.1, 57:-4.6, 58:-4.1, 59:-3.6, 60:-3.1, 61:-3, 62:-3.5, 63:-4, 64:-4.5, 65:-5,
         #CDR 3
         105:-5.1, 106:-4.6, 107:-4.1, 108:-3.6, 109:-3.1, 110:-2.6, 111:-1,
         112:-2.5, 113:-3, 114:-3.5, 115:-4, 116:-4.5, 117:-5}
+light_cdrs = copy.copy(heavy_cdrs)

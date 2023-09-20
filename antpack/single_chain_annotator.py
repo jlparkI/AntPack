@@ -35,15 +35,19 @@ class SingleChainAnnotator:
                 entries are ignored, and the sequences are aligned using
                 a consensus sequence formed from the corresponding chains
                 for all species. We recommend using ["all"] (the
-                default), unless the species is known.
+                default). Not that if the scheme is not 'imgt', 'all' is the
+                only species supported.
             chain (list): A list of chains. Each must be one of "H", "K", "L",
                 "A", "B", "D", "G". Note that not all chains are
                 supported for all species. "A", "B", "D", "G" for example
                 are supported for human, mouse and all but not for rabbit,
                 rat, rhesus or pig.
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "chothia", "kabat", "aho". Currently only IMGT is supported;
-                the others will be added soon.
+                "martin", "kabat". If the scheme is not imgt, only
+                chains 'H', 'K', 'L' (antibodies) are supported (other
+                schemes do not define numbering for T-cell receptors),
+                and K and L are interchangeable. If the scheme is not 'imgt',
+                'all' is the only species supported.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are
@@ -72,8 +76,18 @@ class SingleChainAnnotator:
                         raise ValueError("Unsupported chain-species combo "
                                     f"{chain} {specie} supplied.")
 
-        if scheme not in ["imgt", "chothia", "kabat"]:
+        # If using Martin or Kabat, treat L and K interchangeably, and
+        # update chains accordingly. Ensure that 'all' is the only
+        # species allowed for Martin, Kabat.
+        chains_to_search = chains
+        if scheme not in ["imgt", "martin", "kabat"]:
             raise ValueError("Unsupported scheme supplied.")
+        if scheme in ["martin", "kabat"]:
+            #chains_to_search = [k for k in chains if k != "K"]
+            #if "L" not in chains_to_search and "K" in chains:
+            #    chains_to_search.append("L")
+            if len(species) > 1 or species[0] != "all":
+                raise ValueError("For schemes other than IMGT, 'all' is the only species supported.")
 
         # If 'all' was supplied, disregard all other entries.
         if "all" in species:
@@ -87,15 +101,15 @@ class SingleChainAnnotator:
 
         try:
             os.chdir(os.path.join(project_path, "consensus_data"))
-            for chain in chains:
+            for chain in chains_to_search:
                 for specie in selected_species:
                     if specie == "all":
-                        npy_filename = f"CONSENSUS_{chain}.npy"
-                        text_file = f"CONSENSUS_{chain}.txt"
+                        npy_filename = f"{scheme.upper()}_CONSENSUS_{chain}.npy"
+                        text_file = f"{scheme.upper()}_CONSENSUS_{chain}.txt"
                         chain_name = chain
                     else:
-                        npy_filename = f"CONSENSUS_{specie}_{chain}.npy"
-                        text_file = f"CONSENSUS_{specie}_{chain}.txt"
+                        npy_filename = f"{scheme.upper()}_CONSENSUS_{specie}_{chain}.npy"
+                        text_file = f"{scheme.upper()}_CONSENSUS_{specie}_{chain}.txt"
                         chain_name = "_".join([specie, chain])
                     score_matrix = np.load(npy_filename)
                     con_map = self._load_consensus_map(text_file)
@@ -126,15 +140,12 @@ class SingleChainAnnotator:
         Args:
             filename (str): Path to a valid consensus sequence file.
         """
-        # Check to make sure all expected IMGT positions are found.
-        expected_imgt_positions = {str(i):0 for i in range(1,129)}
-
         with open(filename, "r", encoding="utf-8") as fhandle:
             read_now = False
             consensus = []
             last_position = 0
             for line in fhandle:
-                if line.startswith("# CHAIN"):
+                if line.startswith("#"):
                     read_now = True
                     continue
                 if line.startswith("//"):
@@ -143,12 +154,9 @@ class SingleChainAnnotator:
                     continue
 
                 position = line.split(",")[0]
-                if position not in expected_imgt_positions:
-                    raise RuntimeError("Problem with consensus file.")
                 if int(position) - 1 != last_position:
                     raise RuntimeError("Problem with consensus file.")
                 last_position += 1
-                expected_imgt_positions[position] += 1
                 aas = line.strip().split(",")[1:]
                 if "-" in aas:
                     consensus.append([])

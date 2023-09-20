@@ -16,7 +16,7 @@ import os
 import requests
 from .imgt_html_parser import IMGT_HTML_Parser
 from .alignment_formatting_tools import build_stockholm_alignments
-from .generate_consensus import build_imgt_consensus_files, build_kabat_scoring
+from .generate_score_files import build_imgt_consensus_files, build_alternative_scoring
 from ..constants import hmmbuild_constants as hmbc
 
 
@@ -69,9 +69,19 @@ def build_consensus_alignment(output_path, muscle_fpath, cleanup = True):
     build_stockholm_alignments(output_path, selected_species, muscle_fpath)
     build_imgt_consensus_files(output_path, current_dir, "ALL_ALIGNED.stockholm")
 
-    #The Kabat and Chothia consensus files are built separately and nothing needs to be
-    #downloaded.
-    build_kabat_scoring(output_path, current_dir)
+    #The Kabat and Martin consensus files are built separately and nothing needs to be
+    #downloaded. Note that kabat and martin can use the same consensus files; also,
+    #we do not (at present) specify separate consensus files for different species.
+    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_H.txt", chain_type = "H",
+                        scheme = "kabat")
+    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_L.txt", chain_type = "L",
+                        scheme = "kabat")
+    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_K.txt", chain_type = "K",
+                        scheme = "kabat")
+    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_H.txt", chain_type = "H",
+                        scheme = "martin")
+    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_L.txt", chain_type = "L",
+                        scheme = "martin")
 
     if cleanup:
         for cleanup_file in cleanup_files:

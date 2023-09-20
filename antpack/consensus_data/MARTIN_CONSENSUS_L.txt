@@ -1,4 +1,4 @@
-# Kabat light
+# Kabat / martin consensus L
 1,D,Q,E,S,A,N
 2,I,S,A,V,Y,L,Q,P
 3,V,Q,E,A,L,M,S,T
@@ -92,9 +92,9 @@
 91,A,D,F,G,H,L,R,S,T,W,Y
 92,A,D,G,H,L,N,R,S,T,Y
 93,D,E,G,H,N,Q,R,S,T,Y
-94,A,D,F,G,I,L,N,P,R,S,T,V,W,Y
-95,A,D,G,H,L,N,P,S,T
-96,A,E,F,G,I,L,N,P,R,S,V,W,Y
+94,-
+95,-
+96,-
 97,T,V,I,A,F,L
 98,F
 99,G
@@ -106,9 +106,4 @@
 105,E,T,D,V,S
 106,I,V,L
 107,K,G,R,S,E,A,T
-108,R,Q,G,S,A
-109,P,T,A,D,G,S
-110,V,A,D,P,Q,E,G,R,S,T
-111,A
 //
-

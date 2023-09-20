@@ -1,1 +1,0 @@
-from .imgt_builder import build_consensus_alignment

@@ -1,4 +1,4 @@
-# Kabat Heavy
+# Kabat / martin consensus
 1,Q,E,D
 2,V,Q
 3,Q,K,H,S,T
@@ -48,7 +48,7 @@
 47,W,Y
 48,I,V,K,M
 49,A,G,S
-50,A,Y,D,E,F,G,W,I,V,L,T,N,S,R
+50,-
 51,I,V,T,M
 52,S,N,Y,D,K,I,H,G,W,R,T
 53,A,D,Y,W,G,H,I,T,S,N,R
@@ -93,12 +93,12 @@
 92,C
 93,A,T,V
 94,R,K,S,T,A,G
-95,A,D,E,G,H,I,L,N,P,Q,R,S,T,V,W,Y
-96,A,D,E,F,G,H,I,K,L,N,P,Q,R,S,T,V,W,Y
-97,A,C,D,E,F,G,I,L,N,P,R,S,T,V,W,Y
-98,A,C,D,E,F,G,I,L,N,P,R,S,T,V,W,Y
-99,A,C,D,E,F,G,I,L,N,P,Q,R,S,T,V,W,Y
-100,A,D,E,G,L,R,S,Y,H,I,N,P,V,W,T
+95,-
+96,-
+97,-
+98,-
+99,-
+100,-
 101,D,A,G,E,N
 102,Y,V,I,L,F,P,H,S
 103,W
@@ -112,6 +112,4 @@
 111,V
 112,S,T
 113,S,A
-114,S
 //
-

@@ -2,8 +2,6 @@
 #include "utilities.h"
 
 
-
-
 BasicAligner::BasicAligner(
                  py::array_t<double> scoreArray,
                  std::vector<std::vector<std::string>> consensus,
@@ -45,19 +43,31 @@ BasicAligner::BasicAligner(
                 "for the numbering system."));
         }
     }
-    else if (scheme == "chothia" || scheme == "kabat"){
-        this->highlyConservedPositions = {HIGHLY_CONSERVED_CHOTHIA_KABAT_1,
-                    HIGHLY_CONSERVED_CHOTHIA_KABAT_2, HIGHLY_CONSERVED_CHOTHIA_KABAT_3,
-                    HIGHLY_CONSERVED_CHOTHIA_KABAT_4, HIGHLY_CONSERVED_CHOTHIA_KABAT_5,
-                    HIGHLY_CONSERVED_CHOTHIA_KABAT_6};
-        if (info.shape[0] != NUM_HEAVY_CHOTHIA_KABAT_POSITIONS && info.shape[0] !=
-                NUM_LIGHT_CHOTHIA_KABAT_POSITIONS){
+    else if (scheme == "martin" || scheme == "kabat"){
+        if (chainName == "L" || chainName == "K"){
+            this->highlyConservedPositions = {HIGHLY_CONSERVED_KABAT_LIGHT_1,
+                    HIGHLY_CONSERVED_KABAT_LIGHT_2, HIGHLY_CONSERVED_KABAT_LIGHT_3,
+                    HIGHLY_CONSERVED_KABAT_LIGHT_4, HIGHLY_CONSERVED_KABAT_LIGHT_5,
+                    HIGHLY_CONSERVED_KABAT_LIGHT_6};
+        }
+        else if (chainName == "H"){
+            this->highlyConservedPositions = {HIGHLY_CONSERVED_KABAT_HEAVY_1,
+                    HIGHLY_CONSERVED_KABAT_HEAVY_2, HIGHLY_CONSERVED_KABAT_HEAVY_3,
+                    HIGHLY_CONSERVED_KABAT_HEAVY_4, HIGHLY_CONSERVED_KABAT_HEAVY_5,
+                    HIGHLY_CONSERVED_KABAT_HEAVY_6};
+        }
+        else{
+            throw std::runtime_error(std::string("TMartin, Kabat currently "
+                        "support only H, K, L chains."));
+        }
+        if (info.shape[0] != NUM_HEAVY_MARTIN_KABAT_POSITIONS && info.shape[0] !=
+                NUM_LIGHT_MARTIN_KABAT_POSITIONS){
             throw std::runtime_error(std::string("The scoreArray passed to "
                 "BasicAligner must have the expected number of positions "
                 "for the numbering system."));
         }
-        if (consensus.size() != NUM_HEAVY_CHOTHIA_KABAT_POSITIONS && consensus.size() !=
-                NUM_LIGHT_CHOTHIA_KABAT_POSITIONS){
+        if (consensus.size() != NUM_HEAVY_MARTIN_KABAT_POSITIONS && consensus.size() !=
+                NUM_LIGHT_MARTIN_KABAT_POSITIONS){
             throw std::runtime_error(std::string("The consensus sequence passed to "
                 "BasicAligner must have the expected number of positions "
                 "for the numbering system."));
@@ -65,7 +75,7 @@ BasicAligner::BasicAligner(
     }
     else{
         throw std::runtime_error(std::string("Currently BasicAligner only recognizes "
-                    "schemes 'chothia', 'kabat', 'imgt'."));
+                    "schemes 'martin', 'kabat', 'imgt'."));
     }
 
     numPositions = info.shape[0];
@@ -289,15 +299,12 @@ std::tuple<std::vector<std::string>, double, std::string,
             }
         }
     }
-    // Build vector of numbers for other schemes (relatively simpler).
+    // Build vector of numbers for other schemes (much simpler).
     else{
         for (i=0; i < this->numPositions; i++){
             if (initNumbering[i] == 0){
                 continue;
             }
-            // Highly unlikely given the size of the alphabet we've used that
-            // we will ever run into a problem where there are too many insertions,
-            // but at least possible.
             if (initNumbering[i] > this->alphabet.size()){
                     delete[] queryAsIdx;
                     delete[] needleScores;

@@ -18,9 +18,9 @@ namespace py = pybind11;
 #define NUM_HEAVY_IMGT_POSITIONS 128
 #define NUM_LIGHT_IMGT_POSITIONS 127
 
-// Expected number of positions for Chothia, Kabat.
-#define NUM_HEAVY_CHOTHIA_KABAT_POSITIONS 113
-#define NUM_LIGHT_CHOTHIA_KABAT_POSITIONS 107
+// Expected number of positions for Martin, Kabat.
+#define NUM_HEAVY_MARTIN_KABAT_POSITIONS 113
+#define NUM_LIGHT_MARTIN_KABAT_POSITIONS 107
 
 // We have 22 AAs -- the 20 standard aminos then a gap in query penalty
 // vs gap in template -- thus, 22 expected values.
@@ -54,14 +54,23 @@ namespace py = pybind11;
 #define HIGHLY_CONSERVED_IMGT_6 120
 
 
-// Highly conserved positions in the Chothia / Kabat schemes. These are the #s - 1.
-#define HIGHLY_CONSERVED_CHOTHIA_KABAT_1 22
-#define HIGHLY_CONSERVED_CHOTHIA_KABAT_2 40
-#define HIGHLY_CONSERVED_CHOTHIA_KABAT_3 103
-#define HIGHLY_CONSERVED_CHOTHIA_KABAT_4 117
-#define HIGHLY_CONSERVED_CHOTHIA_KABAT_5 118
-#define HIGHLY_CONSERVED_CHOTHIA_KABAT_6 120
+// Highly conserved positions in the Martin / Kabat schemes for heavy chains.
+// These are the #s - 1.
+#define HIGHLY_CONSERVED_KABAT_HEAVY_1 21
+#define HIGHLY_CONSERVED_KABAT_HEAVY_2 35
+#define HIGHLY_CONSERVED_KABAT_HEAVY_3 91
+#define HIGHLY_CONSERVED_KABAT_HEAVY_4 102
+#define HIGHLY_CONSERVED_KABAT_HEAVY_5 103
+#define HIGHLY_CONSERVED_KABAT_HEAVY_6 105
 
+// Highly conserved positions in the Martin / Kabat schemes for light chains.
+// These are the #s - 1.
+#define HIGHLY_CONSERVED_KABAT_LIGHT_1 22
+#define HIGHLY_CONSERVED_KABAT_LIGHT_2 34
+#define HIGHLY_CONSERVED_KABAT_LIGHT_3 87
+#define HIGHLY_CONSERVED_KABAT_LIGHT_4 97
+#define HIGHLY_CONSERVED_KABAT_LIGHT_5 98
+#define HIGHLY_CONSERVED_KABAT_LIGHT_6 100
 
 // A default gap penalty for gaps at the beginning and end of the sequence.
 #define DEFAULT_GAP_PENALTY -1
