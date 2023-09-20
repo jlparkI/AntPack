@@ -78,9 +78,11 @@ def build_consensus_alignment(output_path, muscle_fpath, cleanup = True):
                         scheme = "kabat")
     build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_K.txt", chain_type = "K",
                         scheme = "kabat")
-    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_H.txt", chain_type = "H",
+    build_alternative_scoring(output_path, current_dir, "MARTIN_CONSENSUS_H.txt", chain_type = "H",
                         scheme = "martin")
-    build_alternative_scoring(output_path, current_dir, "KABAT_CONSENSUS_L.txt", chain_type = "L",
+    build_alternative_scoring(output_path, current_dir, "MARTIN_CONSENSUS_L.txt", chain_type = "L",
+                        scheme = "martin")
+    build_alternative_scoring(output_path, current_dir, "MARTIN_CONSENSUS_K.txt", chain_type = "K",
                         scheme = "martin")
 
     if cleanup:

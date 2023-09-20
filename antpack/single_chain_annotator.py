@@ -79,13 +79,9 @@ class SingleChainAnnotator:
         # If using Martin or Kabat, treat L and K interchangeably, and
         # update chains accordingly. Ensure that 'all' is the only
         # species allowed for Martin, Kabat.
-        chains_to_search = chains
         if scheme not in ["imgt", "martin", "kabat"]:
             raise ValueError("Unsupported scheme supplied.")
         if scheme in ["martin", "kabat"]:
-            #chains_to_search = [k for k in chains if k != "K"]
-            #if "L" not in chains_to_search and "K" in chains:
-            #    chains_to_search.append("L")
             if len(species) > 1 or species[0] != "all":
                 raise ValueError("For schemes other than IMGT, 'all' is the only species supported.")
 
@@ -101,7 +97,7 @@ class SingleChainAnnotator:
 
         try:
             os.chdir(os.path.join(project_path, "consensus_data"))
-            for chain in chains_to_search:
+            for chain in chains:
                 for specie in selected_species:
                     if specie == "all":
                         npy_filename = f"{scheme.upper()}_CONSENSUS_{chain}.npy"

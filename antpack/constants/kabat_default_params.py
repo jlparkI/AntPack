@@ -38,8 +38,6 @@ light_special_positions = {10:[-11.0,-1.0], 66:[-11.0,-1.0],
         52:[-1.0,-1.0], 95:[-1.0,-1.0]}
 
 # These are Kabat defined CDRs. For Kabat, unlike IMGT, heavy and light CDRs are different.
-#heavy_cdr_idx = list(range(31,36)) + list(range(50,66)) + list(range(95,103))
-#heavy_cdrs = {k:-11 for k in heavy_cdr_idx}
 heavy_cdrs = {31:-11.4, 32:-11.3, 33:-11.2, 34:-11.1,
         # CDR 2
         50:-11.2, 51:-11.1, 53:-11.1, 54:-11.2, 55:-25, 56:-25, 57:-25, 58:-25,
