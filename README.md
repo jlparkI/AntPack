@@ -1,7 +1,7 @@
 # AntPack
 
 AntPack is a toolkit for data processing, statistical inference and
-machine learning for antibody sequences. It is currently in highly
+machine learning for antibody sequences. It is currently in
 active development. For installation and how to
 use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
