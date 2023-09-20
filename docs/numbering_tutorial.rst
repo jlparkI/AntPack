@@ -12,12 +12,12 @@ both heavy and light chains. It can be used on a single domain
 sequence without any issues.
 
 **NOTE: MultiChainAnnotator is not yet implemented / not available
-in v0.0.1 -- but will be in the next version**.
+in v0.0.2 -- but will be in the next version**.
 
 Here's how to use ``SingleChainAnnotator``:::
 
   from antpack import SingleChainAnnotator
-  aligner = SingleChainAnnotator(species=["all"], chains=["H", "K", "L"])
+  aligner = SingleChainAnnotator(species=["all"], chains=["H", "K", "L"], scheme = "imgt")
 
 
 You can then use the ``analyze_online_seqs`` (for a list of sequences), ``analyze_fasta``
@@ -36,5 +36,7 @@ antibody sequences up into batches, and you can do this easily by using
 Python ``multiprocessing``. In each process, create a ``SingleChainAnnotator``
 and use that to number one batch of the sequences.
 
-As noted above, in the first release only IMGT numbering is supported -- more
-options coming soon.
+Currently IMGT, Martin ("modern Chothia") and Kabat are supported numbering schemes.
+We don't support original Chothia because (weirdly) it's defined inconsistently in
+the literature, and Martin is basically an improved version of Chothia. IMGT and Kabat
+are both fairly popular. We may add an updated version of IMGT (Aho) in a future version.
