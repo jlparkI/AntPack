@@ -16,6 +16,14 @@
 
 namespace py = pybind11;
 
+// The minimum number of amino acids in a sequence to try to align it.
+// Less than this and it will be immediately rejected. This is fairly
+// arbitrary, we didn't put much thought into the selection of 25 --
+// a typical chain is > 100 AAs, so anything MUCH less than that is
+// clearly a fragment that probably can't be reliably numbered.
+#define MINIMUM_SEQUENCE_LENGTH 25
+
+
 // The IMGT numbering system will always have (at least) 128 positions.
 // Technically light chains also have 128, but due to another weird quirk
 // position 128 is never used for light chains.
@@ -84,7 +92,6 @@ class BasicAligner {
                 std::vector<std::vector<std::string>> consensus,
                 std::string chainName, std::string scheme,
                 double terminalTemplateGapPenalty,
-                double NterminalQueryGapPenalty,
                 double CterminalQueryGapPenalty);
 
         std::tuple<std::vector<std::string>, double,
@@ -95,9 +102,9 @@ class BasicAligner {
                     int querySeqLen, int rowSize, int *queryAsIdx);
 
         // Default gap penalties for gaps at the beginning and end of the sequence.
-        // template is a weak penalty for placing gaps prior to start of numbering,
+        // template is a weak penalty for placing gaps outside the numbering,
         // while query is a weak penalty for placing gaps in the numbering
-        // (i.e. skipping numbers). Can specify separate n and c-terminal values.
+        // (i.e. skipping numbers).
 
         int numPositions;
         int numRestrictedPositions;
@@ -105,7 +112,6 @@ class BasicAligner {
         const std::string chainName;
         std::string scheme;
         double terminalTemplateGapPenalty;
-        double NterminalQueryGapPenalty;
         double CterminalQueryGapPenalty;
 
         std::vector<std::set<char>> consensusMap;

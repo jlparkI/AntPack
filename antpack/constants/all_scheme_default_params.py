@@ -12,7 +12,7 @@ n_terminal_gap_positions = {}
 for i in range(1,10):
     n_terminal_gap_positions[i] = [-1 - i, -25]
 
-for i in range(10,17):
+for i in range(10,18):
     n_terminal_gap_positions[i] = [-11 - (i-10) * 0.1, -25]
 
 
@@ -26,7 +26,4 @@ DEFAULT_TEMPLATE_GAP_PENALTY = -25
 #The penalty for inserting a gap at a highly conserved position.
 HIGHLY_CONSERVED_GAP_PENALTY = -65
 #The bonus for complying at a highly conserved position.
-HIGHLY_CONSERVED_BONUS = 200
-
-#The bonus for complying at a weighted position.
-WEIGHTED_BONUS = 30
+HIGHLY_CONSERVED_BONUS = 65

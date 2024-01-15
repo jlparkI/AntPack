@@ -8,14 +8,12 @@ BasicAligner::BasicAligner(
                  std::string chainName,
                  std::string scheme,
                  double terminalTemplateGapPenalty,
-                 double NterminalQueryGapPenalty,
                  double CterminalQueryGapPenalty
 ):
     scoreArray(scoreArray),
     chainName(chainName),
     scheme(scheme),
     terminalTemplateGapPenalty(terminalTemplateGapPenalty),
-    NterminalQueryGapPenalty(NterminalQueryGapPenalty),
     CterminalQueryGapPenalty(CterminalQueryGapPenalty)
 {
     py::buffer_info info = scoreArray.request();
@@ -131,7 +129,7 @@ std::tuple<std::vector<std::string>, double, std::string,
             unacceptableConservedPositions = 5};
     allowedErrorCodes errorCode;
 
-    if (query_sequence.length() == 0){
+    if (query_sequence.length() < MINIMUM_SEQUENCE_LENGTH){
         errorCode = invalidSequence;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
@@ -228,6 +226,20 @@ std::tuple<std::vector<std::string>, double, std::string,
         finalNumbering.push_back("-");
         positionKey.push_back(-1);
     }
+
+    
+    // Next, let's check to see if there are gaps in positions 1 - 5. The convention
+    // in most numbering tools is to push those gaps to the beginning of the
+    // sequence. (I'm personally not sure I agree with this, but it is what both ANARCI
+    // and AbNum do.) At this point, if the sequence has gaps in the first 5 numbered positions,
+    // we shuffle them around so the gaps are at the beginning.
+    for (int i=0; i < 5; i++){
+        if (initNumbering[i] ==1 && initNumbering[i+1] == 0){
+            initNumbering[i+1] = initNumbering[i];
+            initNumbering[i] = 0;
+        }
+    }
+
 
     // Build vector of IMGT numbers. Unfortunately the IMGT system adds insertion codes
     // forwards then backwards where there is > 1 insertion at a given position,
@@ -475,7 +487,9 @@ void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
         lscore = needleScores[gridPos - 1] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
         // We use a default score for the last column, so that c-terminal
-        // deletions if encountered are well-tolerated.
+        // deletions if encountered are well-tolerated. We exclude however
+        // highly conserved positions, for which a large gap penalty should
+        // always be assigned.
         if (std::binary_search(this->highlyConservedPositions.begin(),
                     this->highlyConservedPositions.end(), i))
             uscore = needleScores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);

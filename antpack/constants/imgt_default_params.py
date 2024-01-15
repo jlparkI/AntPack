@@ -9,7 +9,6 @@ NUM_LIGHT = 127
 #were selected to try to ensure a good alignment. Making large changes
 #to these WILL change the results, possibly substantially.
 
-DEFAULT_N_TERMINAL_QUERY_GAP_PENALTY = -11
 DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1
 DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
 
@@ -23,11 +22,6 @@ heavy_conserved_positions = {23:"C", 41:"W", 104:"C", 118:"W", 119:"G", 121:"G"}
 light_conserved_positions = {23:"C", 41:"W", 104:"C", 118:"F", 119:"G", 121:"G"}
 
 
-#These are positions that are not mandatory but have very strong preferences.
-heavy_weighted_positions = {}#47:["W", "F", "Y", "L"]}
-light_weighted_positions = {}
-
-
 #These are positions where either A) a blank in the query sequence is very common or
 #B) insertions are very common. We want special template and query gap penalties for
 #these positions. One or two of these are chain dependent. The first value is
@@ -36,8 +30,8 @@ heavy_special_positions = {10:[-1,-12], 33:[-1.0,-1.0], 61:[-1.0,-1.0],
         73:[-1,-11], 111:[-1.0,-1.0]}
 
 light_special_positions = {10:[-1,-12],
-        33:[-1.0,-1.0], 61:[-1.0,-1.0], 73:[-1,-11], 81:[-1.0,-5],
-        82:[-1.0,-11], 111:[-1.0,-1.0]}
+        33:[-1.0,-1.0], 61:[-1.0,-1.0], 73:[-1,-11], 81:[-1.0,-25],
+        82:[-1.0,-25], 111:[-1.0,-1.0]}
 
 #IMGT-defined CDRs. We have a specially defined gap penalty for each to ensure they are filled
 #in the correct order. For IMGT, light and heavy cdrs have the same definition.

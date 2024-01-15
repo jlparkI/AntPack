@@ -19,6 +19,6 @@ PYBIND11_MODULE(ant_ext, m){
         .def(py::init<py::array_t<double>,
                 std::vector<std::vector<std::string>>,
                 std::string, std::string,
-                double, double, double>())
+                double, double>())
         .def("align", &BasicAligner::align);
 }

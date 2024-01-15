@@ -66,8 +66,14 @@ def build_consensus_alignment(output_path, muscle_fpath, cleanup = True):
 
     if os.path.isfile(os.path.join(output_path, "ALL_ALIGNED.stockholm")):
         os.remove(os.path.join(output_path, "ALL_ALIGNED.stockholm"))
-    build_stockholm_alignments(output_path, selected_species, muscle_fpath)
-    build_imgt_consensus_files(output_path, current_dir, "ALL_ALIGNED.stockholm")
+    #build_stockholm_alignments(output_path, selected_species, muscle_fpath)
+    build_alternative_scoring(output_path, current_dir, "IMGT_CONSENSUS_H.txt", chain_type = "H",
+                        scheme = "imgt")
+    build_alternative_scoring(output_path, current_dir, "IMGT_CONSENSUS_K.txt", chain_type = "K",
+                        scheme = "imgt")
+    build_alternative_scoring(output_path, current_dir, "IMGT_CONSENSUS_L.txt", chain_type = "L",
+                        scheme = "imgt")
+    #build_imgt_consensus_files(output_path, current_dir, "ALL_ALIGNED.stockholm")
 
     #The Kabat and Martin consensus files are built separately and nothing needs to be
     #downloaded. Note that kabat and martin can use the same consensus files; also,

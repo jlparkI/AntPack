@@ -8,7 +8,6 @@ NUM_LIGHT = 107
 #were selected to try to ensure a good alignment. Making large changes
 #to these WILL change the results, possibly substantially.
 
-DEFAULT_N_TERMINAL_QUERY_GAP_PENALTY = -11
 DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1
 DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
 
@@ -16,10 +15,6 @@ DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
 #from one of these is an alignment issue or has a very large deletion.
 heavy_conserved_positions = {22:"C", 36:"W", 92:"C", 103:"W", 104:"G", 106:"G"}
 light_conserved_positions = {23:"C", 35:"W", 88:"C", 98:"F", 99:"G", 101:"G"}
-
-#These are positions that are not mandatory but have very strong preferences.
-heavy_weighted_positions = {}#47:["W", "F", "Y", "L"]}
-light_weighted_positions = {}
 
 #These are positions where either A) a blank in the query sequence is very common or
 #B) insertions are very common. We want special template and query gap penalties for

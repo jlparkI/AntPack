@@ -32,6 +32,8 @@ def build_alternative_scoring(target_dir, current_dir, consensus_file,
         save_consensus_array(consensus_list, chain_type, kabat_dp, "kabat")
     elif scheme == "martin":
         save_consensus_array(consensus_list, chain_type, martin_dp, "martin")
+    elif scheme == "imgt":
+        save_consensus_array(consensus_list, chain_type, imgt_dp, "imgt")
     os.chdir(current_dir)
 
 
@@ -163,14 +165,12 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
         special_positions = constants.light_special_positions
         cdrs = constants.light_cdrs
         npositions = constants.NUM_LIGHT
-        weighted_positions = constants.light_weighted_positions
 
     elif chain_type.endswith("H"):
         conserved_positions = constants.heavy_conserved_positions
         special_positions = constants.heavy_special_positions
         cdrs = constants.heavy_cdrs
         npositions = constants.NUM_HEAVY
-        weighted_positions = constants.heavy_weighted_positions
 
     else:
         return

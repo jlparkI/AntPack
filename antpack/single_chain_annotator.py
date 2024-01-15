@@ -123,7 +123,6 @@ class SingleChainAnnotator:
                     # off to Python.
                     self.scoring_tools.append(BasicAligner(score_matrix, con_map,
                                 chain_name, scheme, defaults.DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
-                                defaults.DEFAULT_N_TERMINAL_QUERY_GAP_PENALTY,
                                 defaults.DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY))
         except Exception as exc:
             os.chdir(current_dir)
