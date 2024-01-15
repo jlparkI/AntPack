@@ -9,24 +9,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
     def test_error_checking(self):
         """Check that sequences which have known issues are flagged
         as such, and that deliberately invalid inputs are recognized."""
-
-        # Pass inappropriate settings and make sure an error is raised.
-        with self.assertRaises(ValueError):
-            aligner = SingleChainAnnotator(species = "dinosaur")
-        with self.assertRaises(ValueError):
-            aligner = SingleChainAnnotator(species = ["woolly yak"])
-        with self.assertRaises(ValueError):
-            aligner = SingleChainAnnotator(species = ["human"], chains="VK")
-        with self.assertRaises(ValueError):
-            aligner = SingleChainAnnotator(species = ["human"], chains=["VK"])
-        with self.assertRaises(ValueError):
-            aligner = SingleChainAnnotator(species = ["rat"], chains=["A"])
-        with self.assertRaises(ValueError):
-            aligner = SingleChainAnnotator(species = ["all"], chains=["H"], scheme="pirate")
-
-
         # Pass dummy sequences with errors.
-        aligner = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"])
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"])
         with self.assertRaises(ValueError):
             aligner.analyze_online_seqs("YYY")
 
@@ -59,7 +43,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
                     "ENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA")
 
         for scheme in ["martin", "imgt", "kabat"]:
-            aligner = SingleChainAnnotator(species = ["all"], chains=["H", "K", "L"],
+            aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                             scheme = scheme)
             results = aligner.analyze_online_seqs([known_K, known_L, known_H])
             self.assertTrue(results[0][2] == "K")
@@ -98,7 +82,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         numberings = [martin_num, imgt_num, kabat_num]
         schemes = ["martin", "imgt", "kabat"]
 
-        aligners = [SingleChainAnnotator(species=["all"], chains=["H", "K", "L"],
+        aligners = [SingleChainAnnotator(chains=["H", "K", "L"],
                         scheme=k) for k in schemes]
 
         for aligner, scheme, numbering in zip(aligners, schemes, numberings):

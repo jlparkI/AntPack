@@ -92,7 +92,8 @@ class BasicAligner {
                 std::vector<std::vector<std::string>> consensus,
                 std::string chainName, std::string scheme,
                 double terminalTemplateGapPenalty,
-                double CterminalQueryGapPenalty);
+                double CterminalQueryGapPenalty,
+                bool compressInitialGaps);
 
         std::tuple<std::vector<std::string>, double,
                 std::string, std::string> align(std::string query_sequence);
@@ -113,6 +114,7 @@ class BasicAligner {
         std::string scheme;
         double terminalTemplateGapPenalty;
         double CterminalQueryGapPenalty;
+        bool compressInitialGaps;
 
         std::vector<std::set<char>> consensusMap;
         std::vector<int> highlyConservedPositions;

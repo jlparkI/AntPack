@@ -8,13 +8,15 @@ BasicAligner::BasicAligner(
                  std::string chainName,
                  std::string scheme,
                  double terminalTemplateGapPenalty,
-                 double CterminalQueryGapPenalty
+                 double CterminalQueryGapPenalty,
+                 bool compressInitialGaps
 ):
     scoreArray(scoreArray),
     chainName(chainName),
     scheme(scheme),
     terminalTemplateGapPenalty(terminalTemplateGapPenalty),
-    CterminalQueryGapPenalty(CterminalQueryGapPenalty)
+    CterminalQueryGapPenalty(CterminalQueryGapPenalty),
+    compressInitialGaps(compressInitialGaps)
 {
     py::buffer_info info = scoreArray.request();
     // Note that exceptions thrown here are go back to Python via
@@ -233,10 +235,12 @@ std::tuple<std::vector<std::string>, double, std::string,
     // sequence. (I'm personally not sure I agree with this, but it is what both ANARCI
     // and AbNum do.) At this point, if the sequence has gaps in the first 5 numbered positions,
     // we shuffle them around so the gaps are at the beginning.
-    for (int i=0; i < 5; i++){
-        if (initNumbering[i] ==1 && initNumbering[i+1] == 0){
-            initNumbering[i+1] = initNumbering[i];
-            initNumbering[i] = 0;
+    if (this->compressInitialGaps){
+        for (int i=0; i < 5; i++){
+            if (initNumbering[i] ==1 && initNumbering[i+1] == 0){
+                    initNumbering[i+1] = initNumbering[i];
+                    initNumbering[i] = 0;
+            }
         }
     }
 

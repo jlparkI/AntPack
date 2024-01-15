@@ -26,18 +26,10 @@ class SingleChainAnnotator:
     light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
     """
 
-    def __init__(self, species = ["all"], chains = ["H"], scheme = "imgt"):
+    def __init__(self, chains = ["H"], scheme = "imgt", compress_init_gaps = False):
         """Class constructor.
 
         Args:
-            species (str): A list of species to check. Each list element must
-                be one of "alpaca", "cow", "human", "mouse", "pig", "rabbit",
-                "rat", "rhesus", "all". If "all" is in the list, all other
-                entries are ignored, and the sequences are aligned using
-                a consensus sequence formed from the corresponding chains
-                for all species. We recommend using ["all"] (the
-                default). Not that if the scheme is not 'imgt', 'all' is the
-                only species supported.
             chain (list): A list of chains. Each must be one of "H", "K", "L",
                 "A", "B", "D", "G". Note that not all chains are
                 supported for all species. "A", "B", "D", "G" for example
@@ -49,42 +41,23 @@ class SingleChainAnnotator:
                 schemes do not define numbering for T-cell receptors),
                 and K and L are interchangeable. If the scheme is not 'imgt',
                 'all' is the only species supported.
+            compress_init_gaps (bool): If True, rearrange gaps in the first 5
+                positions post-alignment so that gaps are at the beginning of
+                the sequence wherever possible. This is more consistent with
+                results from some other tools. Defaults to False.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are
                 supplied.
         """
-        for specie in species:
-            if specie not in ["alpaca", "cow", "human", "mouse", "pig", "rabbit",
-                "rat", "rhesus", "all"]:
-                raise ValueError(f"Unrecognized species {specie} supplied.")
         if len(chains) == 0:
             raise ValueError("Must supply at least one chain.")
         for chain in chains:
-            if chain not in ["H", "K", "L", "A", "B", "D", "G"]:
+            if chain not in ["H", "K", "L"]:
                 raise ValueError(f"Unrecognized chain {chain} supplied.")
-            if chain in ["A", "B", "D", "G"]:
-                if scheme not in ["imgt"]:
-                    raise ValueError("Only IMGT numbering is currently available for T-cell "
-                            "receptor sequences.")
-                for specie in species:
-                    if specie not in ["human", "mouse"]:
-                        raise ValueError("Unsupported chain-species combo "
-                            f"{chain} {specie} supplied.")
-            if chain in ["H"] and species in ["rat"]:
-                for specie in species:
-                    if specie in ["rat"]:
-                        raise ValueError("Unsupported chain-species combo "
-                                    f"{chain} {specie} supplied.")
 
-        # If using Martin or Kabat, treat L and K interchangeably, and
-        # update chains accordingly. Ensure that 'all' is the only
-        # species allowed for Martin, Kabat.
         if scheme not in ["imgt", "martin", "kabat"]:
             raise ValueError("Unsupported scheme supplied.")
-        if scheme in ["martin", "kabat"]:
-            if len(species) > 1 or species[0] != "all":
-                raise ValueError("For schemes other than IMGT, 'all' is the only species supported.")
 
         if scheme == "martin":
             defaults = martin_default_params
@@ -93,12 +66,6 @@ class SingleChainAnnotator:
         else:
             defaults = imgt_default_params
 
-        # If 'all' was supplied, disregard all other entries.
-        if "all" in species:
-            selected_species = ["all"]
-        else:
-            selected_species = species
-
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         self.scoring_tools = []
@@ -106,24 +73,20 @@ class SingleChainAnnotator:
         try:
             os.chdir(os.path.join(project_path, "consensus_data"))
             for chain in chains:
-                for specie in selected_species:
-                    if specie == "all":
-                        npy_filename = f"{scheme.upper()}_CONSENSUS_{chain}.npy"
-                        text_file = f"{scheme.upper()}_CONSENSUS_{chain}.txt"
-                        chain_name = chain
-                    else:
-                        npy_filename = f"{scheme.upper()}_CONSENSUS_{specie}_{chain}.npy"
-                        text_file = f"{scheme.upper()}_CONSENSUS_{specie}_{chain}.txt"
-                        chain_name = "_".join([specie, chain])
-                    score_matrix = np.load(npy_filename)
-                    con_map = self._load_consensus_map(text_file)
-                    # Note that BasicAligner class constructor checks the input score
-                    # matrix to ensure the right dimensions; if it does not like these,
-                    # it will throw an exception that the PyBind wrapper will hand
-                    # off to Python.
-                    self.scoring_tools.append(BasicAligner(score_matrix, con_map,
+                npy_filename = f"{scheme.upper()}_CONSENSUS_{chain}.npy"
+                text_file = f"{scheme.upper()}_CONSENSUS_{chain}.txt"
+                chain_name = chain
+
+                score_matrix = np.load(npy_filename)
+                con_map = self._load_consensus_map(text_file)
+                # Note that BasicAligner class constructor checks the input score
+                # matrix to ensure the right dimensions; if it does not like these,
+                # it will throw an exception that the PyBind wrapper will hand
+                # off to Python.
+                self.scoring_tools.append(BasicAligner(score_matrix, con_map,
                                 chain_name, scheme, defaults.DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
-                                defaults.DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY))
+                                defaults.DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
+                                compress_init_gaps))
         except Exception as exc:
             os.chdir(current_dir)
             raise ValueError("The consensus data for the package either has been deleted or "
