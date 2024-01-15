@@ -17,8 +17,14 @@ in v0.0.2 -- but will be in the next version**.
 Here's how to use ``SingleChainAnnotator``:::
 
   from antpack import SingleChainAnnotator
-  aligner = SingleChainAnnotator(species=["all"], chains=["H", "K", "L"], scheme = "imgt")
+  aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt",
+                        compress_init_gaps = False)
 
+
+Note that in versions prior to 0.0.3, you could specify a species of interest.
+This argument is no longer required (or accepted). ``compress_init_gaps``
+rearranges gaps in the first part of the sequence when there are small n-terminal
+deletions; this argument should generally be left as False.
 
 You can then use the ``analyze_online_seqs`` (for a list of sequences), ``analyze_fasta``
 (a generator for analyzing sequences in a fasta file) or ``analyze_seq`` (for analyzing
