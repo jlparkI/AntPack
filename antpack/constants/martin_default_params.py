@@ -8,44 +8,41 @@ NUM_LIGHT = 107
 #were selected to try to ensure a good alignment. Making large changes
 #to these WILL change the results, possibly substantially.
 
-DEFAULT_QUERY_GAP_PENALTY = -25
-DEFAULT_TEMPLATE_GAP_PENALTY = -25
+DEFAULT_N_TERMINAL_QUERY_GAP_PENALTY = -11
+DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1
+DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
 
 #These are positions that are essentially mandatory. A sequence that deviates
 #from one of these is an alignment issue or has a very large deletion.
 heavy_conserved_positions = {22:"C", 36:"W", 92:"C", 103:"W", 104:"G", 106:"G"}
 light_conserved_positions = {23:"C", 35:"W", 88:"C", 98:"F", 99:"G", 101:"G"}
 
-#The penalty for inserting a gap at a highly conserved position.
-HIGHLY_CONSERVED_GAP_PENALTY = -65
-#The bonus for complying at a highly conserved position.
-HIGHLY_CONSERVED_BONUS = 60
-
+#These are positions that are not mandatory but have very strong preferences.
+heavy_weighted_positions = {}
+light_weighted_positions = {}
 
 #These are positions where either A) a blank in the query sequence is very common or
 #B) insertions are very common. We want special template and query gap penalties for
 #these positions. One or two of these are chain dependent. The first value is
 #the query gap column, the second is the template gap column.
-heavy_special_positions = {8:[-1.0,-11.0], 72:[0,-25],
-        28:[-25,-11], 29:[-25,-10], 30:[-25,-5],
-        31:[-1.0,-1], 52:[-1.0,-1.0], 100:[-1.0,-1.0]}
+heavy_special_positions = {8:[-25,-1.0], 31:[-1.0,-1.0],
+        40:[-11.4,-25], 41:[-11.3,-25], 42:[-11.2,-25], 43:[-11.1,-25], 44:[-11,-25],
+        52:[-1.0,-1.0], 72:[-25,-1.0], 100:[-1.0,-1.0]}
 
-light_special_positions = {10:[-11.0,-1.0], 68:[-1.0,-1.0],
+light_special_positions = {10:[-1,-11.0], 68:[-1.0,-1.0],
         #CDR 1
-        30:[-1.0,-11.1], 31:[-11,-1], 32:[-11,-5], 33:[-11,-5.1],
+        30:[-11.1,-1.0],
         #CDR 2, 3
         52:[-1.0,-1.0], 95:[-1.0,-1.0]}
 
 # These exclude special positions. For Martin, unlike IMGT, heavy and light CDRs are different.
-heavy_cdrs = {32:-11.1, 33:-11.2, 34:-11.3,
+heavy_cdrs = {26:-11.5, 27:-11.4, 28:-11.3, 29:-11.2, 30:-11.1,
         # CDR 2
         50:-11.2, 51:-11.1, 53:-11.3, 54:-11.4, 55:-11.5, 56:-11.6,
-        57:-11.7, 58:-11.8, 59:-11.9, 60:-12, 61:-12.1, 62:-12.2,
-        63:-12.3, 64:-12.4, 65:-12.5,
         #CDR 3
         95:-11.5, 96:-11.4, 97:-11.3, 98:-11.2, 99:-11.1,
             101:-11.6, 102:-11.7}
-light_cdrs = {26:-11.5, 27:-11.4, 28:-11.3, 29:-11.2,
+light_cdrs = {26:-11.5, 27:-11.4, 28:-11.3, 29:-11.2, 31:-11.0,
         # CDR 2
         50:-11.2, 51:-11.1, 53:-11, 54:-11.15, -55:-11.25, 56:-11.35,
         #CDR 3

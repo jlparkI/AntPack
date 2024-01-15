@@ -6,11 +6,17 @@ BasicAligner::BasicAligner(
                  py::array_t<double> scoreArray,
                  std::vector<std::vector<std::string>> consensus,
                  std::string chainName,
-                 std::string scheme
+                 std::string scheme,
+                 double terminalTemplateGapPenalty,
+                 double NterminalQueryGapPenalty,
+                 double CterminalQueryGapPenalty
 ):
     scoreArray(scoreArray),
     chainName(chainName),
-    scheme(scheme)
+    scheme(scheme),
+    terminalTemplateGapPenalty(terminalTemplateGapPenalty),
+    NterminalQueryGapPenalty(NterminalQueryGapPenalty),
+    CterminalQueryGapPenalty(CterminalQueryGapPenalty)
 {
     py::buffer_info info = scoreArray.request();
     // Note that exceptions thrown here are go back to Python via
@@ -414,9 +420,11 @@ void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
     needleScores[0] = 0;
     pathTrace[0] = 0;
     for (i=0; i < querySeqLen; i++){
-        needleScores[i+1] = needleScores[i] + DEFAULT_GAP_PENALTY;
+        needleScores[i+1] = needleScores[i] + this->terminalTemplateGapPenalty;
         pathTrace[i+1] = LEFT_TRANSFER;
     }
+
+
 
 
     // This first loop goes up to the last row only (the last row)
@@ -429,17 +437,16 @@ void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         gridPos = i * rowSize;
         diagNeighbor = (i - 1) * rowSize;
         upperNeighbor = diagNeighbor + 1;
-        // The first column assigns a low penalty for gaps so that n-terminal
-        // deletions if encountered are accepted, UNLESS we are at a highly
-        // conserved position.
-        needleScores[gridPos] = needleScores[diagNeighbor] + DEFAULT_GAP_PENALTY;
+        // The first column assigns a modified penalty for gaps so that n-terminal
+        // deletions if encountered are accepted.
+        needleScores[gridPos] = needleScores[diagNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
         pathTrace[gridPos] = UP_TRANSFER;
         gridPos++;
 
         for (j=0; j < (querySeqLen - 1); j++){
             dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
-            lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
-            uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+            lscore = needleScores[gridPos - 1] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+            uscore = needleScores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
 
             // This is mildly naughty -- we don't consider the possibility
             // of a tie, which could lead to a branched alignment. Realistically,
@@ -466,14 +473,14 @@ void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
 
         j = querySeqLen - 1;
         dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
-        lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
+        lscore = needleScores[gridPos - 1] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
         // We use a default score for the last column, so that c-terminal
         // deletions if encountered are well-tolerated.
         if (std::binary_search(this->highlyConservedPositions.begin(),
                     this->highlyConservedPositions.end(), i))
-            uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+            uscore = needleScores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
         else{
-            uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
+            uscore = needleScores[upperNeighbor] + this->CterminalQueryGapPenalty;
         }
 
         if (lscore > uscore && lscore > dscore){
@@ -500,15 +507,15 @@ void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
     // The first column assigns a low penalty for gaps so that n-terminal
     // deletions if encountered are accepted, UNLESS we are at a highly
     // conserved position.
-    needleScores[gridPos] = needleScores[diagNeighbor] - 1;
+    needleScores[gridPos] = needleScores[diagNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
     pathTrace[gridPos] = UP_TRANSFER;
     gridPos++;
 
     for (j=0; j < (querySeqLen - 1); j++){
         double lscore, uscore, dscore;
         dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
-        lscore = needleScores[gridPos - 1] + DEFAULT_GAP_PENALTY;
-        uscore = needleScores[upperNeighbor] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+        lscore = needleScores[gridPos - 1] + this->terminalTemplateGapPenalty;
+        uscore = needleScores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
 
         if (lscore > uscore && lscore > dscore){
             needleScores[gridPos] = lscore;
@@ -528,11 +535,13 @@ void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         upperNeighbor++;
     }
 
+
+
     // And, finally, the last column of the last row.
     j = querySeqLen - 1;
     dscore = needleScores[diagNeighbor] + scoreItr(i-1,queryAsIdx[j]);
-    lscore = needleScores[gridPos - 1] + scoreItr(i-1,QUERY_GAP_COLUMN);
-    uscore = needleScores[upperNeighbor] + DEFAULT_GAP_PENALTY;
+    lscore = needleScores[gridPos - 1] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+    uscore = needleScores[upperNeighbor] + this->CterminalQueryGapPenalty;
     if (lscore > uscore && lscore > dscore){
         needleScores[gridPos] = lscore;
         pathTrace[gridPos] = LEFT_TRANSFER;

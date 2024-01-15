@@ -10,6 +10,7 @@ from ..constants.allowed_inputs import allowed_aa_list
 from ..constants import imgt_default_params as imgt_dp
 from ..constants import kabat_default_params as kabat_dp
 from ..constants import martin_default_params as martin_dp
+from ..constants import all_scheme_default_params as shared_dp
 
 
 def build_alternative_scoring(target_dir, current_dir, consensus_file,
@@ -162,13 +163,18 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
         special_positions = constants.light_special_positions
         cdrs = constants.light_cdrs
         npositions = constants.NUM_LIGHT
+        weighted_positions = constants.light_weighted_positions
+
     elif chain_type.endswith("H"):
         conserved_positions = constants.heavy_conserved_positions
         special_positions = constants.heavy_special_positions
         cdrs = constants.heavy_cdrs
         npositions = constants.NUM_HEAVY
+        weighted_positions = constants.heavy_weighted_positions
+
     else:
         return
+
 
     key_array = np.zeros((npositions, 22))
 
@@ -178,15 +184,18 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
         #Choose the gap penalty
         #for template (column 20) and for query (column 21) of key array.
         if position in conserved_positions:
-            key_array[i,20:] = constants.HIGHLY_CONSERVED_GAP_PENALTY
+            key_array[i,20:] = shared_dp.HIGHLY_CONSERVED_GAP_PENALTY
         elif position in special_positions:
             key_array[i,20] = special_positions[position][0]
             key_array[i,21:] = special_positions[position][1]
         elif position in cdrs:
             key_array[i,20:] = cdrs[position]
+        elif position in shared_dp.n_terminal_gap_positions:
+            key_array[i,20] = shared_dp.n_terminal_gap_positions[position][0]
+            key_array[i,21:] = shared_dp.n_terminal_gap_positions[position][1]
         else:
-            key_array[i,20] = constants.DEFAULT_QUERY_GAP_PENALTY
-            key_array[i,21] = constants.DEFAULT_TEMPLATE_GAP_PENALTY
+            key_array[i,20] = shared_dp.DEFAULT_QUERY_GAP_PENALTY
+            key_array[i,21] = shared_dp.DEFAULT_TEMPLATE_GAP_PENALTY
 
         #Next, fill in the scores for other amino acid substitutions. If a conserved
         #residue, use the ones we specify here. Otherwise, use the best possible
@@ -196,7 +205,7 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
             letter_blosum_idx = blosum_key[letter]
             if position in conserved_positions:
                 if letter == conserved_positions[position]:
-                    key_array[i,j] = constants.HIGHLY_CONSERVED_BONUS
+                    key_array[i,j] = shared_dp.HIGHLY_CONSERVED_BONUS
             else:
                 key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if
                     k != "-" else 0 for k in observed_aas])

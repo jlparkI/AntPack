@@ -134,7 +134,7 @@ def format_j_genes(jalignments, target_dir, muscle_fpath):
 
 def format_v_genes(valignments):
     """
-    Take upto and including imgt position 108 in the alignment. Pad with gaps on the right side
+    Take up to and including imgt position 108 in the alignment. Pad with gaps on the right side
     """
 
     new_valignments = {}

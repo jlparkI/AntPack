@@ -10,6 +10,10 @@
 #include <array>
 #include "utilities.h"
 
+
+#include <iostream>
+
+
 namespace py = pybind11;
 
 // The IMGT numbering system will always have (at least) 128 positions.
@@ -72,15 +76,16 @@ namespace py = pybind11;
 #define HIGHLY_CONSERVED_KABAT_LIGHT_5 98
 #define HIGHLY_CONSERVED_KABAT_LIGHT_6 100
 
-// A default gap penalty for gaps at the beginning and end of the sequence.
-#define DEFAULT_GAP_PENALTY -1
 
 
 class BasicAligner {
     public:
         BasicAligner(py::array_t<double> scoreArray,
                 std::vector<std::vector<std::string>> consensus,
-                std::string chainName, std::string scheme);
+                std::string chainName, std::string scheme,
+                double terminalTemplateGapPenalty,
+                double NterminalQueryGapPenalty,
+                double CterminalQueryGapPenalty);
 
         std::tuple<std::vector<std::string>, double,
                 std::string, std::string> align(std::string query_sequence);
@@ -89,16 +94,25 @@ class BasicAligner {
         void fillNeedleScoringTable(double *needleScores, int *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx);
 
+        // Default gap penalties for gaps at the beginning and end of the sequence.
+        // template is a weak penalty for placing gaps prior to start of numbering,
+        // while query is a weak penalty for placing gaps in the numbering
+        // (i.e. skipping numbers). Can specify separate n and c-terminal values.
+
         int numPositions;
         int numRestrictedPositions;
         py::array_t<double> scoreArray;
         const std::string chainName;
         std::string scheme;
+        double terminalTemplateGapPenalty;
+        double NterminalQueryGapPenalty;
+        double CterminalQueryGapPenalty;
+
         std::vector<std::set<char>> consensusMap;
         std::vector<int> highlyConservedPositions;
         std::array<std::string, 6> errorCodeToMessage {"",
                 "Sequence contains invalid characters",
-                "Fatal runtime error in IMGTAligner. Unusual. Please report",
+                "Fatal runtime error in BasicAligner. Unusual. Please report",
                 "> 72 insertions. Suggests a problem with this sequence",
                 "Alignment length != length of input sequence. Unusual. Please report.",
                 "Unexpected AA at conserved position."};

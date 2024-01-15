@@ -27,9 +27,9 @@
 26,S,T,G
 27,-
 28,N,V,D,S,I,E,Y,T,G
-29,Q,S,G,I,R,V,N,H,T,D
+29,Q,S,G,I,R,V,N,H
 30,K,S,H,I,R,Y,N,D,V,G,T,A
-31,N,S,T,K,G,V,R,I,D,Y
+31,N,S,T,K,G,V,R,I,D
 32,Y,W,F,D,R,N,S,K,H,A,G
 33,L,M,I,V,F
 34,T,A,N,H,E,G,Q,Y,S,D

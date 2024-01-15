@@ -9,6 +9,7 @@ import os
 import numpy as np
 from Bio import SeqIO
 from .constants import allowed_inputs
+from .constants import imgt_default_params, martin_default_params, kabat_default_params
 from ant_ext import BasicAligner, validate_sequence
 
 
@@ -85,6 +86,13 @@ class SingleChainAnnotator:
             if len(species) > 1 or species[0] != "all":
                 raise ValueError("For schemes other than IMGT, 'all' is the only species supported.")
 
+        if scheme == "martin":
+            defaults = martin_default_params
+        elif scheme == "kabat":
+            defaults = kabat_default_params
+        else:
+            defaults = imgt_default_params
+
         # If 'all' was supplied, disregard all other entries.
         if "all" in species:
             selected_species = ["all"]
@@ -114,7 +122,9 @@ class SingleChainAnnotator:
                     # it will throw an exception that the PyBind wrapper will hand
                     # off to Python.
                     self.scoring_tools.append(BasicAligner(score_matrix, con_map,
-                                chain_name, scheme))
+                                chain_name, scheme, defaults.DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
+                                defaults.DEFAULT_N_TERMINAL_QUERY_GAP_PENALTY,
+                                defaults.DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY))
         except Exception as exc:
             os.chdir(current_dir)
             raise ValueError("The consensus data for the package either has been deleted or "

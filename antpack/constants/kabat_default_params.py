@@ -8,32 +8,32 @@ NUM_LIGHT = 107
 #were selected to try to ensure a good alignment. Making large changes
 #to these WILL change the results, possibly substantially.
 
-DEFAULT_QUERY_GAP_PENALTY = -25
-DEFAULT_TEMPLATE_GAP_PENALTY = -25
+DEFAULT_N_TERMINAL_QUERY_GAP_PENALTY = -11
+DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1
+DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
 
 #These are positions that are essentially mandatory. A sequence that deviates
 #from one of these is an alignment issue or has a very large deletion.
 heavy_conserved_positions = {22:"C", 36:"W", 92:"C", 103:"W", 104:"G", 106:"G"}
 light_conserved_positions = {23:"C", 35:"W", 88:"C", 98:"F", 99:"G", 101:"G"}
 
-#The penalty for inserting a gap at a highly conserved position.
-HIGHLY_CONSERVED_GAP_PENALTY = -65
-#The bonus for complying at a highly conserved position.
-HIGHLY_CONSERVED_BONUS = 60
-
+#These are positions that are not mandatory but have very strong preferences.
+heavy_weighted_positions = {}#47:["W", "F", "Y", "L"]}
+light_weighted_positions = {}
 
 #These are positions where either A) a blank in the query sequence is very common or
 #B) insertions are very common. We want special template and query gap penalties for
 #these positions. One or two of these are chain dependent. The first value is
 #the query gap column, the second is the template gap column.
-heavy_special_positions = {82:[0.0,-25.0], 6:[-1.0,-11.0], 72:[-25,-1.0],
-        73:[-25,-1.0], 74:[-25,-1.0], 80:[-25,-1.0],
-        35:[-1.0,-1.0], 52:[-1.0,-1.0], 100:[-1.0,-1.0]}
+heavy_special_positions = {6:[-11.,-1.0], 35:[-1,-1],
+        40:[-11.4,-25], 41:[-11.3,-25], 42:[-11.2,-25], 43:[-11.1,-25], 44:[-11,-25],
+        52:[-1,-1], 72:[-1.0,-25], 73:[-1.0,-25], 74:[-1.0,-25],
+        82:[-25,-1], 100:[-1.0,-1.0]}
 
-light_special_positions = {10:[-11.0,-1.0], 66:[-11.0,-1.0],
+light_special_positions = {10:[-1.0,-12],
         #CDR 1
-        27:[-1.0,-11.1], 28:[-11.0,-5.0],
-        29:[-11.0,-5.1], 30:[-11.0,-5.2],
+        27:[-11.1,-1.0], 28:[-5.0,-11],
+        29:[-5.1,-11], 30:[-5.2,-11],
         #CDR 2, 3
         52:[-1.0,-1.0], 95:[-1.0,-1.0]}
 

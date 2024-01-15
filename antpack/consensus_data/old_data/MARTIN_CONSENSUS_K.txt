@@ -1,4 +1,4 @@
-# kabat light L
+# martin
 1,D,E,Q,N,A
 2,I,V,L
 3,V,Q,L,E,K
@@ -25,11 +25,11 @@
 24,K,R,Q,S
 25,S,A,T,C
 26,S,T,G
-27,-
-28,N,V,D,S,I,E,Y,T,G
-29,Q,S,G,I,R,V,N,H,T,D
-30,K,S,H,I,R,Y,N,D,V,G,T,A
-31,N,S,T,K,G,V,R,I,D,Y
+27,Q,G,E,S,K,H
+28,S,N,D,E,R,T,G
+29,L,V,I,G
+30,-
+31,N,S,T,K,G,R,I,D
 32,Y,W,F,D,R,N,S,K,H,A,G
 33,L,M,I,V,F
 34,T,A,N,H,E,G,Q,Y,S,D
@@ -48,7 +48,7 @@
 47,L,W
 48,I,V,M
 49,Y,K,H,S,F
-50,-
+50,W,G,L,K,N,A,D,Y,S,E,T,R,Q,F,V
 51,A,V,T,S,M,G,I
 52,S,K,T,N
 53,T,S,K,N,I,D,R,Y,Q,F
@@ -95,7 +95,7 @@
 94,-
 95,-
 96,L,Y,W,F,P,R,A,S,I,V,E,H,T
-97,T,S,F
+97,T,V,I,A,S,F,L
 98,F
 99,G
 100,A,Q,S,G,P

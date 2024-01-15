@@ -27,10 +27,10 @@
 26,S,T,G
 27,Q,G,E,S,K,H
 28,S,N,D,E,R,T,G
-29,L,V,I,G
+29,-
 30,-
-31,N,S,T,K,G,R,I,D
-32,Y,W,F,D,R,N,S,K,H,A,G
+31,-
+32,-
 33,L,M,I,V,F
 34,T,A,N,H,E,G,Q,Y,S,D
 35,W

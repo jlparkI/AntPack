@@ -40,7 +40,7 @@
 39,Q
 40,A,P,R,S,T,M,V
 41,P,A,H
-42,G,E,S
+42,G,E,S,A
 43,K,Q,R,N
 44,G,A,R,S
 45,L
