@@ -1,8 +1,6 @@
-"""Contains the tools needed to convert a stockholm alignment of
-all the chain types into a set of .npy arrays and a CONSENSUS.txt
-file with consensus sequences for each chain type. The .npy arrays
-are used to score new sequences so that they are correctly
-aligned and numbered."""
+"""Contains the tools needed to generate .npy arrays for each
+chain type. The .npy arrays are used to score new sequences
+so that they are aligned and numbered."""
 import os
 import numpy as np
 from Bio.Align import substitution_matrices
@@ -13,19 +11,37 @@ from ..constants import martin_default_params as martin_dp
 from ..constants import all_scheme_default_params as shared_dp
 
 
-def build_alternative_scoring(target_dir, current_dir, consensus_file,
+def build_consensus_alignment(output_path):
+    """Constructs consensus alignment schemes for all species and chains.
+
+    output_path (str): Filename of a folder where the output is
+        saved.
+    """
+    current_dir = os.getcwd()
+    try:
+        os.chdir(output_path)
+        os.chdir(current_dir)
+    except Exception as exc:
+        raise ValueError("Invalid output file path supplied.") from exc
+
+    for scheme in ["kabat", "martin", "imgt"]:
+        for chain in ["H", "K", "L"]:
+            consensus_file = f"{scheme.upper()}_CONSENSUS_{chain}.txt"
+            build_scoring_files(output_path, current_dir, consensus_file,
+                        chain_type = chain, scheme = scheme)
+
+
+def build_scoring_files(target_dir, current_dir, consensus_file,
         chain_type = "H", scheme = "kabat"):
     """Builds a scoring matrix for the amino acids at each position for each
-    chain type for non-IMGT schemes. The consensus file for non-IMGT schemes
-    is predefined, so we merely need to load it then convert it to a scoring
-    matrix.
+    chain type using predefined consensus files.
 
     Args:
         target_dir (str): The filepath of the output directory.
         current_dir (str): The filepath of the current directory.
     """
     if chain_type not in ["H", "K", "L"]:
-        raise ValueError("For schemes other than IMGT, only H, K, L chains are supported.")
+        raise ValueError("Currently only H, K, L chains are supported.")
     os.chdir(target_dir)
     consensus_list = load_consensus_file(consensus_file)
     if scheme == "kabat":
@@ -38,62 +54,11 @@ def build_alternative_scoring(target_dir, current_dir, consensus_file,
 
 
 
-def build_imgt_consensus_files(target_dir, current_dir, alignment_fname):
-    """Builds a consensus for the amino acids at each position for each
-    chain type for IMGT. Currently combines all species (it may sometimes be
-    desirable to separate species -- will consider this later).
-    In target_dir, a file called 'CONSENSUS.txt' is created containing
-    the consensus for each chain, while a separate .npy file for each
-    chain is saved to the same directory.
-
-    Args:
-        target_dir (str): The filepath of the output directory.
-        current_dir (str): The filepath of the current directory.
-        alignment_fname (str): The name of the alignment file. It should
-            already live in target_dir.
-    """
-    os.chdir(target_dir)
-    combined_dict = {}
-    separate_species_dict = {}
-
-    with open(alignment_fname, "r", encoding="utf-8") as fhandle:
-        read_now = False
-        for line in fhandle:
-            if line.startswith("#=GF"):
-                read_now = True
-                species, chain = line.strip().split()[-1].split("_")
-                if species not in separate_species_dict:
-                    separate_species_dict[species] = {}
-                if chain not in combined_dict:
-                    combined_dict[chain] = []
-                if chain not in separate_species_dict[species]:
-                    separate_species_dict[species][chain] = []
-            elif line.startswith("#=GC RF"):
-                read_now = False
-            elif read_now:
-                combined_dict[chain].append(line.strip().split()[-1])
-                separate_species_dict[species][chain].append(line.strip().split()[-1])
-
-    for chain_type, seq_list in combined_dict.items():
-        consensus_list = convert_observed_to_consensus(seq_list, imgt_dp.heavy_cdrs)
-        write_imgt_consensus_file(consensus_list, chain_type)
-        save_consensus_array(consensus_list, chain_type)
-
-    for species in separate_species_dict:
-        for chain_type, seq_list in separate_species_dict[species].items():
-            consensus_list = convert_observed_to_consensus(seq_list, imgt_dp.heavy_cdrs)
-            chain_name = "_".join([species, chain_type])
-            write_imgt_consensus_file(consensus_list, chain_name)
-            save_consensus_array(consensus_list, chain_name)
-
-    os.chdir(current_dir)
-
-
 def load_consensus_file(consensus_file):
     """Loads a specified consensus file and stores it as a list
     of lists which can be converted to a scoring matrix."""
     consensus_list = []
-    with open(consensus_file, "r") as fhandle:
+    with open(consensus_file, "r", encoding="utf-8") as fhandle:
         position_number = 0
         for line in fhandle:
             if line.startswith("#") or line.startswith("/"):
@@ -109,42 +74,6 @@ def load_consensus_file(consensus_file):
                 raise ValueError(f"Consensus file {consensus_file} has incorrect formatting!")
             consensus_list.append(observed_aas)
     return consensus_list
-
-
-
-def convert_observed_to_consensus(sequences, cdrs):
-    """Converts sequences from an alignment to a consensus that
-    can be written to file or converted to a scoring matrix."""
-    len_distro = [len(s) for s in sequences]
-
-    npositions = max(len_distro)
-    if npositions != min(len_distro):
-        raise ValueError("Sequences of different lengths encountered in the MSA")
-
-    aa_consensus = []
-    for i in range(npositions):
-        position = i + 1
-        if position in cdrs:
-            observed_aas = ['-']
-        else:
-            observed_aas = set()
-            for seq in sequences:
-                observed_aas.add(seq[i])
-            observed_aas = list(observed_aas)
-        aa_consensus.append(observed_aas)
-    return aa_consensus
-
-
-def write_imgt_consensus_file(consensus_list, chain_type, scheme = "imgt"):
-    """Writes a consensus file with a list of the amino acids observed
-    at each position."""
-    with open(f"{scheme.upper()}_CONSENSUS_{chain_type}.txt", "w+", encoding="utf-8") as fhandle:
-        fhandle.write(f"# CHAIN {chain_type}\n")
-        for i, observed_aas in enumerate(consensus_list):
-            fhandle.write(f"{i+1},")
-            fhandle.write(",".join(sorted(observed_aas)))
-            fhandle.write("\n")
-        fhandle.write("//\n\n")
 
 
 
