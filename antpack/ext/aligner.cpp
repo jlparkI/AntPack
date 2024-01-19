@@ -235,11 +235,16 @@ std::tuple<std::vector<std::string>, double, std::string,
     // sequence. (I'm personally not sure I agree with this, but it is what both ANARCI
     // and AbNum do.) At this point, if the sequence has gaps in the first 5 numbered positions,
     // we shuffle them around so the gaps are at the beginning.
-    if (this->compressInitialGaps){
-        for (int i=0; i < 5; i++){
-            if (initNumbering[i] ==1 && initNumbering[i+1] == 0){
-                    initNumbering[i+1] = initNumbering[i];
-                    initNumbering[i] = 0;
+    if (this->compressInitialGaps && query_sequence.length() > 5){
+        bool gapsFilled = false;
+        while (!gapsFilled){
+            gapsFilled = true;
+            for (int i=0; i < 5; i++){
+                if (initNumbering[i] ==1 && initNumbering[i+1] == 0){
+                        initNumbering[i+1] = initNumbering[i];
+                        initNumbering[i] = 0;
+                        gapsFilled = false;
+                }
             }
         }
     }
