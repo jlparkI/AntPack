@@ -145,7 +145,7 @@ std::tuple<std::vector<std::string>, double, std::string,
     int numElements = rowSize * (this->numPositions + 1);
 
     double *needleScores = new double[ numElements ];
-    int *queryAsIdx = new int[query_sequence.length()];
+    int *queryAsIdx = new int[ query_sequence.length() ];
     int *pathTrace = new int[ numElements ];
     int unsigned *initNumbering = new unsigned int[ this->numPositions ];
 

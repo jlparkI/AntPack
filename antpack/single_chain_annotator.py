@@ -8,12 +8,8 @@ known chain type to process."""
 import os
 import numpy as np
 from Bio import SeqIO
-from .constants import allowed_inputs
 from .constants import imgt_default_params, martin_default_params, kabat_default_params
 from ant_ext import BasicAligner, validate_sequence
-
-
-
 
 
 
