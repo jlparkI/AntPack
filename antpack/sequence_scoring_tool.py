@@ -79,7 +79,8 @@ class SequenceScoringTool():
 
         self.aa_list = constants.aa_list
         self.aa_dict = {aa:i for (i, aa) in enumerate(self.aa_list)}
-        self.aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt")
+        self.aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt",
+                compress_init_gaps = False)
 
         self.cdr_mask = {key:np.ones((len(self.position_dict[key])), bool) for
                 key in self.position_dict}
@@ -128,29 +129,30 @@ class SequenceScoringTool():
 
 
 
-    def score_seq(self, seq, mode = "score", mask_term_dels = False,
-            return_diagnostics = False):
+    def score_seq(self, seq, mask_term_dels = False,
+            mask_all_gaps = False, return_diagnostics = False):
         """Scores a single sequence, returning either just the
-        score or some additional information if requested.
+        score or some additional information if requested. This
+        function is considerably slower than batch_score_seqs
+        for large numbers of sequences and does not multithread
+        but offers more fine-tuned control over the details of
+        scoring and can return additional information about a
+        sequence.
 
         Args:
             seq (str): The sequence. May be either heavy chain or
                 light.
-            mode (str): One of 'score', 'max_prob', 'assign', 'classifier'.
-                If score, returns the human generative model score.
-                If max_prob, returns the maximum probability for any
-                cluster. If assign, determines the most probable cluster
-                number and mask_term_dels is ignored. If 'classifier',
-                assigns a score using the Bayes' rule classifier, which
-                also takes into account some info regarding other species.
-                'classifier' is not a good way to score sequences in general
-                because it only works well for sequences of known origin,
-                so it should only be used for testing.
-            mask_term_dels (bool): If True, ignore large N or C
+            mask_term_dels (bool): If True, ignore N or C
                 terminal deletions when calculating probabilities.
+            mask_gaps (bool): If True, ignore all gaps when calculating
+                probabilities. This can occasionally be useful if you
+                want to see what the score would look like ignoring
+                a large deletion. If this is True it overrides
+                mask_term_dels.
             return_diagnostics (bool): If True, return a list of
                 unexpected gaps and a list of unexpected insertions
-                (if any) found when aligning the sequence.
+                (if any) found when aligning the sequence and the
+                assigned chain type ("H" or "L").
 
         Returns:
             score (float): log( p(x) ).
@@ -164,121 +166,48 @@ class SequenceScoringTool():
         _, chain_name, arr, bad_gaps, bad_positions, _ = self._prep_sequence(seq)
         if chain_name not in ["H", "L"]:
             if return_diagnostics:
-                return np.nan, bad_gaps, bad_positions
+                return np.nan, bad_gaps, bad_positions, chain_name
             return np.nan
 
-        if mode == "assign":
-            human_score = self.models["human"][chain_name].predict(arr, n_threads=1)[0]
+        if mask_all_gaps:
+            human_score = float(self.models["human"][chain_name].gapped_score(
+                    arr, n_threads = 1)[0])
 
         elif mask_term_dels:
             start_col, end_col = self._get_term_cols(bad_gaps,
                     self.models["human"][chain_name].sequence_length)
-            if mode == "max_prob":
-                human_score = float(self.models["human"][chain_name].terminal_masked_predict_proba(
-                    arr, n_threads = 1, start_col = start_col, end_col = end_col,
-                    use_mixweights = False).max())
-            else:
-                human_score = float(self.models["human"][chain_name].terminal_masked_score(
-                    arr, n_threads = 1, start_col = start_col, end_col = end_col))
-
-            if mode == "classifier":
-                mouse_score = float(self.models["mouse"][chain_name].terminal_masked_score(
-                    arr, n_threads = 1, start_col = start_col, end_col = end_col))
-                rhesus_score = float(self.models["rhesus"][chain_name].terminal_masked_score(
-                    arr, n_threads = 1, start_col = start_col, end_col = end_col))
-                if chain_name == "H":
-                    rat_score = float(self.models["rat"]["H"].terminal_masked_score(
-                        arr, n_threads = 1, start_col = start_col, end_col = end_col))
-                else:
-                    rat_score = None
-
-                human_score = self._convert_score_to_classifier(human_score,
-                        mouse_score, rhesus_score, rat_score, chain_name)
+            human_score = float(self.models["human"][chain_name].terminal_masked_score(
+                    arr, n_threads = 1, start_col = start_col, end_col = end_col)[0])
 
         else:
-            if mode == "max_prob":
-                human_score = float(self.models["human"][chain_name].predict_proba(
-                    arr, n_threads = 1, use_mixweights = False).max())
-            else:
-                human_score = float(self.models["human"][chain_name].score(arr, n_threads = 1))
+            human_score = float(self.models["human"][chain_name].score(arr, n_threads = 1)[0])
 
-            if mode == "classifier":
-                mouse_score = float(self.models["mouse"][chain_name].score(arr, n_threads = 1))
-                rhesus_score = float(self.models["rhesus"][chain_name].score(arr, n_threads = 1))
-                if chain_name == "H":
-                    rat_score = float(self.models["rat"]["H"].score(arr, n_threads = 1))
-                else:
-                    rat_score = None
-
-                human_score = self._convert_score_to_classifier(human_score,
-                        mouse_score, rhesus_score, rat_score, chain_name)
-
-        if mode == "score":
-            human_score -= self.score_adjustments[chain_name]
+        human_score -= self.score_adjustments[chain_name]
 
         if return_diagnostics:
-            return human_score, bad_gaps, bad_positions
+            return human_score, bad_gaps, bad_positions, chain_name
         return human_score
 
 
 
-
-    def per_position_probs(self, seq, return_diagnostics = False):
-        """Determines the per-position log probability of each
-        amino acid in the input sequence.
-
-        Args:
-            seq (str): The sequence. May be either heavy chain or
-                light.
-            return_diagnostics (bool): If True, return a list of
-                unexpected gaps or insertions found when aligning
-                the sequence.
-
-        Returns:
-            score (float): log( p(x) ).
-            bad_gaps (list): A list of unexpected gaps at sites where
-                a deletion is unusual in the IMGT numbering system.
-                Only returned if return_diagnostics is True.
-            bad_positions (list): A list of unexpected insertions at
-                sites where an insertion is not expected in IMGT.
-                Only returned if return_diagnostics is True.
-        """
-        _, chain_name, arr, bad_gaps, bad_positions, _ = self._prep_sequence(seq)
-        if chain_name not in ["H", "L"]:
-            raise ValueError("The sequence provided does not recognizably "
-                    "belong as a heavy or light chain.")
-
-        log_probs = self.models["human"][chain_name].per_position_probs(arr)
-
-        if return_diagnostics:
-            return log_probs, bad_gaps, bad_positions
-        return log_probs
-
-
-
-    def batch_score_seqs(self, seq_list, mode = "score",
-            mask_light_gaps = False, mask_heavy_gaps = False):
+    def batch_score_seqs(self, seq_list, mode = "score"):
         """Scores a list of sequences in batches. Substantially faster than
         single seq scoring but does not offer the option to retrieve
-        diagnostic info.
+        diagnostic info. Can also be used to assign a large number of
+        sequences to clusters as well.
 
         Args:
             seq_list (str): The list of input sequences. May contain both
                 heavy and light.
-            mode (str): One of 'score', 'max_prob', 'assign', 'classifier'.
+            mode (str): One of 'score', 'assign', 'classifier'.
                 If score, returns the human generative model score.
-                If max_prob, returns the maximum probability for any
-                cluster. If assign, determines the most probable cluster
-                number and mask_term_dels is ignored. If 'classifier',
+                If 'assign', provides the most likely cluster number
+                for each input sequence. If 'classifier',
                 assigns a score using the Bayes' rule classifier, which
                 also takes into account some info regarding other species.
                 'classifier' is not a good way to score sequences in general
                 because it only works well for sequences of known origin,
                 so it should only be used for testing.
-            mask_light_gaps (bool): If True, ignore gaps when calculating
-                probabilities.
-            mask_heavy_gaps (bool): If True, ignore gaps when calculating
-                probabilities.
 
         Returns:
             output_scores (np.ndarray): log( p(x) ) for all input sequences.
@@ -302,17 +231,17 @@ class SequenceScoringTool():
 
         if len(heavy_arr) > 0:
             self._batch_score(heavy_arr, output_scores,
-                    heavy_idx, "H", mask_heavy_gaps, mode)
+                    heavy_idx, "H", mode)
 
         if len(light_arr) > 0:
             self._batch_score(light_arr, output_scores,
-                    light_idx, "L", mask_light_gaps, mode)
+                    light_idx, "L", mode)
 
         return output_scores
 
 
 
-    def suggest_mutations(self, seq:str, s_thresh = 1.25):
+    def suggest_mutations(self, seq:str, s_thresh:float = 1.25):
         """Takes an input sequence, scores it per position,
         uses the nclusters closest clusters to determine which
         modification would be most likely to have an impact,
@@ -348,7 +277,7 @@ class SequenceScoringTool():
         mixmodel = self.models["human"][chain_name]
 
         updated_arr = original_arr.copy()
-        best_cluster, _, _ = self.get_closest_clusters(seq, 1)
+        _, _, best_cluster, _ = self.get_closest_clusters(seq, 1)
         best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
         best_aas = best_cluster.argmax(axis=1)
         mask = self.cdr_mask[chain_name].copy()
@@ -399,41 +328,103 @@ class SequenceScoringTool():
 
 
 
-    def get_closest_clusters(self, seq, nclusters = 1):
+    def get_closest_clusters(self, seq:str, nclusters:int = 1, return_ids_only = False):
         """Gets the closest cluster(s) for a given sequence. These can be used
-        for humanization or to generate new sequences containing motifs of interest.
+        for humanization, to determine which amino acids in the input sequence
+        are most problematic, or to generate new sequences containing motifs of interest.
 
         Args:
             seq (str): The input sequence.
             nclusters (int): The number of clusters to retrieve.
+            return_ids_only (bool): If True, only the cluster numbers are returned,
+                not the actual clusters.
 
         Returns:
+            cluster_idx (np.ndarray): The index number for each cluster in the
+                original model that is returned. Sorted from highest probability
+                cluster to lowest probability.
+            chain_name (str): One of "H" or "L", indicating whether chain is
+                heavy or light (K and L are both mapped to L).
             mu_mix (np.ndarray): An array of shape (nclusters, sequence_length,
                 21), where 21 is the number of possible AAs. The clusters
                 are sorted in order from most to least likely given the
-                input sequence.
-            mixweights(np.ndarray): An array of shape (nclusters) containing
+                input sequence. Not returned if return_ids_only is True.
+            mixweights (np.ndarray): An array of shape (nclusters) containing
                 the mixture weights (probability of each cluster) associated with
-                each cluster.
-            cluster_idx (np.ndarray): The index number for each cluster in the
-                original model.
+                each cluster. Not returned if return_ids_only is True.
+
+        Raises:
+            ValueError: A ValueError is raised if the input sequence contains
+                unrecognized characters or another serious issue is encountered.
         """
         _, chain_name, arr, _, _, _ = self._prep_sequence(seq)
         if chain_name not in ["H", "L"]:
             raise ValueError("The sequence provided does not recognizably "
                     "belong as a heavy or light chain.")
 
+        # We can flatten here, because only one sequence is used as input.
         cluster_probs = self.models["human"][chain_name].predict_proba(arr).flatten()
         best_clusters = np.argsort(cluster_probs)[-nclusters:]
+
+        if return_ids_only:
+            return best_clusters, chain_name
+
         mu_mix = self.models["human"][chain_name].mu_mix[best_clusters,...].copy()
         mixweights = self.models["human"][chain_name].mix_weights[best_clusters].copy()
-        return mu_mix, mixweights, best_clusters
+
+        return best_clusters, chain_name, mu_mix, mixweights
+
+
+
+    def retrieve_cluster(self, cluster_id, chain_type = "H"):
+        """A convenience function to get the per-position probabilities
+        associated with a particular cluster.
+
+        Args:
+            cluster_id (int): The id number of the cluster to retrieve. Can
+                be generated by calling self.get_closest_clusters or
+                self.batch_score_seqs with mode = "assign".
+            chain_type (str): One of "H", "L".
+
+        Returns:
+            mu_mix (np.ndarray): An array of shape (1, sequence_length,
+                21), where 21 is the number of possible AAs. The clusters
+                are sorted in order from most to least likely given the
+                input sequence.
+            mixweights (float): The probability of this cluster in the mixture.
+            aas (list): A list of amino acids in standard order. The last
+                dimension of mu_mix corresponds to these aas in the order given.
+        """
+        mu_mix = self.models["human"][chain_type].mu_mix[cluster_id:cluster_id+1,...].copy()
+        mixweights = self.models["human"][chain_type].mix_weights[cluster_id].copy()[0]
+        return mu_mix, mixweights, self.aa_list
+
+
+
+    def convert_sequence_to_array(self, seq):
+        """Converts an input sequence to a type uint8_t array where
+        the integer at each position indicates the amino acid at that
+        position. Can be used in conjunction with the cluster returned by
+        retrieve_cluster or get_closest_clusters to determine which amino
+        acids are contributing most (or least) to the humanness score.
+
+        Args:
+            seq (str): The sequence of interest.
+
+        Returns:
+            chain_name (str): The chain type; one of "H", "L".
+            arr (np.ndarray): A numpy array of shape (1,M) where M is
+                the sequence length after converting to a fixed length
+                array.
+        """
+        _, chain_name, arr, _, _, _ = self._prep_sequence(seq)
+        return chain_name, arr
 
 
 
     def _batch_score(self, seq_array:list, output_scores:list,
-            assigned_idx:list, chain_type:str, mask_gaps:bool = False,
-            mode = "score", nthreads = 2):
+            assigned_idx:list, chain_type:str, mode = "score",
+            nthreads = 2):
         """Scores a batch of sequences -- either heavy or light --
         with the provided mixmodel. Operations are in place so nothing
         is returned.
@@ -444,50 +435,33 @@ class SequenceScoringTool():
             assigned_idx (list): A list of the indices to which each element of
                 seq_array corresponds. Must be the same length as seq_array.
             chain_type (str): One of "H" or "L".
-            mask_gaps (bool): If True, do not consider sequence gaps when scoring.
-                Ignored if mode is not 'score'.
-            mode (str): One of 'score', 'max_prob', 'assign', 'classifier. Score calculates
-                the log likelihood for each datapoint; max_prob retrieves the maximum
-                cluster probability; assign assigns each datapoint to a cluster;
-                classifier builds a simple Bayes' rule classifier using generative
-                model scores.
+            mode (str): One of 'score', 'classifier. Score calculates
+                the log likelihood for each datapoint; classifier builds a
+                simple Bayes' rule classifier using generative model scores.
             nthreads (int): The number of threads to use.
         """
         input_array = np.vstack(seq_array)
         n_threads = min(nthreads, len(seq_array))
 
-        if mode in ["score", "classifier"]:
-            if mask_gaps:
-                scores = self.models["human"][chain_type].gapped_score(input_array, n_threads)
-                if mode == "classifier":
-                    mouse_scores = self.models["mouse"][chain_type].gapped_score(input_array, n_threads)
-                    rhesus_scores = self.models["rhesus"][chain_type].gapped_score(input_array, n_threads)
-                    if chain_type == "H":
-                        rat_scores = self.models["rat"]["H"].gapped_score(input_array, n_threads)
-                    else:
-                        rat_scores = None
-
+        if mode == "classifier":
+            scores = self.models["human"][chain_type].score(input_array, n_threads)
+            mouse_scores = self.models["mouse"][chain_type].score(input_array, n_threads)
+            rhesus_scores = self.models["rhesus"][chain_type].score(input_array, n_threads)
+            if chain_type == "H":
+                rat_scores = self.models["rat"]["H"].score(input_array, n_threads)
             else:
-                scores = self.models["human"][chain_type].score(input_array, n_threads)
-                if mode == "classifier":
-                    mouse_scores = self.models["mouse"][chain_type].score(input_array, n_threads)
-                    rhesus_scores = self.models["rhesus"][chain_type].score(input_array, n_threads)
-                    if chain_type == "H":
-                        rat_scores = self.models["rat"]["H"].score(input_array, n_threads)
-                    else:
-                        rat_scores = None
+                rat_scores = None
 
-            if mode == "classifier":
-                scores = self._convert_score_to_classifier(scores, mouse_scores,
+            scores = self._convert_score_to_classifier(scores, mouse_scores,
                         rhesus_scores, rat_scores, chain_type)
 
-        elif mode == "max_prob":
-            scores = self.models["human"][chain_type].predict_proba(input_array, n_threads).max(axis=0)
+        elif mode == "score":
+            scores = self.models["human"][chain_type].score(input_array, n_threads)
+            scores -= self.score_adjustments[chain_type]
+
         elif mode == "assign":
             scores = self.models["human"][chain_type].predict(input_array, n_threads)
 
-        if mode == "score":
-            scores -= self.score_adjustments[chain_type]
         for i, score in enumerate(scores.tolist()):
             output_scores[assigned_idx[i]] = score
 

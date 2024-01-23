@@ -178,8 +178,9 @@ class CategoricalMixture:
 
 
     def predict_proba(self, xdata, n_threads = 1, use_mixweights = True):
-        """Predict the probability of each datapoint in the input
-            array for each cluster.
+        """Predict the log-probability of each datapoint in the input
+            array for each cluster. Useful for assigning datapoints
+            to clusters.
 
         Args:
             xdata (np.ndarray): A numpy array of type np.uint8, shape 2.
@@ -189,7 +190,7 @@ class CategoricalMixture:
                 mixture weights.
 
         Returns:
-            probs (np.ndarray): An array of shape (xdata.shape[0], n_components)
+            probs (np.ndarray): An array of shape (n_components, xdata.shape[0])
                 with the calculated probs for each datapoint for each cluster.
 
         Raises:
@@ -208,7 +209,7 @@ class CategoricalMixture:
 
     def terminal_masked_predict_proba(self, xdata, start_col = 0,
             end_col = 1, n_threads = 1, use_mixweights = True):
-        """Predict the probability of each datapoint in the input
+        """Predict the log-probability of each datapoint in the input
             array for each cluster, but with a "mask" such that amino acids
             at the c-terminal or n-terminal are masked out and ignored.
             This is useful primarily when there is a large n- or c-terminal
