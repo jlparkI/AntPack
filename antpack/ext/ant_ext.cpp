@@ -23,7 +23,7 @@ PYBIND11_MODULE(ant_ext, m){
                 double, double, bool>())
         .def("align", &BasicAligner::align);
 
-    m.def("getProbsCExt", &getProbsCExt);
-    m.def("getProbsCExt_terminal_masked", &getProbsCExt_terminal_masked);
-    m.def("getProbsCExt_gapped", &getProbsCExt_gapped);
+    m.def("getProbsCExt", &getProbsCExt, py::call_guard<py::gil_scoped_release>());
+    m.def("getProbsCExt_terminal_masked", &getProbsCExt_terminal_masked, py::call_guard<py::gil_scoped_release>());
+    m.def("getProbsCExt_gapped", &getProbsCExt_gapped, py::call_guard<py::gil_scoped_release>());
 }

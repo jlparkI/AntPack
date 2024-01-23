@@ -35,6 +35,7 @@
 #include <math.h>
 #include <vector>
 #include <thread>
+#include <iostream>
 #include "responsibility_calcs.h"
 
 
@@ -63,25 +64,35 @@
  *
  * All operations are in place, nothing is returned.
  */
-void getProbsCExt(py::array_t<uint8_t, py::array::c_style | py::array::forcecast> x, 
-        py::array_t<double, py::array::c_style | py::array::forcecast> mu,
-        py::array_t<double, py::array::c_style | py::array::forcecast> resp,
-        int n_threads){
-    py::ssize_t startRow, endRow;
+void getProbsCExt(py::array_t<uint8_t, py::array::c_style> x, 
+        py::array_t<double, py::array::c_style> mu,
+        py::array_t<double, py::array::c_style> resp,
+        py::ssize_t n_threads){
+
     if (n_threads > mu.shape(0))
         n_threads = mu.shape(0);
+    if (n_threads > x.shape(0))
+        n_threads = x.shape(0);
+
+    int nClusters = mu.shape(0), seqLen = mu.shape(1), muDim2 = mu.shape(2);
+    int ndatapoints = x.shape(0);
+    int startRow, endRow;
+    uint8_t *xref = (uint8_t*) x.data();
+    double *muref = (double*) mu.data(), *respref = (double*) resp.data();
 
     int chunkSize = (mu.shape(0) + n_threads - 1) / n_threads;
     std::vector<std::thread> threads(n_threads);
-
 
     for (int i=0; i < n_threads; i++){
         startRow = i * chunkSize;
         endRow = (i + 1) * chunkSize;
         if (endRow > mu.shape(0))
             endRow = mu.shape(0);
+
         threads[i] = std::thread(&getProbsCExt_worker,
-                x, resp, mu, startRow, endRow);
+                xref, respref, muref,
+                startRow, endRow, nClusters, seqLen,
+                muDim2, ndatapoints);
     }
 
     for (auto& th : threads)
@@ -110,26 +121,40 @@ void getProbsCExt(py::array_t<uint8_t, py::array::c_style | py::array::forcecast
  * thread since this thread will only update for some clusters.
  * `endRow` The last row of the resp and mu arrays to use for this
  * thread.
+ * `nClusters` dim0 of mu.
+ * `seqLen` dim1 of mu.
+ * `muDim2` dim2 of mu.
+ * `ndatapoints` number of datapoints, dim0 of x.
  *
  * All operations are in place, nothing is returned.
  */
-void *getProbsCExt_worker(py::array_t<uint8_t> x,
-        py::array_t<double> resp, py::array_t<double> mu,
-        py::ssize_t startRow, py::ssize_t endRow){
-    auto resp_current = resp.mutable_unchecked<2>();
-    auto x_current = x.unchecked<2>();
-    auto mu_current = mu.unchecked<3>();
-    int aa;
+void *getProbsCExt_worker(uint8_t *x, double *resp,
+            double *mu, int startRow, int endRow,
+            int nClusters, int seqLen, int muDim2,
+            int ndatapoints){        
+
+    double *resp_current, *mu_current, *mu_marker;
+    uint8_t *x_current;
+    int mu_row, mu_row_size = seqLen * muDim2;
     double resp_value;
 
-    for (py::ssize_t k=startRow; k < endRow; k++){
-        for (py::ssize_t i=0; i < x.shape(0); i++){
+    for (int k=startRow; k < endRow; k++){
+        resp_current = resp + k * ndatapoints;
+        x_current = x;
+        mu_row = k * mu_row_size;
+
+        for (int i=0; i < ndatapoints; i++){
             resp_value = 0;
-            for (py::ssize_t j=0; j < x.shape(1); j++){
-                aa = x_current(i,j);
-                resp_value += mu_current(k,j,aa);
+            mu_marker = mu + mu_row;
+
+            for (int j=0; j < seqLen; j++){
+                mu_current = mu_marker + *x_current;
+                resp_value += *mu_current;
+                x_current++;
+                mu_marker += muDim2;
             }
-            resp_current(k,i) = resp_value;
+            *resp_current = resp_value;
+            resp_current++;
         }
     }
     return NULL;
@@ -165,13 +190,20 @@ void *getProbsCExt_worker(py::array_t<uint8_t> x,
  *
  * All operations are in place, nothing is returned.
  */
-void getProbsCExt_terminal_masked(py::array_t<uint8_t, py::array::c_style | py::array::forcecast> x, 
-        py::array_t<double, py::array::c_style | py::array::forcecast> mu,
-        py::array_t<double, py::array::c_style | py::array::forcecast> resp,
+void getProbsCExt_terminal_masked(py::array_t<uint8_t, py::array::c_style> x, 
+        py::array_t<double, py::array::c_style> mu,
+        py::array_t<double, py::array::c_style> resp,
         int n_threads, size_t startCol, size_t endCol){
-    py::ssize_t startRow, endRow;
     if (n_threads > mu.shape(0))
         n_threads = mu.shape(0);
+    if (n_threads > x.shape(0))
+        n_threads = x.shape(0);
+
+    int nClusters = mu.shape(0), seqLen = mu.shape(1), muDim2 = mu.shape(2);
+    int ndatapoints = x.shape(0);
+    int startRow, endRow;
+    uint8_t *xref = (uint8_t*) x.data();
+    double *muref = (double*) mu.data(), *respref = (double*) resp.data();
 
     int chunkSize = (mu.shape(0) + n_threads - 1) / n_threads;
     std::vector<std::thread> threads(n_threads);
@@ -183,8 +215,9 @@ void getProbsCExt_terminal_masked(py::array_t<uint8_t, py::array::c_style | py::
         if (endRow > mu.shape(0))
             endRow = mu.shape(0);
         threads[i] = std::thread(&getProbsCExt_terminal_masked_worker,
-                x, resp, mu, startRow, endRow,
-                startCol, endCol);
+                xref, respref, muref, startRow, endRow,
+                startCol, endCol, nClusters, seqLen,
+                muDim2, ndatapoints);
     }
 
     for (auto& th : threads)
@@ -216,27 +249,41 @@ void getProbsCExt_terminal_masked(py::array_t<uint8_t, py::array::c_style | py::
  * thread.
  * `startCol` the first column (all previous are masked).
  * `endCol` the last column (all previous are masked).
+ * `nClusters` dim0 of mu.
+ * `seqLen` dim1 of mu.
+ * `muDim2` dim2 of mu.
+ * `ndatapoints` dim0 of x.
  *
  * All operations are in place, nothing is returned.
  */
-void *getProbsCExt_terminal_masked_worker(py::array_t<uint8_t> x,
-        py::array_t<double> resp, py::array_t<double> mu,
-        py::ssize_t startRow, py::ssize_t endRow, py::ssize_t startCol,
-        py::ssize_t endCol){
-    auto resp_current = resp.mutable_unchecked<2>();
-    auto x_current = x.unchecked<2>();
-    auto mu_current = mu.unchecked<3>();
-    int aa;
+void *getProbsCExt_terminal_masked_worker(uint8_t *x,
+        double *resp, double *mu, int startRow,
+        int endRow, int startCol, int endCol,
+        int nClusters, int seqLen, int muDim2,
+        int ndatapoints){
+    int i, j, k, mu_row;
+    uint8_t *x_current;
+    double *resp_current, *mu_current, *mu_marker;
     double resp_value;
+    int mu_row_size = seqLen * muDim2;
 
-    for (py::ssize_t k=startRow; k < endRow; k++){
-        for (py::ssize_t i=0; i < x.shape(0); i++){
+    for (k=startRow; k < endRow; k++){
+        resp_current = resp + k * ndatapoints;
+        mu_row = k * mu_row_size;
+
+        for (i=0; i < ndatapoints; i++){
             resp_value = 0;
-            for (py::ssize_t j=startCol; j < endCol; j++){
-                aa = x_current(i,j);
-                resp_value += mu_current(k,j,aa);
+            mu_marker = mu + mu_row + startCol * muDim2;
+            x_current = x + i * seqLen + startCol;
+
+            for (j=startCol; j < endCol; j++){
+                mu_current = mu_marker + *x_current;
+                resp_value += *mu_current;
+                x_current++;
+                mu_marker += muDim2;
             }
-            resp_current(k,i) = resp_value;
+            *resp_current = resp_value;
+            resp_current++;
         }
     }
     return NULL;
@@ -272,13 +319,20 @@ void *getProbsCExt_terminal_masked_worker(py::array_t<uint8_t> x,
  *
  * All operations are in place, nothing is returned.
  */
-void getProbsCExt_gapped(py::array_t<uint8_t, py::array::c_style | py::array::forcecast> x, 
-        py::array_t<double, py::array::c_style | py::array::forcecast> mu,
-        py::array_t<double, py::array::c_style | py::array::forcecast> resp,
+void getProbsCExt_gapped(py::array_t<uint8_t, py::array::c_style> x, 
+        py::array_t<double, py::array::c_style> mu,
+        py::array_t<double, py::array::c_style> resp,
         int n_threads){
-    py::ssize_t startRow, endRow;
     if (n_threads > x.shape(0))
         n_threads = x.shape(0);
+    if (n_threads > x.shape(0))
+        n_threads = x.shape(0);
+
+    int nClusters = mu.shape(0), seqLen = mu.shape(1), muDim2 = mu.shape(2);
+    int ndatapoints = x.shape(0);
+    int startRow, endRow;
+    uint8_t *xref = (uint8_t*) x.data();
+    double *muref = (double*) mu.data(), *respref = (double*) resp.data();
 
     int chunkSize = (mu.shape(0) + n_threads - 1) / n_threads;
     std::vector<std::thread> threads(n_threads);
@@ -290,7 +344,8 @@ void getProbsCExt_gapped(py::array_t<uint8_t, py::array::c_style | py::array::fo
         if (endRow > mu.shape(0))
             endRow = mu.shape(0);
         threads[i] = std::thread(&getProbsCExt_gapped_worker,
-                x, resp, mu, startRow, endRow);
+                xref, respref, muref, startRow, endRow,
+                nClusters, seqLen, muDim2, ndatapoints);
     }
 
     for (auto& th : threads)
@@ -319,28 +374,45 @@ void getProbsCExt_gapped(py::array_t<uint8_t, py::array::c_style | py::array::fo
  * thread since this thread will only update for some clusters.
  * `endRow` The last row of the resp and mu arrays to use for this
  * thread.
+ * `nClusters` dim0 of mu.
+ * `seqLen` dim1 of mu.
+ * `muDim2` dim2 of mu.
+ * `ndatapoints` dim0 of x.
  *
  * All operations are in place, nothing is returned.
  */
-void *getProbsCExt_gapped_worker(py::array_t<uint8_t> x, py::array_t<double> resp,
-        py::array_t<double> mu, py::ssize_t startRow, py::ssize_t endRow){
-    auto resp_current = resp.mutable_unchecked<2>();
-    auto x_current = x.unchecked<2>();
-    auto mu_current = mu.unchecked<3>();
-    int aa;
+void *getProbsCExt_gapped_worker(uint8_t *x, double *resp,
+        double *mu, int startRow, int endRow,
+        int nClusters, int seqLen, int muDim2,
+        int ndatapoints){
+    int i, j, k, mu_row;
+    uint8_t *x_current;
+    double *resp_current, *mu_current, *mu_marker;
     double resp_value;
+    int mu_row_size = seqLen * muDim2;
 
-    for (py::ssize_t k=startRow; k < endRow; k++){
-        for (py::ssize_t i=0; i < x.shape(0); i++){
+    for (k=startRow; k < endRow; k++){
+        resp_current = resp + k * ndatapoints;
+        x_current = x;
+        mu_row = k * mu_row_size;
+
+        for (i=0; i < ndatapoints; i++){
             resp_value = 0;
-            for (py::ssize_t j=0; j < x.shape(1); j++){
-                aa = x_current(i,j);
-                if (aa == 20){
+            mu_marker = mu + mu_row;
+
+            for (j=0; j < seqLen; j++){
+                if (*x_current == 20){
+                    x_current++;
+                    mu_marker += muDim2;
                     continue;
                 }
-                resp_value += mu_current(k,j,aa);
+                mu_current = mu_marker + *x_current;
+                resp_value += *mu_current;
+                x_current++;
+                mu_marker += muDim2;
             }
-            resp_current(k,i) = resp_value;
+            *resp_current = resp_value;
+            resp_current++;
         }
     }
     return NULL;

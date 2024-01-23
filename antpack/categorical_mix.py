@@ -98,6 +98,9 @@ class CategoricalMixture:
         if mix_weights.shape[0] != self.n_components:
             raise ValueError("mix_weights has an inappropriate shape.")
 
+        if not mu_mix.flags["C_CONTIGUOUS"] or not mix_weights.flags["C_CONTIGUOUS"]:
+            raise ValueError("Non-C-contiguous arrays supplied.")
+
         self.mix_weights = mix_weights
         self.log_mix_weights = mix_weights.copy()
         self.log_mix_weights[self.log_mix_weights < constants.MINIMUM_PROB_VAL] = constants.MINIMUM_PROB_VAL

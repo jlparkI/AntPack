@@ -416,7 +416,7 @@ class SequenceScoringTool():
 
     def _batch_score(self, seq_array:list, output_scores:list,
             assigned_idx:list, chain_type:str, mask_gaps:bool = False,
-            mode = "score"):
+            mode = "score", nthreads = 2):
         """Scores a batch of sequences -- either heavy or light --
         with the provided mixmodel. Operations are in place so nothing
         is returned.
@@ -434,9 +434,10 @@ class SequenceScoringTool():
                 cluster probability; assign assigns each datapoint to a cluster;
                 classifier builds a simple Bayes' rule classifier using generative
                 model scores.
+            nthreads (int): The number of threads to use.
         """
         input_array = np.vstack(seq_array)
-        n_threads = min(2, len(seq_array))
+        n_threads = min(nthreads, len(seq_array))
 
         if mode in ["score", "classifier"]:
             if mask_gaps:

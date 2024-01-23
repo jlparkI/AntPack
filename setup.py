@@ -45,7 +45,7 @@ def main():
 
     cpp_extra_link_args = []
     cpp_extra_compile_args = [
-        "-std=c++11",
+        "-std=c++11"
     ]
 
     # Mac-specific options
@@ -60,7 +60,8 @@ def main():
             sources=[
                 "antpack/ext/ant_ext.cpp",
                 "antpack/ext/aligner.cpp",
-                "antpack/ext/utilities.cpp"
+                "antpack/ext/utilities.cpp",
+                "antpack/ext/responsibility_calcs.cpp"
             ],
             include_dirs=[
                 "antpack/ext",
