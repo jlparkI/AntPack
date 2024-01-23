@@ -470,9 +470,9 @@ class SequenceScoringTool():
             scores = self.models["human"][chain_type].predict(input_array, n_threads)
 
         if mode == "score":
-            output_scores -= self.score_adjustments[chain_type]
+            scores -= self.score_adjustments[chain_type]
         for i, score in enumerate(scores.tolist()):
-            output_scores[assigned_idx[i]] = score - self.score_adjustments[chain_type]
+            output_scores[assigned_idx[i]] = score
 
 
 
