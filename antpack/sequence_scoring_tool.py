@@ -61,7 +61,7 @@ class SequenceScoringTool():
         self.rev_position_dict = {"H":get_reverse_position_dict("heavy"),
                 "L":get_reverse_position_dict("light")}
 
-        self.chain_map = {"H":"H", "K":"L", "L":"L"}
+        self.chain_map = {"H":"H", "K":"L", "L":"L", "":"unknown"}
 
         if offer_classifier_option:
             self.models = {
@@ -124,7 +124,6 @@ class SequenceScoringTool():
                     numbering, chain_name)
         seq_arr = np.array([[self.aa_dict[letter] for letter
                 in seq_extract]], dtype=np.uint8)
-        chain_name = self.chain_map[chain_name]
         return seq_extract, chain_name, seq_arr, bad_gaps, bad_positions, backmap
 
 
@@ -163,6 +162,10 @@ class SequenceScoringTool():
                 Only returned if return_diagnostics is True.
         """
         _, chain_name, arr, bad_gaps, bad_positions, _ = self._prep_sequence(seq)
+        if chain_name not in ["H", "L"]:
+            if return_diagnostics:
+                return np.nan, bad_gaps, bad_positions
+            return np.nan
 
         if mode == "assign":
             human_score = self.models["human"][chain_name].predict(arr, n_threads=1)[0]
@@ -241,6 +244,10 @@ class SequenceScoringTool():
                 Only returned if return_diagnostics is True.
         """
         _, chain_name, arr, bad_gaps, bad_positions, _ = self._prep_sequence(seq)
+        if chain_name not in ["H", "L"]:
+            raise ValueError("The sequence provided does not recognizably "
+                    "belong as a heavy or light chain.")
+
         log_probs = self.models["human"][chain_name].per_position_probs(arr)
 
         if return_diagnostics:
@@ -287,9 +294,11 @@ class SequenceScoringTool():
             if chain_name == "L":
                 light_arr.append(arr)
                 light_idx.append(i)
-            else:
+            elif chain_name == "H":
                 heavy_arr.append(arr)
                 heavy_idx.append(i)
+            else:
+                output_scores[i] = np.nan
 
         if len(heavy_arr) > 0:
             self._batch_score(heavy_arr, output_scores,
@@ -332,6 +341,10 @@ class SequenceScoringTool():
                 an insertion).
         """
         original_seq, chain_name, original_arr, _, _, backmap = self._prep_sequence(seq)
+        if chain_name not in ["H", "L"]:
+            raise ValueError("The sequence provided does not recognizably "
+                    "belong as a heavy or light chain.")
+
         mixmodel = self.models["human"][chain_name]
 
         updated_arr = original_arr.copy()
@@ -406,6 +419,10 @@ class SequenceScoringTool():
                 original model.
         """
         _, chain_name, arr, _, _, _ = self._prep_sequence(seq)
+        if chain_name not in ["H", "L"]:
+            raise ValueError("The sequence provided does not recognizably "
+                    "belong as a heavy or light chain.")
+
         cluster_probs = self.models["human"][chain_name].predict_proba(arr).flatten()
         best_clusters = np.argsort(cluster_probs)[-nclusters:]
         mu_mix = self.models["human"][chain_name].mu_mix[best_clusters,...].copy()
@@ -486,7 +503,8 @@ class SequenceScoringTool():
                 run through the aligner.
             input_numbering (list): The IMGT numbering assigned by the
                 aligner.
-            chain_type (str): One of 'H', 'K', 'L'.
+            chain_type (str): One of 'H', 'K', 'L'. If not one of these,
+                an all-gap sequence is returned.
 
         Returns:
             output_seq (list): A gapped output sequence with insertions
@@ -499,6 +517,10 @@ class SequenceScoringTool():
             backmap (dict): A dictionary mapping back from the numbering
                 positions to the original position numbers.
         """
+        if chain_type == "unknown":
+            output_seq = ["-" for i in range(len(input_seq))]
+            return output_seq, [], [], {}
+
         position_dict = self.position_dict[chain_type]
         rev_dict = self.rev_position_dict[chain_type]
         output_seq = ["-" for i in range(len(position_dict))]

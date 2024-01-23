@@ -1,25 +1,12 @@
 """The package setup file for AntPack."""
 import os
 import sys
-import platform
-from subprocess import getoutput
-from distutils.ccompiler import new_compiler
-from distutils.sysconfig import customize_compiler
 from setuptools import setup, find_namespace_packages
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 if sys.version_info[:2] < (3, 7):
     raise RuntimeError("Python version >= 3.7 required.")
-
-
-def using_clang():
-    """Check to see if we are using Clang."""
-    compiler = new_compiler()
-    customize_compiler(compiler)
-    compiler_ver = getoutput("{0} -v".format(compiler.compiler[0]))
-    return "clang" in compiler_ver
-
 
 
 
@@ -48,13 +35,6 @@ def main():
         "-std=c++11"
     ]
 
-    # Mac-specific options
-    if platform.system() == "Darwin" and using_clang():
-        cpp_extra_compile_args.append("-stdlib=libc++")
-        cpp_extra_compile_args.append("-mmacosx-version-min=10.9")
-        cpp_extra_link_args.append("-stdlib=libc++")
-        cpp_extra_link_args.append("-mmacosx-version-min=10.7")
-
     extensions=[
         Pybind11Extension("ant_ext",
             sources=[
@@ -81,7 +61,7 @@ def main():
         packages=find_namespace_packages(),
         cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
-        install_requires=['pybind11>=2.4', "numpy", "biopython", "requests"],
+        install_requires=['pybind11>=2.4', "numpy", "biopython"],
         include_package_data=True,
         license="MIT",
         ext_modules=extensions,
