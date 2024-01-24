@@ -53,3 +53,8 @@ napoleon_custom_sections = [('Returns', 'params_style')]
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
+
+# IMPORTANT: Some build systems such as ReadTheDocs will not be
+# able to install the C extensions on which the package depends.
+# These should therefore be "mocked".
+autodoc_mock_imports = ["ant_ext"]
