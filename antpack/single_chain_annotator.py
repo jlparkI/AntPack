@@ -17,23 +17,19 @@ from ant_ext import BasicAligner, validate_sequence
 class SingleChainAnnotator:
     """This class contains the tools needed to parse and number
     either a single sequence, a list of sequences, or a fasta file containing
-    many sequences that belong to one of several possible chain types. If your
-    sequences may contain multiple chains e.g. both heavy and
-    light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
+    many sequences that belong to one of several possible chain types.
     """
 
     def __init__(self, chains = ["H", "K", "L"], scheme = "imgt", compress_init_gaps = True):
         """Class constructor.
 
         Args:
-            chain (list): A list of chains. Each must be one of "H", "K", "L",
-                "A", "B", "D", "G". Note that not all chains are
-                supported for all species. "A", "B", "D", "G" for example
-                are supported for human, mouse and all but not for rabbit,
-                rat, rhesus or pig.
+            chain (list): A list of chains. Each must be one of "H", "K", "L".
+                If ["H", "K", "L"] (default), the annotator will automatically
+                determine the most appropriate chain type for each input
+                sequence.
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "martin", "kabat". Currently only chains 'H', 'K', 'L' 
-                are supported (T-cell receptors are not supported yet).
+                "martin", "kabat".
             compress_init_gaps (bool): If True, rearrange gaps in the first 5
                 positions post-alignment so that gaps are at the beginning of
                 the sequence wherever possible. This is more consistent with
