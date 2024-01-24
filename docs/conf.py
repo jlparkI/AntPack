@@ -18,11 +18,11 @@ sys.path.append("..")
 # -- Project information -----------------------------------------------------
 
 project = 'AntPack'
-copyright = '2023'
+copyright = '2024'
 author = 'Jonathan Parkinson'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.1.0'
 
 
 # -- General configuration ---------------------------------------------------

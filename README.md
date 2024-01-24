@@ -2,7 +2,7 @@
 
 AntPack is a toolkit for data processing, statistical inference and
 machine learning for antibody sequences. It is currently in
-active development. For installation and how to
+active development -- more updates soon! For installation and how to
 use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
@@ -13,15 +13,14 @@ machine learning applications. AntPack is orders of magnitude faster for numberi
 antibody sequences than existing tools in the literature (e.g. ANARCI, AbRSA),
 while providing >= reliability.
 
-### Mapping antibody sequence space
 
-We're building a set of human-interpretable machine learning models of antibody sequence space --
-more on this project soon!
+### Humanness and developability
 
-
-### Human-ness and developability
-
-Immunogenicity is a frequent cause of failure for antibody drug candidates in clinical trials.
-Avoiding such costly failures is highly desirable. As part of this package, we'll introduce
-tools to help predict the likelihood of immunogenicity or other serious developability
-problems (coming soon.)
+Minimizing the risk of immunogenicity is important for selecting clinical
+candidates. In AntPack v0.1.0, we introduce a simple, fully interpretable
+generative model for human heavy and light chains that outperforms all
+comparators in the literature on a large held-out test set for distinguishing
+human sequences from those of other species. This scoring tool can be used
+to score sequences for humanness, suggest modifications to make them more
+human, identify liabilities, and generate highly human sequences that contain
+selected motifs.
