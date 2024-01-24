@@ -10,33 +10,8 @@ from .utilities.data_compile_utils import get_position_dict, get_reverse_positio
 
 
 class SequenceScoringTool():
-    """Provides a tool for scoring sequences to determine the likelihood
-    they are human, for humanizing them, for assigning them to clusters,
-    and for retrieving specific model clusters, together with other
-    convenience functions.
-
-    Attributes:
-        position_dict (dict): Maps allowed IMGT positions to position numbers.
-        rev_position_dict (dict): Maps position numbers back to IMGT positions.
-        chain_map (dict): Maps from chain names to a condensed list (both K and L
-            map to L).
-        models (dict): Contains species- and chain-specific mixture models. This
-            will ordinarily contain only human, unless you are considering using
-            the model in classifier mode, i.e. by setting offer_classifier_option
-            to True (this is more accurate for species present in the training set
-            but less accurate if unexpected species are present, so we don't
-            recommend it as general practice).
-        aa_list (list): The list of allowed / expected AAs. AAs not in here will
-            generate an exception.
-        aa_dict (dict): Maps AAs to numbers.
-        aligner (SingleChainAnnotator): A SingleChainAnnotator for assigning numbering
-            to input sequences.
-        cdr_mask (dict): Maps the CDR positions from the constants file to positions.
-        score_adjustments (dict): Constants to subtract from assigned scores, by chain
-            type. These are the median values from training data. Subtracting them just
-            places heavy and light chains on the same scale. This behavior can be
-            disabled if desired by setting adjusted_scores to False.
-        """
+    """Tool for scoring, clustering and humanizing sequences.
+    """
 
     def __init__(self, adjusted_scores = True, offer_classifier_option = False):
         """Class constructor.
