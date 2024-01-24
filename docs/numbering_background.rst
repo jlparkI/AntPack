@@ -51,7 +51,7 @@ pipeline, because it's a command-line tool with no Python wrapper.
 In initial testing on about 1600 chains from PDB (more extensive benchmarking
 available soon), AntPack is > 50x faster than ANARCI and > 25x faster
 than AbRSA, taking 0.5 seconds to align the same number of sequences that
-take > 33 seconds on ANARCI. If you know what chain type you're dealing with
+take > 35 seconds on ANARCI. If you know what chain type you're dealing with
 (e.g. heavy or light), it's > 100x faster than ANARCI.
 
 AntPack is written in Python-wrapped C++ and uses a very similar approach
@@ -59,6 +59,6 @@ to AbRSA with a custom global alignment. It uses position-specific scoring
 to ensure that known highly conserved positions (e.g. the two cysteines)
 are maintained and that gaps are inserted at desired places. The scoring
 is constructed in such a way that most of the manual "tweaking" performed
-by e.g. ANARCI is unnecessary. It's also easy to build into a Python-based
+by some other tools is unnecessary. It's also easy to build into a Python-based
 workflow: create an e.g. ``SingleChainAnnotator`` class and use it to
 annotate any sequences or fasta files you like.

@@ -1,1 +1,1 @@
-from .consensus_update import build_consensus_alignment
+from .generate_score_files import build_consensus_alignment

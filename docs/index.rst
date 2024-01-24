@@ -21,6 +21,23 @@ Antibody Numbering
 
    Antibody numbering <numbering_tutorial>
 
+   Numbering example <numbering_example>
+
+Humannness scoring, generative modeling and humanization
+==================================================================
+
+.. toctree::
+  :maxdepth: 1
+
+   How humanness evaluation in AntPack works <scoring_background>
+
+   Humanness evaluation <scoring_tutorial>
+
+   Generating new human sequences <generative_tutorial>
+
+   Humanizing sequences <humanization_tutorial>
+
+   Scoring and clustering examples <scoring_example>
 
 Miscellaneous
 ==============

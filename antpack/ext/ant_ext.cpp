@@ -7,6 +7,7 @@
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
 #include "aligner.h"
+#include "responsibility_calcs.h"
 #include "utilities.h"
 
 namespace py = pybind11;
@@ -21,4 +22,9 @@ PYBIND11_MODULE(ant_ext, m){
                 std::string, std::string,
                 double, double, bool>())
         .def("align", &BasicAligner::align);
+
+    m.def("getProbsCExt", &getProbsCExt, py::call_guard<py::gil_scoped_release>());
+    m.def("getProbsCExt_terminal_masked", &getProbsCExt_terminal_masked, py::call_guard<py::gil_scoped_release>());
+    m.def("getProbsCExt_gapped", &getProbsCExt_gapped, py::call_guard<py::gil_scoped_release>());
+    m.def("getProbsCExt_masked", &getProbsCExt_masked, py::call_guard<py::gil_scoped_release>());
 }

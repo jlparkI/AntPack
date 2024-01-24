@@ -8,12 +8,8 @@ known chain type to process."""
 import os
 import numpy as np
 from Bio import SeqIO
-from .constants import allowed_inputs
 from .constants import imgt_default_params, martin_default_params, kabat_default_params
 from ant_ext import BasicAligner, validate_sequence
-
-
-
 
 
 
@@ -26,7 +22,7 @@ class SingleChainAnnotator:
     light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
     """
 
-    def __init__(self, chains = ["H"], scheme = "imgt", compress_init_gaps = False):
+    def __init__(self, chains = ["H", "K", "L"], scheme = "imgt", compress_init_gaps = True):
         """Class constructor.
 
         Args:
@@ -36,15 +32,13 @@ class SingleChainAnnotator:
                 are supported for human, mouse and all but not for rabbit,
                 rat, rhesus or pig.
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "martin", "kabat". If the scheme is not imgt, only
-                chains 'H', 'K', 'L' (antibodies) are supported (other
-                schemes do not define numbering for T-cell receptors),
-                and K and L are interchangeable. If the scheme is not 'imgt',
-                'all' is the only species supported.
+                "martin", "kabat". Currently only chains 'H', 'K', 'L' 
+                are supported (T-cell receptors are not supported yet).
             compress_init_gaps (bool): If True, rearrange gaps in the first 5
                 positions post-alignment so that gaps are at the beginning of
                 the sequence wherever possible. This is more consistent with
-                results from some other tools. Defaults to False.
+                results from some other tools although it is debatable
+                if this is more correct. Defaults to True.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are
