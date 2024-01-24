@@ -22,7 +22,7 @@ class SingleChainAnnotator:
     light chains (e.g. an scFv with linker), use MultiChainAnnotator instead.
     """
 
-    def __init__(self, chains = ["H"], scheme = "imgt", compress_init_gaps = True):
+    def __init__(self, chains = ["H", "K", "L"], scheme = "imgt", compress_init_gaps = True):
         """Class constructor.
 
         Args:

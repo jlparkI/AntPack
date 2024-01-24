@@ -6,7 +6,7 @@ variational methods in future."""
 import numpy as np
 from scipy.special import logsumexp
 from .constants import catmix_constants as constants
-from ant_ext import getProbsCExt, getProbsCExt_terminal_masked, getProbsCExt_gapped
+from ant_ext import getProbsCExt, getProbsCExt_terminal_masked, getProbsCExt_gapped, getProbsCExt_masked
 
 
 
@@ -350,5 +350,41 @@ class CategoricalMixture:
         resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
 
         getProbsCExt_gapped(xdata, self.log_mu_mix, resp, n_threads)
+        resp += self.log_mix_weights[:,None]
+        return logsumexp(resp, axis=0)
+
+
+    def exclude_cdr_score(self, xdata, cdr_mask, n_threads = 1):
+        """Generate the overall log-likelihood of individual datapoints,
+        but ignoring CDRs as defined by an input mask. This is useful to
+        see what the score would be without considering CDRs.
+
+        Args:
+            xdata (np.ndarray): An array with the input data,
+                of type np.uint8.
+            cdr_mask (np.ndarray): An array of type np.bool where
+                shape[1] == xdata.shape[1].
+            n_threads (int): the number of threads to use.
+
+        Returns:
+            loglik (np.ndarray): A float64 array of shape (x.shape[0])
+                where each element is the log-likelihood of that
+                datapoint given the model.
+
+        Raises:
+            ValueError: Raised if unexpected inputs are supplied.
+        """
+        self._check_input_array(xdata, n_threads)
+        if self.mu_mix is None or self.mix_weights is None:
+            raise ValueError("Model not fitted yet.")
+
+        xmasked = xdata.copy()
+        #There is no amino acid 21, so we use this as a convenient "please ignore"
+        #indicator.
+        xmasked[:,~cdr_mask] = 21
+
+        resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
+
+        getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
         resp += self.log_mix_weights[:,None]
         return logsumexp(resp, axis=0)

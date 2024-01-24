@@ -130,7 +130,8 @@ class SequenceScoringTool():
 
 
     def score_seq(self, seq, mask_term_dels = False,
-            mask_all_gaps = False, return_diagnostics = False):
+            mask_all_gaps = False, exclude_cdrs = False,
+            return_diagnostics = False):
         """Scores a single sequence, returning either just the
         score or some additional information if requested. This
         function is considerably slower than batch_score_seqs
@@ -149,6 +150,10 @@ class SequenceScoringTool():
                 want to see what the score would look like ignoring
                 a large deletion. If this is True it overrides
                 mask_term_dels.
+            exclude_cdrs (bool): If True, do not include the CDRs in
+                probability calculations. This is occasionally useful
+                if you want to get the score excluding all CDRs. If
+                this is True it overrides mask_term_dels and mask_gaps.
             return_diagnostics (bool): If True, return a list of
                 unexpected gaps and a list of unexpected insertions
                 (if any) found when aligning the sequence and the
@@ -156,12 +161,18 @@ class SequenceScoringTool():
 
         Returns:
             score (float): log( p(x) ).
-            bad_gaps (list): A list of unexpected gaps at sites where
-                a deletion is unusual in the IMGT numbering system.
-                Only returned if return_diagnostics is True.
-            bad_positions (list): A list of unexpected insertions at
-                sites where an insertion is not expected in IMGT.
-                Only returned if return_diagnostics is True.
+            gapped_imgt_positions (list): A list of gaps at sites that are
+                sometimes filled in the IMGT numbering system. The presence
+                of these is not a cause for concern but may be useful for
+                diagnostic purposes. Only returned if return_diagnostics is True.
+            unusual_positions (list): A list of unexpected insertions at
+                sites where an insertion is very unusual in the training set.
+                Take note of these if any are found -- these are not taken into
+                account when scoring the sequence, so if this is not an empty
+                list, the score may be less reliable. Only returned if
+                return_diagnostics is True.
+            chain_name (str): one of "H", "L" for heavy or light. Indicates the
+                chain type to which the sequence was aligned.
         """
         _, chain_name, arr, bad_gaps, bad_positions, _ = self._prep_sequence(seq)
         if chain_name not in ["H", "L"]:
@@ -169,7 +180,11 @@ class SequenceScoringTool():
                 return np.nan, bad_gaps, bad_positions, chain_name
             return np.nan
 
-        if mask_all_gaps:
+        if exclude_cdrs:
+            human_score = float(self.models["human"][chain_name].exclude_cdr_score(
+                    arr, self.cdr_mask[chain_name], n_threads = 1)[0])
+
+        elif mask_all_gaps:
             human_score = float(self.models["human"][chain_name].gapped_score(
                     arr, n_threads = 1)[0])
 
@@ -199,8 +214,10 @@ class SequenceScoringTool():
         Args:
             seq_list (str): The list of input sequences. May contain both
                 heavy and light.
-            mode (str): One of 'score', 'assign', 'classifier'.
+            mode (str): One of 'score', 'score_no_cdr', 'assign', 'classifier'.
                 If score, returns the human generative model score.
+                If 'score_no_cdr', returns the generative model score without
+                taking CDRs into account.
                 If 'assign', provides the most likely cluster number
                 for each input sequence. If 'classifier',
                 assigns a score using the Bayes' rule classifier, which
@@ -277,7 +294,7 @@ class SequenceScoringTool():
         mixmodel = self.models["human"][chain_name]
 
         updated_arr = original_arr.copy()
-        _, _, best_cluster, _ = self.get_closest_clusters(seq, 1)
+        _, _, best_cluster, _ = self.get_closest_clusters(seq, 1, False)
         best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
         best_aas = best_cluster.argmax(axis=1)
         mask = self.cdr_mask[chain_name].copy()
@@ -328,7 +345,7 @@ class SequenceScoringTool():
 
 
 
-    def get_closest_clusters(self, seq:str, nclusters:int = 1, return_ids_only = False):
+    def get_closest_clusters(self, seq:str, nclusters:int = 1, return_ids_only = True):
         """Gets the closest cluster(s) for a given sequence. These can be used
         for humanization, to determine which amino acids in the input sequence
         are most problematic, or to generate new sequences containing motifs of interest.
@@ -376,7 +393,7 @@ class SequenceScoringTool():
 
 
 
-    def retrieve_cluster(self, cluster_id, chain_type = "H"):
+    def retrieve_cluster(self, cluster_id, chain_type):
         """A convenience function to get the per-position probabilities
         associated with a particular cluster.
 
@@ -396,7 +413,7 @@ class SequenceScoringTool():
                 dimension of mu_mix corresponds to these aas in the order given.
         """
         mu_mix = self.models["human"][chain_type].mu_mix[cluster_id:cluster_id+1,...].copy()
-        mixweights = self.models["human"][chain_type].mix_weights[cluster_id].copy()[0]
+        mixweights = self.models["human"][chain_type].mix_weights[cluster_id].copy()
         return mu_mix, mixweights, self.aa_list
 
 
@@ -458,6 +475,10 @@ class SequenceScoringTool():
         elif mode == "score":
             scores = self.models["human"][chain_type].score(input_array, n_threads)
             scores -= self.score_adjustments[chain_type]
+
+        elif mode == "score_no_cdr":
+            scores = self.models["human"][chain_type].exclude_cdr_score(
+                    input_array, self.cdr_mask[chain_type], n_threads = n_threads)
 
         elif mode == "assign":
             scores = self.models["human"][chain_type].predict(input_array, n_threads)
