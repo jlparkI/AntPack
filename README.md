@@ -24,3 +24,12 @@ human sequences from those of other species. This scoring tool can be used
 to score sequences for humanness, suggest modifications to make them more
 human, identify liabilities, and generate highly human sequences that contain
 selected motifs.
+
+### Citing this work
+
+AntPack is distributed under an MIT license and can be freely used accordingly.
+If using AntPack in research intended for publication, please cite:
+
+[Jonathan Parkinson and Wei Wang. 2024. For antibody sequence generative modeling,
+mixture models may be all you need. bioRxiv:
+https://doi.org/10.1101/2024.01.27.577555](https://www.biorxiv.org/content/10.1101/2024.01.27.577555v1)
