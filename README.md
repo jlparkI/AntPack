@@ -27,7 +27,6 @@ selected motifs.
 
 ### Citing this work
 
-AntPack is distributed under an MIT license and can be freely used accordingly.
 If using AntPack in research intended for publication, please cite:
 
 [Jonathan Parkinson and Wei Wang. 2024. For antibody sequence generative modeling,
