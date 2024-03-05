@@ -3,5 +3,4 @@ pybind11
 fastrlock>=0.4
 numpy>=1.10.0
 scipy
-sphinx_rtd_theme
-nbsphinx
+setuptools
