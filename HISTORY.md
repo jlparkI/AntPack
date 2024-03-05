@@ -8,3 +8,7 @@ Added Kabat, Martin schemes.
 Added sequence scoring functionality for humanness.
 Updated all numbering tools to improve behavior in
 the presence of N-terminal deletions.
+
+### Version 0.1.1
+Fixed bug that caused gapped scoring (scoring where all
+gaps are ignored) to yield masked scores only.
