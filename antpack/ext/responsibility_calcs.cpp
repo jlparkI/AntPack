@@ -352,7 +352,7 @@ void getProbsCExt_gapped(py::array_t<uint8_t, py::array::c_style> x,
         endRow = (i + 1) * chunkSize;
         if (endRow > mu.shape(0))
             endRow = mu.shape(0);
-        threads[i] = std::thread(&getProbsCExt_masked_worker,
+        threads[i] = std::thread(&getProbsCExt_gapped_worker,
                 xref, respref, muref, startRow, endRow,
                 nClusters, seqLen, muDim2, ndatapoints);
     }
