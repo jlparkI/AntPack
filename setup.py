@@ -63,7 +63,6 @@ def main():
         setup_requires=['pybind11>=2.4'],
         install_requires=['pybind11>=2.4', "numpy", "biopython", "scipy"],
         include_package_data=True,
-        license="MIT",
         ext_modules=extensions,
         python_requires=">=3.7",
         package_data={"": ["*.h", "*.c", "*.cu", "*.cpp"]}
