@@ -354,15 +354,16 @@ class CategoricalMixture:
         return logsumexp(resp, axis=0)
 
 
-    def exclude_cdr_score(self, xdata, cdr_mask, n_threads = 1):
+    def custom_mask_score(self, xdata, custom_mask, n_threads = 1):
         """Generate the overall log-likelihood of individual datapoints,
-        but ignoring CDRs as defined by an input mask. This is useful to
-        see what the score would be without considering CDRs.
+        but regions defined by an input mask. This is useful to
+        see what the score would be without considering specific
+        regions.
 
         Args:
             xdata (np.ndarray): An array with the input data,
                 of type np.uint8.
-            cdr_mask (np.ndarray): An array of type np.bool where
+            custom_mask (np.ndarray): An array of type np.bool where
                 shape[1] == xdata.shape[1].
             n_threads (int): the number of threads to use.
 
@@ -377,11 +378,13 @@ class CategoricalMixture:
         self._check_input_array(xdata, n_threads)
         if self.mu_mix is None or self.mix_weights is None:
             raise ValueError("Model not fitted yet.")
+        if custom_mask.shape != xdata.shape:
+            raise ValueError("Mask shape must be consistent with xdata shape.")
 
         xmasked = xdata.copy()
         #There is no amino acid 21, so we use this as a convenient "please ignore"
         #indicator.
-        xmasked[:,~cdr_mask] = 21
+        xmasked[~custom_mask] = 21
 
         resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
 

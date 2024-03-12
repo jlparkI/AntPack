@@ -12,3 +12,8 @@ the presence of N-terminal deletions.
 ### Version 0.1.1
 Fixed bug that caused gapped scoring (scoring where all
 gaps are ignored) to yield masked scores only.
+
+### Version 0.1.2
+Added scoring with a user-supplied mask, so that the
+user can filter out regions they would like to not include
+in the score. Also default to -O3 when compiling.
