@@ -10,20 +10,7 @@ class HumanizationTool():
     """Tool for humanizing sequences."""
 
     def __init__(self):
-        """Class constructor.
-
-        Args:
-            adjusted_scores (bool): If True, the median heavy and light chain
-                scores from the training data are subtracted from model
-                scores. This ensures the heavy and light chain scores are
-                more directly comparable, but also means that the scores
-                can no longer be directly converted to probabilities.
-            offer_classifier_option (bool): If True, the object loads
-                additional species-specific models (mouse, rhesus monkey,
-                rat) and can use these to function as a classifier. If this
-                is False, setting mode='classifier' when calling a scoring
-                function will result in an error.
-        """
+        """Class constructor."""
 
         self.score_tool = SequenceScoringTool(adjusted_scores = True,
                 offer_classifier_option = False)
@@ -39,12 +26,14 @@ class HumanizationTool():
 
 
 
-    def suggest_mutations(self, seq:str, s_thresh:float = 1.25):
+    def suggest_mutations(self, seq:str, excluded_positions:list = [],
+            s_thresh:float = 1.25):
         """Takes an input sequence, scores it per position,
         uses the nclusters closest clusters to determine which
         modification would be most likely to have an impact,
         suggest mutations and report both the mutations and the
-        new score. CDRs are excluded.
+        new score. CDRs are excluded, together with user-specified
+        excluded positions.
 
         Args:
             seq (str): The sequence to update.
@@ -54,6 +43,10 @@ class HumanizationTool():
                 increasing the score over preserving the original
                 sequence. Larger values will prioritize preserving
                 the original sequence.
+            excluded_positions (list): A list of strings (IMGT position numbers)
+                indicating positions which should not be changed. This enables
+                the user to mask key residues, Vernier zones etc if so
+                desired.
 
         Returns:
             initial_score (float): The score of the sequence pre-modification.
@@ -81,6 +74,9 @@ class HumanizationTool():
         best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
         best_aas = best_cluster.argmax(axis=1)
         mask = self.cdr_mask[chain_name].copy()
+        for position in excluded_positions:
+            mask[self.score_tool.position_dict[chain_name][position]] = False
+
         updated_arr[0,mask] = best_aas[mask]
         starting_score = mixmodel.score(updated_arr, n_threads = 1)[0]
         updated_score = copy.copy(starting_score)

@@ -4,7 +4,7 @@ import os
 import unittest
 import numpy as np
 import pandas as pd
-from antpack import SequenceScoringTool, SingleChainAnnotator
+from antpack import SequenceScoringTool, SingleChainAnnotator, HumanizationTool
 
 class TestSequenceScoringTool(unittest.TestCase):
 
@@ -13,6 +13,7 @@ class TestSequenceScoringTool(unittest.TestCase):
         """Check that invalid data passed to the sequence scoring
         tool raises expected exceptions."""
         score_tool = SequenceScoringTool()
+        humanization_tool = HumanizationTool()
 
         # Sequences containing unrecognized characters should raise
         # a value error for these two routines, and return np.nan
@@ -20,7 +21,7 @@ class TestSequenceScoringTool(unittest.TestCase):
         with self.assertRaises(ValueError):
             score_tool.get_closest_clusters("WoW")
         with self.assertRaises(ValueError):
-            score_tool.suggest_mutations("WoW")
+            humanization_tool.suggest_mutations("WoW")
 
         self.assertTrue(np.isnan(score_tool.score_seq("WoW")))
         self.assertTrue(np.isnan(score_tool.batch_score_seqs(["WoW"])[0]))
