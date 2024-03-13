@@ -144,7 +144,7 @@ class CategoricalMixture:
             raise ValueError("n_threads should be a positive integer.")
 
 
-    def predict(self, xdata, n_threads = 1):
+    def predict(self, xdata, n_threads = 1, use_mixweights = True):
         """Determine the most probable cluster for each datapoint
         in a numpy array. Note that you should also check the
         overall probability of each datapoint. If a datapoint is
@@ -156,6 +156,9 @@ class CategoricalMixture:
         Args:
             xdata (np.ndarray): A numpy array of type np.uint8, shape 2.
             n_threads (int): The number of threads to use.
+            use_mixweights (bool): If True, take mixture weights into
+                account; otherwise, find the closest cluster (even if
+                it is a low-probability cluster).
 
         Returns:
             preds (np.ndarray): An array of shape (xdata.shape[0])
@@ -171,7 +174,8 @@ class CategoricalMixture:
 
         probs = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
         getProbsCExt(xdata, self.log_mu_mix, probs, n_threads)
-        probs += self.log_mix_weights[:,None]
+        if use_mixweights:
+            probs += self.log_mix_weights[:,None]
         cluster_assignments = probs.argmax(axis=0).astype(np.uint32)
         return cluster_assignments
 

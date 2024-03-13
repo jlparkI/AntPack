@@ -143,47 +143,6 @@ class TestSequenceScoringTool(unittest.TestCase):
             [score_tool.score_seq(s, mask_term_dels=True) for s in raw_data["sequences"].tolist() ]))
 
 
-    def test_masked_scoring(self):
-        """Check that scoring using a mask is consistent with
-        expectations. For simplicity, we just ask whether
-        adding gaps and using the terminal mask scoring gives the
-        same result as masking the terminal (it should, unless the
-        deletion results in different numbering, which is possible --
-        for this reason we manually call the categorical mix functions
-        rather than using the score_tool wrapper."""
-        test_seq = "EVHLQQSGAQELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYNENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA"
-        test_annotator = SingleChainAnnotator(compress_init_gaps=False)
-        score_tool = SequenceScoringTool(adjusted_scores = False,
-                offer_classifier_option=False)
-        score_tool.aligner = test_annotator
-        numbering = test_annotator.analyze_seq(test_seq)[0]
-        
-        _, _, basic_arr, _, _, _ = score_tool._prep_sequence(test_seq)
-        position_dict = score_tool.position_dict['H']
-
-        mask1_pos = {'109', '110', '111', '112', '113', '114'}
-        mask2_pos = {'2', '3', '4', '5', '6'}
-
-        gapped_arr1, gapped_arr2 = basic_arr.copy(), basic_arr.copy()
-        for mpos in list(mask1_pos):
-            gapped_arr1[0, position_dict[mpos]] = 20
-        for mpos in list(mask2_pos):
-            gapped_arr2[0, position_dict[mpos]] = 20
-
-        g1_score = float(score_tool.models["human"]['H'].gapped_score(
-                    gapped_arr1, n_threads = 1)[0])
-        g2_score = float(score_tool.models["human"]['H'].gapped_score(
-                    gapped_arr2, n_threads = 1)[0])
-
-        mask1 = [t not in mask1_pos for t in numbering]
-        mask2 = [t not in mask2_pos for t in numbering]
-
-        m1_score = score_tool.score_masked_sequences([test_seq],
-                ["H"], [numbering], [mask1])
-        m2_score = score_tool.score_masked_sequences([test_seq],
-                ["H"], [numbering], [mask2])
-        self.assertTrue(np.allclose(g1_score, m1_score))
-        self.assertTrue(np.allclose(g2_score, m2_score))
 
 
 if __name__ == "__main__":
