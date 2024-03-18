@@ -12,8 +12,7 @@ class HumanizationTool():
     def __init__(self):
         """Class constructor."""
 
-        self.score_tool = SequenceScoringTool(adjusted_scores = True,
-                offer_classifier_option = False)
+        self.score_tool = SequenceScoringTool(offer_classifier_option = False)
 
         position_dict = self.score_tool.position_dict
 
@@ -61,7 +60,7 @@ class HumanizationTool():
                 an insertion).
         """
         original_seq, chain_name, original_arr, _, _, backmap = \
-                self.score_tool._prep_sequence(seq)
+                self.score_tool._full_prep_sequence(seq)
         if chain_name not in ["H", "L"]:
             raise ValueError("The sequence provided does not recognizably "
                     "belong as a heavy or light chain.")

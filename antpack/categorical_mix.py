@@ -6,7 +6,7 @@ variational methods in future."""
 import numpy as np
 from scipy.special import logsumexp
 from .constants import catmix_constants as constants
-from ant_ext import getProbsCExt, getProbsCExt_terminal_masked, getProbsCExt_gapped, getProbsCExt_masked
+from ant_ext import getProbsCExt, getProbsCExt_masked, mask_terminal_deletions
 
 
 
@@ -144,7 +144,8 @@ class CategoricalMixture:
             raise ValueError("n_threads should be a positive integer.")
 
 
-    def predict(self, xdata, n_threads = 1, use_mixweights = True):
+    def predict(self, xdata, mask = None, mask_terminal_dels = False,
+            use_mixweights = True, return_raw_probs = False, n_threads = 1):
         """Determine the most probable cluster for each datapoint
         in a numpy array. Note that you should also check the
         overall probability of each datapoint. If a datapoint is
@@ -156,14 +157,25 @@ class CategoricalMixture:
         Args:
             xdata (np.ndarray): A numpy array of type np.uint8, shape 2.
             n_threads (int): The number of threads to use.
+            mask (np.ndarray): Either None or a numpy array of type bool
+                and shape (xdata.shape[1]). If not None, indicated
+                positions are masked, i.e. are not taken into account
+                when calculating the score.
+            mask_terminal_dels (bool): If True, ignore N- and C-terminal
+                deletions when assigning to a cluster.
             use_mixweights (bool): If True, take mixture weights into
                 account; otherwise, find the closest cluster (even if
                 it is a low-probability cluster).
+            return_raw_probs (bool): If True, return the raw probabilities
+                instead of cluster assignments.
 
         Returns:
-            preds (np.ndarray): An array of shape (xdata.shape[0])
+            preds (np.ndarray): EITHER an array of shape (xdata.shape[0])
                 containing a number from 0 to self.n_components - 1
-                indicating the predicted cluster for each datapoint.
+                indicating the predicted cluster for each datapoint if
+                return_raw_probs is False, OR an array of shape (ncomponents,
+                xdata.shape[0]) if return_raw_probs is True, indicating
+                the probability of each cluster for each datapoint.
 
         Raises:
             ValueError: Raised if unexpected inputs are supplied.
@@ -172,90 +184,44 @@ class CategoricalMixture:
         if self.log_mu_mix is None or self.log_mix_weights is None:
             raise ValueError("Model not fitted yet.")
 
-        probs = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-        getProbsCExt(xdata, self.log_mu_mix, probs, n_threads)
+        resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
+
+        if mask is not None:
+            if not isinstance(mask, np.ndarray):
+                raise ValueError("Mask must be a numpy array.")
+            if mask.shape[0] != xdata.shape[1]:
+                raise ValueError("Mask shape must be consistent with xdata shape.")
+            if len(mask.shape) != 1:
+                raise ValueError("Mask must be a 1d array.")
+
+            xmasked = xdata.copy()
+            #There is no amino acid 21, so we use this as a convenient "please ignore"
+            #indicator.
+            xmasked[:,~mask] = 21
+
+            if mask_terminal_dels:
+                mask_terminal_deletions(xmasked)
+
+            getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
+
+        elif mask_terminal_dels:
+            xmasked = xdata.copy()
+            mask_terminal_deletions(xmasked)
+            getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
+
+        else:
+            getProbsCExt(xdata, self.log_mu_mix, resp, n_threads)
+
         if use_mixweights:
-            probs += self.log_mix_weights[:,None]
-        cluster_assignments = probs.argmax(axis=0).astype(np.uint32)
+            resp += self.log_mix_weights[:,None]
+        if return_raw_probs:
+            return resp
+        cluster_assignments = resp.argmax(axis=0).astype(np.uint32)
         return cluster_assignments
 
 
 
-    def predict_proba(self, xdata, n_threads = 1, use_mixweights = True):
-        """Predict the log-probability of each datapoint in the input
-            array for each cluster. Useful for assigning datapoints
-            to clusters.
-
-        Args:
-            xdata (np.ndarray): A numpy array of type np.uint8, shape 2.
-            n_threads (int): The number of threads to use.
-            use_mixweights (bool): If True, take mixture weights into
-                account; otherwise, generate p(x | cluster = a) ignoring
-                mixture weights.
-
-        Returns:
-            probs (np.ndarray): An array of shape (n_components, xdata.shape[0])
-                with the calculated probs for each datapoint for each cluster.
-
-        Raises:
-            ValueError: Raised if unexpected inputs are supplied.
-        """
-        self._check_input_array(xdata, n_threads)
-        if self.mu_mix is None or self.mix_weights is None:
-            raise ValueError("Model not fitted yet.")
-
-        probs = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-        getProbsCExt(xdata, self.log_mu_mix, probs, n_threads)
-        if use_mixweights:
-            probs += self.log_mix_weights[:,None]
-        return probs
-
-
-    def terminal_masked_predict_proba(self, xdata, start_col = 0,
-            end_col = 1, n_threads = 1, use_mixweights = True):
-        """Predict the log-probability of each datapoint in the input
-            array for each cluster, but with a "mask" such that amino acids
-            at the c-terminal or n-terminal are masked out and ignored.
-            This is useful primarily when there is a large n- or c-terminal
-            deletion and we would like to assess the humanness of the remaining
-            sequence ignoring this region.
-
-        Args:
-            xdata (np.ndarray): A numpy array of type np.uint8, shape 2.
-            start_col (int): The first column of the input to use;
-                previous columns are masked.
-            end_col (int): The last column of the input to use;
-                remaining columns are masked.
-            n_threads (int): The number of threads to use.
-            use_mixweights (bool): If True, take mixture weights into
-                account; otherwise, generate p(x | cluster = a) ignoring
-                mixture weights.
-
-        Returns:
-            probs (np.ndarray): An array of shape (xdata.shape[0], n_components)
-                with the calculated probs for each datapoint for each cluster.
-
-        Raises:
-            ValueError: Raised if unexpected inputs are supplied.
-        """
-        self._check_input_array(xdata, n_threads)
-        if self.mu_mix is None or self.mix_weights is None:
-            raise ValueError("Model not fitted yet.")
-        if start_col < 0 or start_col >= end_col or end_col > self.mu_mix.shape[1]:
-            raise ValueError("Inappropriate col start / col end passed.")
-
-        probs = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-        getProbsCExt_terminal_masked(xdata, self.log_mu_mix, probs,
-                        n_threads, start_col, end_col)
-        if use_mixweights:
-            probs += self.log_mix_weights[:,None]
-        return probs
-
-
-
-
-
-    def score(self, xdata, n_threads = 1):
+    def score(self, xdata, mask = None, mask_terminal_dels = False, n_threads = 1):
         """Generate the overall log-likelihood of individual datapoints.
         This is very useful to determine if a new datapoint is very
         different from the training set. If the log-likelihood of
@@ -268,6 +234,12 @@ class CategoricalMixture:
         Args:
             xdata (np.ndarray): An array with the input data,
                 of type np.uint8.
+            mask (np.ndarray): Either None or a numpy array of type bool
+                and shape (xdata.shape[1]). If not None, indicated
+                positions are masked, i.e. are not taken into account
+                when calculating the score.
+            mask_terminal_dels (bool): If True, ignore N- and C-terminal
+                deletions when calculating a score.
             n_threads (int): the number of threads to use.
 
         Returns:
@@ -284,114 +256,30 @@ class CategoricalMixture:
 
         resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
 
-        getProbsCExt(xdata, self.log_mu_mix, resp, n_threads)
-        resp += self.log_mix_weights[:,None]
-        return logsumexp(resp, axis=0)
+        if mask is not None:
+            if not isinstance(mask, np.ndarray):
+                raise ValueError("Mask must be a numpy array.")
+            if mask.shape[0] != xdata.shape[1]:
+                raise ValueError("Mask shape must be consistent with xdata shape.")
+            if len(mask.shape) != 1:
+                raise ValueError("Mask must be a 1d array.")
 
+            xmasked = xdata.copy()
+            #There is no amino acid 21, so we use this as a convenient "please ignore"
+            #indicator.
+            xmasked[:,~mask] = 21
+            if mask_terminal_dels:
+                mask_terminal_deletions(xmasked)
 
-    def terminal_masked_score(self, xdata, start_col = 0, end_col = 1, n_threads = 1):
-        """Generate the overall log-likelihood of individual datapoints,
-        but with a "mask" such that amino acids at the c-terminal or
-        n-terminal are masked out and ignored. This is useful primarily
-        when there is a large n- or c-terminal deletion and we would
-        like to assess the humanness of the remaining sequence ignoring this
-        region.
+            getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
 
-        Args:
-            xdata (np.ndarray): An array with the input data,
-                of type np.uint8.
-            n_threads (int): the number of threads to use.
-            start_col (int): The first column of the input to use;
-                previous columns are masked.
-            end_col (int): The last column of the input to use;
-                remaining columns are masked.
+        elif mask_terminal_dels:
+            xmasked = xdata.copy()
+            mask_terminal_deletions(xmasked)
+            getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
 
-        Returns:
-            loglik (np.ndarray): A float64 array of shape (x.shape[0])
-                where each element is the log-likelihood of that
-                datapoint given the model.
+        else:
+            getProbsCExt(xdata, self.log_mu_mix, resp, n_threads)
 
-        Raises:
-            ValueError: Raised if unexpected inputs are supplied.
-        """
-        self._check_input_array(xdata, n_threads)
-        if self.mu_mix is None or self.mix_weights is None:
-            raise ValueError("Model not fitted yet.")
-        if start_col < 0 or start_col >= end_col or end_col > self.mu_mix.shape[1]:
-            raise ValueError("Inappropriate col start / col end passed.")
-
-        resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-
-        getProbsCExt_terminal_masked(xdata, self.log_mu_mix,
-                        resp, n_threads, start_col, end_col)
-        resp += self.log_mix_weights[:,None]
-        return logsumexp(resp, axis=0)
-
-
-
-    def gapped_score(self, xdata, n_threads = 1):
-        """Generate the overall log-likelihood of individual datapoints,
-        but ignoring gaps (cases where xdata==20). This is useful primarily
-        when dealing with light chains that have large unusual deletions.
-
-        Args:
-            xdata (np.ndarray): An array with the input data,
-                of type np.uint8.
-            n_threads (int): the number of threads to use.
-
-        Returns:
-            loglik (np.ndarray): A float64 array of shape (x.shape[0])
-                where each element is the log-likelihood of that
-                datapoint given the model.
-
-        Raises:
-            ValueError: Raised if unexpected inputs are supplied.
-        """
-        self._check_input_array(xdata, n_threads)
-        if self.mu_mix is None or self.mix_weights is None:
-            raise ValueError("Model not fitted yet.")
-
-        resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-
-        getProbsCExt_gapped(xdata, self.log_mu_mix, resp, n_threads)
-        resp += self.log_mix_weights[:,None]
-        return logsumexp(resp, axis=0)
-
-
-    def custom_mask_score(self, xdata, custom_mask, n_threads = 1):
-        """Generate the overall log-likelihood of individual datapoints,
-        but regions defined by an input mask. This is useful to
-        see what the score would be without considering specific
-        regions.
-
-        Args:
-            xdata (np.ndarray): An array with the input data,
-                of type np.uint8.
-            custom_mask (np.ndarray): An array of type np.bool where
-                shape[1] == xdata.shape[1].
-            n_threads (int): the number of threads to use.
-
-        Returns:
-            loglik (np.ndarray): A float64 array of shape (x.shape[0])
-                where each element is the log-likelihood of that
-                datapoint given the model.
-
-        Raises:
-            ValueError: Raised if unexpected inputs are supplied.
-        """
-        self._check_input_array(xdata, n_threads)
-        if self.mu_mix is None or self.mix_weights is None:
-            raise ValueError("Model not fitted yet.")
-        if custom_mask.shape != xdata.shape:
-            raise ValueError("Mask shape must be consistent with xdata shape.")
-
-        xmasked = xdata.copy()
-        #There is no amino acid 21, so we use this as a convenient "please ignore"
-        #indicator.
-        xmasked[~custom_mask] = 21
-
-        resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-
-        getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
         resp += self.log_mix_weights[:,None]
         return logsumexp(resp, axis=0)

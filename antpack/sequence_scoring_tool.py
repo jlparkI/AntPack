@@ -11,20 +11,23 @@ from .utilities.data_compile_utils import get_position_dict, get_reverse_positio
 class SequenceScoringTool():
     """Tool for scoring sequences."""
 
-    def __init__(self, adjusted_scores = True, offer_classifier_option = False):
+    def __init__(self, offer_classifier_option = False,
+            adjusted_scores = False):
         """Class constructor.
 
         Args:
-            adjusted_scores (bool): If True, the median heavy and light chain
-                scores from the training data are subtracted from model
-                scores. This ensures the heavy and light chain scores are
-                more directly comparable, but also means that the scores
-                can no longer be directly converted to probabilities.
             offer_classifier_option (bool): If True, the object loads
                 additional species-specific models (mouse, rhesus monkey,
                 rat) and can use these to function as a classifier. If this
                 is False, setting mode='classifier' when calling a scoring
                 function will result in an error.
+            adjusted_scores (bool): If True, subtract the median score
+                for this chain type from the training set from the assigned
+                score when calculating a score. This is really only useful
+                if you are scoring both the heavy and light chain in a mAb,
+                in which case this ensures the results for the two scores
+                are on the same scale, and is the only situation where this
+                should be set to True.
         """
 
         project_dir = os.path.abspath(os.path.dirname(__file__))
@@ -63,9 +66,55 @@ class SequenceScoringTool():
 
 
 
-    def _prep_sequence(self, seq:str):
+    def _simple_prep_sequence(self, seq:str):
         """Determines the chain type of a sequence and aligns it
-        using the IMGT numbering.
+        using the IMGT numbering. Generates / returns less info
+        than full_prep_sequence, so useful if only standard
+        scoring is desired.
+
+        Args:
+            seq (str): An input sequence
+
+        Returns:
+            chain_name (str): One of "L", "H". Note that "K" and "L"
+                are combined since the same mixture model is used for
+                "K" and "L".
+            seq_array (np.ndarray): A numpy array of shape (1, L)
+                where L is the total number of recognized IMGT positions
+                of type uint8. This is the encoded version of seq extract.
+        """
+        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
+        chain_type = self.chain_map[chain_type]
+        if chain_type == "unknown":
+            output_seq = ["-" for a in seq]
+            seq_arr = np.array([[self.aa_dict[letter] for letter
+                    in output_seq]], dtype=np.uint8)
+            return chain_type, seq_arr
+
+        position_dict = self.position_dict[chain_type]
+        output_seq = ["-" for i in range(len(position_dict))]
+
+        for position, aa in zip(numbering, seq):
+            if position == "-":
+                continue
+            if position not in position_dict:
+                continue
+            output_seq[position_dict[position]] = aa
+
+        seq_arr = np.array([[self.aa_dict[letter] for letter
+                in output_seq]], dtype=np.uint8)
+        return chain_type, seq_arr
+
+
+
+
+    def _full_prep_sequence(self, seq:str):
+        """Determines the chain type of a sequence and aligns it
+        using the IMGT numbering. Also generates a back mapping
+        from array position to input that is useful for more
+        complicated procedures (e.g. humanization) and lists of
+        unusual positions / insertions that are useful for
+        troubleshooting.
 
         Args:
             seq (str): An input sequence
@@ -119,182 +168,151 @@ class SequenceScoringTool():
         return output_seq, chain_type, seq_arr, bad_gaps, bad_positions, backmap
 
 
+    def _build_mask_arr(self, mask_positions:list, mask_cdr3:bool,
+            chain_type:str):
+        """Constructs a mask array that can be passed to the wrapped
+        categorical mix tool using a user-specified list of mask
+        positions and/or a request to mask cdr3.
+
+        Args:
+            mask_positions (list): Either None or a (possibly empty) list of
+                strings defining IMGT positions to be masked.
+            mask_cdr3 (bool): Indicates whether cdr3 should be masked in
+                addition to the user-specified mask (if any).
+            chain_type (str): One of "H", "L".
+
+        Returns:
+            mask_arr (np.ndarray): A numpy array of type bool.
+        """
+        if chain_type not in ("H", "L"):
+            raise ValueError("Unrecognized chain type passed to an internal function.")
+        position_dict = self.position_dict[chain_type]
+        scoring_mask = [True for i in range(len(position_dict))]
+
+        if mask_positions is not None:
+            for position in mask_positions:
+                scoring_mask[position_dict[position]] = False
+
+        if mask_cdr3:
+            for position in ahip.imgt_cdrs[chain_type]["3"]:
+                scoring_mask[position_dict[position]] = False
+
+        return np.array(scoring_mask, dtype=bool)
+
+
+
 
     def get_standard_positions(self, chain_type):
         """Returns a list of the standard positions used by SAM when scoring a
         sequence. IMGT numbered positions outside this set are ignored when
-        assigning a score. When masking a sequence, if there are any regions
-        that you want to exclude from scoring, you should include all of
-        the appropriate positions from this set in the mask list."""
+        assigning a score. If you want to use a generic mask for an IMGT-
+        defined region, call get_standard_mask. If you want to create a custom
+        mask for everything except a specific region of interest, use
+        this function to get a list of all positions."""
         if chain_type == "H":
             return ahip.heavy_allowed_positions
-        elif chain_type in ("K", "L"):
+        if chain_type in ("K", "L"):
             return ahip.light_allowed_positions
+        raise ValueError("Unrecognized chain type supplied.")
+
+
+
+    def get_standard_mask(self, chain_type:str, region:str = "framework_1"):
+        """Returns a mask for ALL positions EXCEPT a specified IMGT-
+        defined region. You can then use this mask as input to
+        score_seqs to see what the score would be if only that region
+        were included.
+
+        Args:
+            chain_type (str): One of "H", "L".
+            region (str): One of 'framework_1', 'framework_2', 'framework_3',
+                'framework_4', 'cdr_1', 'cdr_2', 'cdr_3', 'cdr_4'. This
+                function will construct a mask that excludes all other regions.
+
+        Returns:
+            mask (list): A list of excluded imgt positions that can be passed to
+                one of the scoring functions.
+
+        Raises:
+            ValueError: A ValueError is raised if unexpected inputs are supplied.
+        """
+        if chain_type not in ["H", "L"]:
+            raise ValueError("chain_type must be one of 'H', 'L'.")
+        if region not in ("framework_1", "framework_2", "framework_3", "framework_4",
+                "cdr_1", "cdr_2", "cdr_3"):
+            raise ValueError("Unexpected region supplied.")
+
+        if region.startswith("framework"):
+            valid_pos = set(ahip.imgt_framework_regions[chain_type][region.split("_")[1]])
         else:
-            raise ValueError("Unrecognized chain type supplied.")
+            valid_pos = set(ahip.imgt_cdrs[chain_type][region.split("_")[1]])
+
+        mask = [p for p in self.position_dict[chain_type].keys() if
+                p not in valid_pos]
+        return mask
 
 
 
-    def score_seq(self, seq, mask_term_dels = False,
-            mask_all_gaps = False, return_diagnostics = False):
-        """Scores a single sequence, returning either just the
-        score or some additional information if requested. This
-        function is considerably slower than batch_score_seqs
-        for large numbers of sequences and does not multithread
-        but can return additional information about a
-        sequence.
+
+    def get_diagnostic_info(self, seq):
+        """Gets diagnostic information for an input sequence that is useful
+        if troubleshooting.
 
         Args:
             seq (str): The sequence. May be either heavy chain or
                 light.
-            mask_term_dels (bool): If True, ignore N or C
-                terminal deletions when calculating probabilities.
-            mask_gaps (bool): If True, ignore all gaps when calculating
-                probabilities. This can occasionally be useful if you
-                want to see what the score would look like ignoring
-                a large deletion. If this is True it overrides
-                mask_term_dels.
-            return_diagnostics (bool): If True, return a list of
-                unexpected gaps and a list of unexpected insertions
-                (if any) found when aligning the sequence and the
-                assigned chain type ("H" or "L").
 
         Returns:
-            score (float): log( p(x) ).
             gapped_imgt_positions (list): A list of gaps at sites that are
                 sometimes filled in the IMGT numbering system. The presence
                 of these is not a cause for concern but may be useful for
-                diagnostic purposes. Only returned if return_diagnostics is True.
+                diagnostic purposes.
             unusual_positions (list): A list of unexpected insertions at
                 sites where an insertion is very unusual in the training set.
                 Take note of these if any are found -- these are not taken into
                 account when scoring the sequence, so if this is not an empty
-                list, the score may be less reliable. Only returned if
-                return_diagnostics is True.
+                list, the score may be less reliable.
             chain_name (str): one of "H", "L" for heavy or light. Indicates the
                 chain type to which the sequence was aligned.
         """
-        _, chain_name, arr, bad_gaps, bad_positions, _ = self._prep_sequence(seq)
+        _, chain_name, _, bad_gaps, bad_positions, _ = self._full_prep_sequence(seq)
         if chain_name not in ["H", "L"]:
-            if return_diagnostics:
-                return np.nan, bad_gaps, bad_positions, chain_name
-            return np.nan
+            return bad_gaps, bad_positions, chain_name
 
-        if mask_all_gaps:
-            human_score = float(self.models["human"][chain_name].gapped_score(
-                    arr, n_threads = 1)[0])
-
-        elif mask_term_dels:
-            start_col, end_col = self._get_term_cols(bad_gaps,
-                    self.models["human"][chain_name].sequence_length)
-            human_score = float(self.models["human"][chain_name].terminal_masked_score(
-                    arr, n_threads = 1, start_col = start_col, end_col = end_col)[0])
-
-        else:
-            human_score = float(self.models["human"][chain_name].score(arr, n_threads = 1)[0])
-
-        human_score -= self.score_adjustments[chain_name]
-
-        if return_diagnostics:
-            return human_score, bad_gaps, bad_positions, chain_name
-        return human_score
+        return bad_gaps, bad_positions, chain_name
 
 
 
-
-    def score_masked_sequences(self, seq_list:list, chain_types:list,
-            numberings:list, masks:list):
-        """Scores the input sequences with a user-supplied mask, a list of bools
-        the same length as the numbering and sequence. Any position marked
-        'False' in the mask is ignored when calculating the score.
-
-        Args:
-            seq_list (str): A list of strings which are sequences containing the usual
-                20 amino acids.
-            chain_type (str): Must be a list of of 'L', 'K', 'H', indicating the chain
-                type for each input sequence in seq_list.
-            numbering (list): A list of lists each containing the IMGT sequence
-                numbering for the corresponding sequence in seq_list, as generated by
-                a single_chain_annotator or by self.number_seq. Must be the
-                same length as seq.
-            mask (list): A list of lists, each containing a set of positions that should be
-                masked. They can be supplied in any order. Note that they must be
-                among the standard positions used by SAM and if not may cause an error.
-                To see the standard positions used by SAM, call self.get_standard_positions.
-
-        Returns:
-            score (float): log( p(x) ).
-        """
-        if len(seq_list) != len(masks) or len(masks) != len(chain_types) \
-                or len(numberings) != len(masks):
-            raise ValueError("masks, seq_list, numberings and chain_types must "
-                    "all contain the same number of elements.")
-
-        light_arr, heavy_arr = [], []
-        light_idx, heavy_idx = [], []
-        light_masks, heavy_masks = [], []
-        output_scores = np.zeros((len(seq_list)))
-
-        for i, (seq, chain_type, numbering, mask) in enumerate(zip(seq_list,
-                chain_types, numberings, masks)):
-            if chain_type not in ('H', 'K', 'L'):
-                raise ValueError("Unrecognized chain type supplied.")
-            if len(numbering) != len(seq) or not isinstance(mask, list):
-                raise ValueError("Supplied numberings with "
-                        "discrepant numbers of elements or masks that "
-                        "are not lists. Masks must be lists of "
-                        "positions that should be masked.")
-
-            chain_subtype = self.chain_map[chain_type]
-
-            position_dict = self.position_dict[chain_subtype]
-            output_seq = ["-" for i in range(len(position_dict))]
-            scoring_mask = [True for i in range(len(position_dict))]
-
-            for mask_position in mask:
-                scoring_mask[position_dict[mask_position]] = False
-
-            for position, aa in zip(numbering, seq):
-                if position == "-":
-                    continue
-                if position not in position_dict:
-                    continue
-                output_seq[position_dict[position]] = aa
-
-            arr = np.array([[self.aa_dict[letter] for letter
-                in output_seq]], dtype=np.uint8)
-            scoring_mask = np.array(scoring_mask, dtype=bool)
-
-            if chain_subtype == "L":
-                light_arr.append(arr)
-                light_idx.append(i)
-                light_masks.append(scoring_mask)
-            elif chain_subtype == "H":
-                heavy_arr.append(arr)
-                heavy_idx.append(i)
-                heavy_masks.append(scoring_mask)
-
-        if len(heavy_arr) > 0:
-            self._batch_score(heavy_arr, output_scores,
-                    heavy_idx, "H", "score", masks=heavy_masks)
-
-        if len(light_arr) > 0:
-            self._batch_score(light_arr, output_scores,
-                    light_idx, "L", "score", masks=light_masks)
-
-        return output_scores
-
-
-
-    def batch_score_seqs(self, seq_list, mode = "score"):
-        """Scores a list of sequences in batches. Substantially faster than
+    def score_seqs(self, seq_list, mask_cdr3:bool = False,
+            custom_light_mask:list = None, custom_heavy_mask:list = None,
+            mask_terminal_dels:bool = False, mode:str = "score"):
+        """Scores a list of sequences in batches or assigns them
+        to clusters. Can be used in conjunction with a user-supplied
+        mask (for positions to ignore) and in conjunction with Substantially faster than
         single seq scoring but does not offer the option to retrieve
-        diagnostic info. Can also be used to assign a large number of
+        diagnostic infoCan also be used to assign a large number of
         sequences to clusters as well.
 
         Args:
             seq_list (str): The list of input sequences. May contain both
                 heavy and light.
+            mask_cdr3 (bool): If True, ignore IMGT-defined CDR3 when assigning a
+                score. CDR3 is not distinctive across species so this is often
+                useful. Ignored if mode is 'assign', 'assign_no_weights'.
+            custom_light_mask (list): Either None or a list of strings indicating
+                IMGT positions to ignore. Use self.get_standard_positions and/or
+                self.get_standard_mask to construct a mask. This can be useful
+                if you just want to score a specific region, or if there is a large
+                deletion that should be ignored.
+            custom_heavy_mask (list): Either None or a list of strings indicating
+                IMGT positions to ignore. Use self.get_standard_positions and/or
+                self.get_standard_mask to construct a mask. This can be useful
+                if you just want to score a specific region, or if there is a
+                large deletion that should be ignored.
+            mask_terminal_dels (bool): If True, N and C-terminal deletions are
+                masked when calculating a score or assigning to a cluster. Useful
+                if there are large unusual deletions at either end of the sequence that
+                you would like to ignore when scoring.
             mode (str): One of 'score', 'assign', 'assign_no_weights', 'classifier'.
                 If score, returns the human generative model score.
                 If 'assign', provides the most likely cluster number
@@ -316,8 +334,14 @@ class SequenceScoringTool():
         light_idx, heavy_idx = [], []
         output_scores = np.zeros((len(seq_list)))
 
+        heavy_mask, light_mask = None, None
+        if custom_heavy_mask is not None or mask_cdr3:
+            heavy_mask = self._build_mask_arr(custom_heavy_mask, mask_cdr3, "H")
+        if custom_light_mask is not None or mask_cdr3:
+            light_mask = self._build_mask_arr(custom_light_mask, mask_cdr3, "L")
+
         for i, seq in enumerate(seq_list):
-            _, chain_name, arr, _, _, _ = self._prep_sequence(seq)
+            chain_name, arr = self._simple_prep_sequence(seq)
 
             if chain_name == "L":
                 light_arr.append(arr)
@@ -330,11 +354,13 @@ class SequenceScoringTool():
 
         if len(heavy_arr) > 0:
             self._batch_score(heavy_arr, output_scores,
-                    heavy_idx, "H", mode)
+                    heavy_idx, "H", mode, heavy_mask,
+                    mask_terminal_dels)
 
         if len(light_arr) > 0:
             self._batch_score(light_arr, output_scores,
-                    light_idx, "L", mode)
+                    light_idx, "L", mode, light_mask,
+                    mask_terminal_dels)
 
         return output_scores
 
@@ -369,13 +395,14 @@ class SequenceScoringTool():
             ValueError: A ValueError is raised if the input sequence contains
                 unrecognized characters or another serious issue is encountered.
         """
-        _, chain_name, arr, _, _, _ = self._prep_sequence(seq)
+        _, chain_name, arr, _, _, _ = self._full_prep_sequence(seq)
         if chain_name not in ["H", "L"]:
             raise ValueError("The sequence provided does not recognizably "
                     "belong as a heavy or light chain.")
 
         # We can flatten here, because only one sequence is used as input.
-        cluster_probs = self.models["human"][chain_name].predict_proba(arr).flatten()
+        cluster_probs = self.models["human"][chain_name].predict(arr,
+                return_raw_probs=True).flatten()
         best_clusters = np.argsort(cluster_probs)[-nclusters:]
 
         if return_ids_only:
@@ -429,14 +456,13 @@ class SequenceScoringTool():
                 the sequence length after converting to a fixed length
                 array.
         """
-        _, chain_name, arr, _, _, _ = self._prep_sequence(seq)
-        return chain_name, arr
+        return self._simple_prep_sequence(seq)
 
 
 
     def _batch_score(self, seq_array:list, output_scores:list,
             assigned_idx:list, chain_type:str, mode:str = "score",
-            masks:list = None, nthreads:int = 2):
+            mask = None, mask_terminal_dels = False, nthreads:int = 2):
         """Scores a batch of sequences -- either heavy or light --
         with the provided mixmodel. Operations are in place so nothing
         is returned.
@@ -455,71 +481,48 @@ class SequenceScoringTool():
                 so that the closest cluster is assigned even if that
                 cluster is a low-probability one. If 'classifier',
                 assigns a score using the Bayes' rule classifier.
-            masks (list): Either None or a list of np.bool arrays of shape
-                (1, n_positions). If not None and mode is 'score', the
-                positions marked False in each mask are ignored when
-                calculating the score.
+            mask (np.ndarray): Either None or an np.bool array of shape
+                (n_positions). If not None, the positions marked False in
+                the mask are ignored.
+            mask_terminal_dels (bool): If True, terminal deletions are masked.
+                This is useful when a sequence contains large unusual terminal
+                deletions.
             nthreads (int): The number of threads to use.
         """
         input_array = np.vstack(seq_array)
-        if masks is not None:
-            input_masks = np.vstack(masks)
-            if input_masks.shape != input_array.shape:
-                raise ValueError("Tried to calculate a masked score where the "
-                        "size and shape of the masks did not match the size and "
-                        "shape of the input array.")
 
         n_threads = min(nthreads, len(seq_array))
 
         if mode == "classifier":
-            scores = self.models["human"][chain_type].score(input_array, n_threads)
-            mouse_scores = self.models["mouse"][chain_type].score(input_array, n_threads)
-            rhesus_scores = self.models["rhesus"][chain_type].score(input_array, n_threads)
+            scores = []
+            for species in ("human", "mouse", "rhesus"):
+                scores.append(self.models[species][chain_type].score(input_array,
+                        mask, mask_terminal_dels, n_threads))
             if chain_type == "H":
-                rat_scores = self.models["rat"]["H"].score(input_array, n_threads)
+                scores.append(self.models["rat"]["H"].score(input_array,
+                        mask, mask_terminal_dels, n_threads))
             else:
-                rat_scores = None
+                scores.append(None)
 
-            scores = self._convert_score_to_classifier(scores, mouse_scores,
-                        rhesus_scores, rat_scores, chain_type)
+            scores = self._convert_score_to_classifier(scores[0], scores[1],
+                        scores[2], scores[3], chain_type)
 
         elif mode == "score":
-            if masks is None:
-                scores = self.models["human"][chain_type].score(input_array, n_threads)
-                scores -= self.score_adjustments[chain_type]
-            else:
-                scores = self.models["human"][chain_type].custom_mask_score(input_array,
-                        input_masks, n_threads)
-                scores -= self.score_adjustments[chain_type]
+            scores = self.models["human"][chain_type].score(input_array, mask,
+                    mask_terminal_dels, n_threads)
+            scores -= self.score_adjustments[chain_type]
 
         elif mode == "assign":
-            scores = self.models["human"][chain_type].predict(input_array, n_threads)
+            scores = self.models["human"][chain_type].predict(input_array, mask = mask,
+                    mask_terminal_dels = mask_terminal_dels, n_threads = n_threads)
         elif mode == "assign_no_weights":
-            scores = self.models["human"][chain_type].predict(input_array, n_threads, use_mixweights = False)
+            scores = self.models["human"][chain_type].predict(input_array, mask = mask,
+                    mask_terminal_dels = mask_terminal_dels, n_threads = n_threads,
+                    use_mixweights = False)
 
         for i, score in enumerate(scores.tolist()):
             output_scores[assigned_idx[i]] = score
 
-
-
-
-    def _get_term_cols(self, gaps, seqlen):
-        """If there are n-terminal and c-terminal deletions,
-        this function finds them and assigns start and end
-        columns for masking."""
-        start_col = 0
-        for i in range(1, len(gaps)):
-            if str(i) != gaps[i-1]:
-                break
-            start_col = i
-
-        end_col, counter = seqlen, len(gaps) - 1
-        for i in range(seqlen - 1, -1, -1):
-            if str(i) != gaps[counter]:
-                break
-            end_col = i
-            counter -= 1
-        return start_col, end_col
 
 
     def _convert_score_to_classifier(self, human_score, mouse_score,
