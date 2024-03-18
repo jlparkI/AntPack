@@ -7,6 +7,7 @@ from ..constants.scoring_constants import allowed_imgt_pos as ahip
 
 def load_model(start_dir, chain_type="heavy", species="human"):
     """Loads the model for the specified species."""
+    current_dir = os.getcwd()
     os.chdir(os.path.join(start_dir, "model_data"))
 
     if chain_type == "heavy":
@@ -27,4 +28,5 @@ def load_model(start_dir, chain_type="heavy", species="human"):
 
     model.load_params(mu, mixweights)
 
+    os.chdir(current_dir)
     return model
