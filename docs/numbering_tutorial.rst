@@ -13,7 +13,7 @@ Here's how to use ``SingleChainAnnotator``:::
 
   from antpack import SingleChainAnnotator
   aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt",
-                        compress_init_gaps = True)
+                        compress_init_gaps = False)
 
 
 If you don't know what type of chain you're working with, leave

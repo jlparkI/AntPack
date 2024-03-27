@@ -37,8 +37,9 @@ training set so that heavy / light chain scores are on the
 same scale (or not, if you turn this setting off). Higher
 scores indicate a more human sequence.
 
-It's also possible to score the sequence while excluding 1)
-N- or C-terminal deletions, 2) Kabat-defined CDRs or 3) all gaps.
+It's also possible to score the sequence while 1) masking CDR3,
+2) excluding N- or C-terminal deletions, 3) excluding all gaps,
+or 4) masking a custom region you'd like to exclude.
 This way, if you want to see what the score looks like while
 excluding a deletion or while excluding the CDRs you can retrieve
 this as well.
@@ -71,11 +72,11 @@ What is a good humanness score? or, how human do I need to be?
 
 Unfortunately there's no fixed answer to this question, because
 immunogenicity is a complex phenomenon that's a function both
-of humanness and of other factors. There are some rare sequences of
+of humanness and of other factors. There are some sequences of
 mouse origin that are not immunogenic in humans, and some rare
 sequences of human origin that cause ADA in some patients. However,
-the more human a sequence, the lower the risk of immunogenicity in
-general. Hence, we can say *roughly* what constitutes an acceptable
+the more human a sequence, the lower the *risk* of immunogenicity in
+*general*. Hence, we can say *roughly* what constitutes an acceptable
 humanness score based on the 400 million heavy and light sequences we
 used for initial testing.
 
@@ -110,13 +111,11 @@ we average over the heavy and light chain scores.
    :width: 600
    :alt: AntPack light chain humanness score vs species of origin.
 
-Finally, as another useful reference point, the graph below illustrates
-the adjusted score (default) distribution for 544 clinical-stage antibodies
-from various origins. The humanness score as above can distinguish between
-antibodies of human origin (low risk), antibodies humanized via various
-strategies, chimeric mAbs (higher risk) and mouse mAbs (high risk).
-The outlier here is the antibody drug elipovimab.
-
-.. image:: images/IMGT_scores.png
-   :width: 600
-   :alt: AntPack humanness scores vs mAb origin.
+Notice that heavy and light chain scores have different distributions,
+so that combining them to form a single score for a whole antibody
+by just averaging them can be problematic. If you want a single
+score for the whole antibody, it's best to normalize the scores
+for the two chains and then average them. Likewise, if you're
+just scoring specific regions (e.g. framework 1, CDR2 etc.) and
+want to compare scores across different regions, normalization
+can be useful.
