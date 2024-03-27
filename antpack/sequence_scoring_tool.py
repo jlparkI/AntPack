@@ -12,7 +12,7 @@ class SequenceScoringTool():
     """Tool for scoring sequences."""
 
     def __init__(self, offer_classifier_option = False,
-            adjusted_scores = False):
+            normalization = "none"):
         """Class constructor.
 
         Args:
@@ -21,13 +21,14 @@ class SequenceScoringTool():
                 rat) and can use these to function as a classifier. If this
                 is False, setting mode='classifier' when calling a scoring
                 function will result in an error.
-            adjusted_scores (bool): If True, subtract the median score
-                for this chain type from the training set from the assigned
-                score when calculating a score. This is really only useful
-                if you are scoring both the heavy and light chain in a mAb,
-                in which case this ensures the results for the two scores
-                are on the same scale, and is the only situation where this
-                should be set to True.
+            normalization (str): One of "none", "training_set_adjust" and
+                "normalize". If normalize, the score is divided by the
+                number of non-masked residues. If "training_set_adjust",
+                the median training set score is subtracted from the score.
+                "none" is fine unless you want to combine scores for two
+                different chains, compare scores across chains, or compare
+                scores for different regions, in which case one of the
+                other two options is recommended.
         """
 
         project_dir = os.path.abspath(os.path.dirname(__file__))
@@ -58,11 +59,13 @@ class SequenceScoringTool():
         self.aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt",
                 compress_init_gaps = False)
 
-        if adjusted_scores:
+        self.normalize_scores = False
+        self.score_adjustments = {"H":0.0, "L":0.0}
+        if normalization == "training_set_adjust":
             self.score_adjustments = {"H":constants.HEAVY_MEDIAN_SCORE,
                     "L":constants.LIGHT_MEDIAN_SCORE}
-        else:
-            self.score_adjustments = {"H":0.0, "L":0.0}
+        elif normalization == "normalize":
+            self.normalize_scores = True
 
 
 
@@ -285,7 +288,8 @@ class SequenceScoringTool():
 
     def score_seqs(self, seq_list, mask_cdr3:bool = False,
             custom_light_mask:list = None, custom_heavy_mask:list = None,
-            mask_terminal_dels:bool = False, mode:str = "score"):
+            mask_terminal_dels:bool = False, mask_gaps:bool = False,
+            mode:str = "score"):
         """Scores a list of sequences in batches or assigns them
         to clusters. Can be used in conjunction with a user-supplied
         mask (for positions to ignore) and in conjunction with Substantially faster than
@@ -313,6 +317,9 @@ class SequenceScoringTool():
                 masked when calculating a score or assigning to a cluster. Useful
                 if there are large unusual deletions at either end of the sequence that
                 you would like to ignore when scoring.
+            mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
+                are ignored when calculating the score. This is useful when your
+                sequence has unusual deletions and you would like to ignore these.
             mode (str): One of 'score', 'assign', 'assign_no_weights', 'classifier'.
                 If score, returns the human generative model score.
                 If 'assign', provides the most likely cluster number
@@ -355,12 +362,12 @@ class SequenceScoringTool():
         if len(heavy_arr) > 0:
             self._batch_score(heavy_arr, output_scores,
                     heavy_idx, "H", mode, heavy_mask,
-                    mask_terminal_dels)
+                    mask_terminal_dels, mask_gaps)
 
         if len(light_arr) > 0:
             self._batch_score(light_arr, output_scores,
                     light_idx, "L", mode, light_mask,
-                    mask_terminal_dels)
+                    mask_terminal_dels, mask_gaps)
 
         return output_scores
 
@@ -462,7 +469,8 @@ class SequenceScoringTool():
 
     def _batch_score(self, seq_array:list, output_scores:list,
             assigned_idx:list, chain_type:str, mode:str = "score",
-            mask = None, mask_terminal_dels = False, nthreads:int = 2):
+            mask = None, mask_terminal_dels = False, mask_gaps = False,
+            nthreads:int = 2):
         """Scores a batch of sequences -- either heavy or light --
         with the provided mixmodel. Operations are in place so nothing
         is returned.
@@ -487,6 +495,9 @@ class SequenceScoringTool():
             mask_terminal_dels (bool): If True, terminal deletions are masked.
                 This is useful when a sequence contains large unusual terminal
                 deletions.
+            mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
+                are ignored when calculating the score. This is useful when your
+                sequence has unusual deletions and you would like to ignore these.
             nthreads (int): The number of threads to use.
         """
         input_array = np.vstack(seq_array)
@@ -497,10 +508,12 @@ class SequenceScoringTool():
             scores = []
             for species in ("human", "mouse", "rhesus"):
                 scores.append(self.models[species][chain_type].score(input_array,
-                        mask, mask_terminal_dels, n_threads))
+                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores,
+                        n_threads = n_threads))
             if chain_type == "H":
                 scores.append(self.models["rat"]["H"].score(input_array,
-                        mask, mask_terminal_dels, n_threads))
+                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores,
+                        n_threads = n_threads))
             else:
                 scores.append(None)
 
@@ -509,15 +522,22 @@ class SequenceScoringTool():
 
         elif mode == "score":
             scores = self.models["human"][chain_type].score(input_array, mask,
-                    mask_terminal_dels, n_threads)
-            scores -= self.score_adjustments[chain_type]
+                    mask_terminal_dels, mask_gaps, self.normalize_scores,
+                    n_threads = n_threads)
+            if self.normalize_scores:
+                norm_constants = (input_array < 21).sum(axis=1)
+                scores /= norm_constants
+            else:
+                scores -= self.score_adjustments[chain_type]
 
         elif mode == "assign":
             scores = self.models["human"][chain_type].predict(input_array, mask = mask,
-                    mask_terminal_dels = mask_terminal_dels, n_threads = n_threads)
+                    mask_terminal_dels = mask_terminal_dels,
+                    mask_gaps = mask_gaps, n_threads = n_threads)
         elif mode == "assign_no_weights":
             scores = self.models["human"][chain_type].predict(input_array, mask = mask,
-                    mask_terminal_dels = mask_terminal_dels, n_threads = n_threads,
+                    mask_terminal_dels = mask_terminal_dels,
+                    mask_gaps = mask_gaps, n_threads = n_threads,
                     use_mixweights = False)
 
         for i, score in enumerate(scores.tolist()):

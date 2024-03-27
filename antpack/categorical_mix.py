@@ -144,8 +144,56 @@ class CategoricalMixture:
             raise ValueError("n_threads should be a positive integer.")
 
 
+    def prep_masked_array(self, xdata, mask = None, mask_terminal_dels = False,
+            mask_gaps = False):
+        """Prepares a masked version of an input array if any masking options are
+        supplied.
+
+        Args:
+            xdata (np.ndarray): A 2d numpy array of type np.uint8.
+            mask (np.ndarray): Either None or a numpy array of type bool
+                and shape (xdata.shape[1]). If not None, indicated
+                positions are masked, i.e. are not taken into account
+                when calculating the score.
+            mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
+                are ignored when calculating the score. This is useful when your
+                sequence has unusual deletions and you would like to ignore these.
+            mask_terminal_dels (bool): If True, ignore N- and C-terminal
+                deletions when assigning to a cluster.
+
+        Returns:
+            xmasked (np.ndarray): A 2d numpy array of type np.uint8.
+
+        Raises:
+            ValueError: A ValueError is raised if bad inputs are supplied.
+        """
+        xmasked = xdata.copy()
+
+        if mask is not None:
+            if not isinstance(mask, np.ndarray):
+                raise ValueError("Mask must be a numpy array.")
+            if mask.shape[0] != xdata.shape[1]:
+                raise ValueError("Mask shape must be consistent with xdata shape.")
+            if len(mask.shape) != 1:
+                raise ValueError("Mask must be a 1d array.")
+
+            #There is no amino acid 21, so we use this as a convenient "please ignore"
+            #indicator.
+            xmasked[:,~mask] = 21
+
+        if mask_terminal_dels:
+            mask_terminal_deletions(xmasked)
+
+        if mask_gaps:
+            xmasked[xmasked==20] = 21
+
+        return xmasked
+
+
+
     def predict(self, xdata, mask = None, mask_terminal_dels = False,
-            use_mixweights = True, return_raw_probs = False, n_threads = 1):
+            mask_gaps = False, use_mixweights = True, return_raw_probs = False,
+            n_threads = 1):
         """Determine the most probable cluster for each datapoint
         in a numpy array. Note that you should also check the
         overall probability of each datapoint. If a datapoint is
@@ -155,12 +203,15 @@ class CategoricalMixture:
         that is -- by default.
 
         Args:
-            xdata (np.ndarray): A numpy array of type np.uint8, shape 2.
+            xdata (np.ndarray): A 2d numpy array of type np.uint8.
             n_threads (int): The number of threads to use.
             mask (np.ndarray): Either None or a numpy array of type bool
                 and shape (xdata.shape[1]). If not None, indicated
                 positions are masked, i.e. are not taken into account
                 when calculating the score.
+            mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
+                are ignored when calculating the score. This is useful when your
+                sequence has unusual deletions and you would like to ignore these.
             mask_terminal_dels (bool): If True, ignore N- and C-terminal
                 deletions when assigning to a cluster.
             use_mixweights (bool): If True, take mixture weights into
@@ -186,27 +237,8 @@ class CategoricalMixture:
 
         resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
 
-        if mask is not None:
-            if not isinstance(mask, np.ndarray):
-                raise ValueError("Mask must be a numpy array.")
-            if mask.shape[0] != xdata.shape[1]:
-                raise ValueError("Mask shape must be consistent with xdata shape.")
-            if len(mask.shape) != 1:
-                raise ValueError("Mask must be a 1d array.")
-
-            xmasked = xdata.copy()
-            #There is no amino acid 21, so we use this as a convenient "please ignore"
-            #indicator.
-            xmasked[:,~mask] = 21
-
-            if mask_terminal_dels:
-                mask_terminal_deletions(xmasked)
-
-            getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
-
-        elif mask_terminal_dels:
-            xmasked = xdata.copy()
-            mask_terminal_deletions(xmasked)
+        if mask is not None or mask_terminal_dels or mask_gaps:
+            xmasked = self.prep_masked_array(xdata, mask, mask_terminal_dels, mask_gaps)
             getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
 
         else:
@@ -221,7 +253,8 @@ class CategoricalMixture:
 
 
 
-    def score(self, xdata, mask = None, mask_terminal_dels = False, n_threads = 1):
+    def score(self, xdata, mask = None, mask_terminal_dels = False,
+            mask_gaps = False, normalize_scores = False, n_threads = 1):
         """Generate the overall log-likelihood of individual datapoints.
         This is very useful to determine if a new datapoint is very
         different from the training set. If the log-likelihood of
@@ -240,6 +273,11 @@ class CategoricalMixture:
                 when calculating the score.
             mask_terminal_dels (bool): If True, ignore N- and C-terminal
                 deletions when calculating a score.
+            mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
+                are ignored when calculating the score. This is useful when your
+                sequence has unusual deletions and you would like to ignore these.
+            normalize_scores (bool): If True, normalize the score by dividing by
+                the number of non-masked residues in the input.
             n_threads (int): the number of threads to use.
 
         Returns:
@@ -255,31 +293,19 @@ class CategoricalMixture:
             raise ValueError("Model not fitted yet.")
 
         resp = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
-
-        if mask is not None:
-            if not isinstance(mask, np.ndarray):
-                raise ValueError("Mask must be a numpy array.")
-            if mask.shape[0] != xdata.shape[1]:
-                raise ValueError("Mask shape must be consistent with xdata shape.")
-            if len(mask.shape) != 1:
-                raise ValueError("Mask must be a 1d array.")
-
-            xmasked = xdata.copy()
-            #There is no amino acid 21, so we use this as a convenient "please ignore"
-            #indicator.
-            xmasked[:,~mask] = 21
-            if mask_terminal_dels:
-                mask_terminal_deletions(xmasked)
-
+        if mask is not None or mask_terminal_dels or mask_gaps:
+            xmasked = self.prep_masked_array(xdata, mask, mask_terminal_dels, mask_gaps)
             getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
-
-        elif mask_terminal_dels:
-            xmasked = xdata.copy()
-            mask_terminal_deletions(xmasked)
-            getProbsCExt_masked(xmasked, self.log_mu_mix, resp, n_threads)
+            resp += self.log_mix_weights[:,None]
+            resp = logsumexp(resp, axis=0)
+            if normalize_scores:
+                resp /= (xmasked < 21).sum(axis=1)
 
         else:
             getProbsCExt(xdata, self.log_mu_mix, resp, n_threads)
+            resp += self.log_mix_weights[:,None]
+            resp = logsumexp(resp, axis=0)
+            if normalize_scores:
+                resp /= xdata.shape[1]
 
-        resp += self.log_mix_weights[:,None]
-        return logsumexp(resp, axis=0)
+        return resp
