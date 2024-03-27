@@ -32,7 +32,7 @@ def main():
 
     cpp_extra_link_args = []
     cpp_extra_compile_args = [
-        "-std=c++11", "-O3"
+        "-std=c++11"
     ]
 
     extensions=[
