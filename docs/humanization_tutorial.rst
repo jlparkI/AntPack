@@ -2,11 +2,11 @@ Humanizing sequences with AntPack
 ===============================================
 
 AntPack can also suggest mutations to "humanize" a sequence or make
-it more human. Humanization always involves a tradeoff between
+it more human. Humanization always involves a challenging tradeoff between
 improving the humanness score as much as possible and preserving
 as much of the original sequence as possible (to reduce the risk
 of loss of affinity). You can of course manually humanize a sequence
-by 1) scoring it using AntPack, 2) retrieving the closest cluster
+by 1) scoring it using AntPack, 2) retrieving the closest clusters
 (see the "Generating new human sequences" page), 3) determining
 which regions of the sequence are least human, 4) mutating these
 and 5) rescoring the sequence. This can be however a little tedious.
@@ -14,17 +14,17 @@ AntPack offers an easy way to automatically
 choose mutations that lie at a selected location along that tradeoff
 curve. 
 
-To automatically humanize a sequence, start by creating a scoring
+To automatically humanize a sequence, start by creating a humanization
 tool:::
 
-  from antpack import SequenceScoringTool
-  scoring_tool = SequenceScoringTool()
+  from antpack import HumanizationTool
+  h_tool = HumanizationTool()
 
 
 Next, feed it the sequence you'd like to humanize using the following
 function:
 
-.. autoclass:: antpack.SequenceScoringTool
+.. autoclass:: antpack.HumanizationTool
    :members: suggest_mutations
 
 
@@ -38,10 +38,6 @@ the score to go over s_thresh * optimal score. Larger values of s_thresh
 cause more of the original sequence to be preserved at the expense of
 a smaller improvement in humanness.
 
-To illustrate what this tradeoff looks like, here are the results of using
-AntPack to humanize 25 antibodies from Prihoda et al. These antibodies were
-originally humanized using other techniques (the "Experimental" column) or
-using a more traditional straight CDR graft. We can see how using AntPack / SAM
-with a straight in silico graft, with s_thresh set to 1.10 (110 percent)
-and with s_thresh set to 1.25 (125 percent) offers a tradeoff between
-preservation of the original sequence and increased humanness score.
+Kabat-defined CDRs are excluded from humanization. If you want to exclude
+additional key positions, you can do this by passing a list of IMGT-numbered
+positions you would like to be excluded from consideration.
