@@ -24,7 +24,7 @@ class SingleChainAnnotator:
         """Class constructor.
 
         Args:
-            chain (list): A list of chains. Each must be one of "H", "K", "L".
+            chains (list): A list of chains. Each must be one of "H", "K", "L".
                 If ["H", "K", "L"] (default), the annotator will automatically
                 determine the most appropriate chain type for each input
                 sequence.
