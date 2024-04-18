@@ -25,4 +25,14 @@ Then get the parameters for that cluster.
 Each cluster you retrieve is a distribution and you can easily
 sample from it or use it to visualize which sections of your input
 sequence are least human / most problematic. See the example
-notebook on the main page to see how to do this.
+notebooks on the main page to see how to do this.
+
+It is important to realize that sampling from a specified cluster
+can occasionally generate low-probability sequences, i.e. sequences
+that are unlikely to be human, in the same way that sampling from
+a normal distribution can occasionally generate outliers. It may
+be useful to score any sequences generated in this fashion using
+the scoring tool to ensure they are highly human. Alternatively,
+you may want to use the highest-probability amino acid at each
+position in a selected cluster *except* for the CDRs and sample
+from the distribution for those regions specifically.

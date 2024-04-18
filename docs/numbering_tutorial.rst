@@ -5,16 +5,12 @@ Currently, to number sequences in AntPack, you can use
 the ``SingleChainAnnotator`` tool. This tool finds the
 region of your input sequence that corresponds most
 closely to one of a selection of chains and numbers it.
-In future versions, we'll add a second tool for numbering
-extracting heavy and light chain regions from sequences
-that likely contain both.
 
 Here's how to use ``SingleChainAnnotator``:::
 
   from antpack import SingleChainAnnotator
-  aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt",
+  aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt",
                         compress_init_gaps = False)
-
 
 If you don't know what type of chain you're working with, leave
 ``chains`` as default and SingleChainAnnotator will figure out the chain
@@ -30,6 +26,13 @@ IMGT position 3, move it to IMGT position 1). You can mimic this
 behavior by setting ``compress_init_gaps`` to True, or turn it off by
 setting it to False, in which case the gaps will be left in what seem to be the
 most sensible locations based on the alignment.
+
+If you know that your sequence contains both a heavy chain and a light chain, you
+can use two ``SingleChainAnnotators``, one which looks for and extracts the light
+chain, and one which looks for and extracts the heavy chain, e.g.:::
+
+  aligner_light = SingleChainAnnotator(chains=["L", "K"], scheme="imgt")
+  aligner_heavy = SingleChainAnnotator(chains=["H"], scheme="imgt")
 
 You can use the ``analyze_online_seqs`` (for a list of sequences), ``analyze_fasta``
 (a generator for analyzing sequences in a fasta file) or ``analyze_seq`` (for analyzing

@@ -5,14 +5,18 @@ AntPack can also suggest mutations to "humanize" a sequence or make
 it more human. Humanization always involves a challenging tradeoff between
 improving the humanness score as much as possible and preserving
 as much of the original sequence as possible (to reduce the risk
-of loss of affinity). You can of course manually humanize a sequence
+of loss of affinity). You can manually humanize a sequence
 by 1) scoring it using AntPack, 2) retrieving the closest clusters
 (see the "Generating new human sequences" page), 3) determining
 which regions of the sequence are least human, 4) mutating these
 and 5) rescoring the sequence. This can be however a little tedious.
 AntPack offers an easy way to automatically
 choose mutations that lie at a selected location along that tradeoff
-curve. 
+curve.
+
+Regardless of which approach you take, we suggest you carefully review
+suggested mutations and re-score the altered sequence to be sure that
+the changes that have been made are compatible with your objectives.
 
 To automatically humanize a sequence, start by creating a humanization
 tool:::
