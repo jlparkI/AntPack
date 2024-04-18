@@ -20,7 +20,8 @@ class SingleChainAnnotator:
     many sequences that belong to one of several possible chain types.
     """
 
-    def __init__(self, chains = ["H", "K", "L"], scheme = "imgt", compress_init_gaps = True):
+    def __init__(self, chains=["H", "K", "L"], scheme="imgt",
+            compress_init_gaps=False):
         """Class constructor.
 
         Args:
@@ -34,7 +35,7 @@ class SingleChainAnnotator:
                 positions post-alignment so that gaps are at the beginning of
                 the sequence wherever possible. This is more consistent with
                 results from some other tools although it is debatable
-                if this is more correct. Defaults to True.
+                if this is more correct. Defaults to False.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are
