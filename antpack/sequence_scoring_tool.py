@@ -524,10 +524,7 @@ class SequenceScoringTool():
             scores = self.models["human"][chain_type].score(input_array, mask,
                     mask_terminal_dels, mask_gaps, self.normalize_scores,
                     n_threads = n_threads)
-            if self.normalize_scores:
-                norm_constants = (input_array < 21).sum(axis=1)
-                scores /= norm_constants
-            else:
+            if not self.normalize_scores:
                 scores -= self.score_adjustments[chain_type]
 
         elif mode == "assign":

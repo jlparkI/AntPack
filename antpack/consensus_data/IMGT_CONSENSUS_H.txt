@@ -1,7 +1,7 @@
 # IMGT_ consensus
 1,Q,E,D
-2,V,Q,L
-3,Q,K,H,S,T,L
+2,V,Q
+3,Q,K,H,S,T
 4,L,V
 5,V,Q,L,E,K,T
 6,E,Q,A

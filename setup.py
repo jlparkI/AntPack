@@ -61,11 +61,11 @@ def main():
         packages=find_namespace_packages(),
         cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
-        install_requires=['pybind11>=2.4', "numpy", "biopython", "scipy"],
+        install_requires=['pybind11>=2.4', "numpy", "biopython"],
         include_package_data=True,
         ext_modules=extensions,
         python_requires=">=3.7",
-        package_data={"": ["*.h", "*.c", "*.cu", "*.cpp"]}
+        package_data={"": ["*.h", "*.c", "*.cpp"]}
     )
 
 

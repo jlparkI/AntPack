@@ -118,12 +118,12 @@ class BasicAligner {
 
         std::vector<std::set<char>> consensusMap;
         std::vector<int> highlyConservedPositions;
-        std::array<std::string, 6> errorCodeToMessage {"",
+        std::array<std::string, 6> errorCodeToMessage {{"",
                 "Sequence contains invalid characters",
                 "Fatal runtime error in BasicAligner. Unusual. Please report",
                 "> 72 insertions. Suggests a problem with this sequence",
                 "Alignment length != length of input sequence. Unusual. Please report.",
-                "Unexpected AA at conserved position."};
+                "Unexpected AA at conserved position."}};
 
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here

@@ -4,7 +4,7 @@ import os
 import unittest
 import numpy as np
 import pandas as pd
-from scipy.special import logsumexp
+from antpack.utilities.special_functions import logsumexp
 from antpack import SequenceScoringTool
 from ant_ext import mask_terminal_deletions
 

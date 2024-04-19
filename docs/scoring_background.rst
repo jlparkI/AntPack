@@ -19,14 +19,13 @@ match or outperform more "sophisticated" models, e.g.
 currently available antibody LLMs and random forest
 classifiers. For some benchmarking of simple mixture models
 vs a variety of other options described in the literature,
-see Parkinson et al. 2024.
+see `Parkinson et al. 2024 <https://www.biorxiv.org/content/10.1101/2024.01.27.577555v3.abstract>_`
 
 The humanness scoring tool in AntPack doesn't have to be used
-in conjunction with AntPack numbering (although it can be),
-and AntPack numbering can be used independently of the
-scoring tool. The humanness scoring model was however trained
-using AntPack numbering so it's probably easiest to use this
-in general.
+in conjunction with AntPack numbering, and AntPack numbering
+can be used independently of the scoring tool. The humanness
+scoring model was however trained using AntPack numbering so
+it's probably easiest to use this in general.
 
 When you score a sequence for humanness using AntPack, the
 library 1) numbers the sequence using IMGT numbering and 2)
@@ -41,8 +40,8 @@ It's also possible to score the sequence while 1) masking CDR3,
 2) excluding N- or C-terminal deletions, 3) excluding all gaps,
 or 4) masking a custom region you'd like to exclude.
 This way, if you want to see what the score looks like while
-excluding a deletion or while excluding the CDRs you can retrieve
-this as well.
+excluding a deletion or if you just want to see the score for
+a specific region you can do that as well.
 
 AntPack can be run in classifier mode, where it classifies
 a sequence as one of rhesus monkey, mouse, human or (for heavy chain)
@@ -53,7 +52,7 @@ See light chain below for example (heavy chain is similar):
    :width: 600
    :alt: Light classifier scores
 
-However, we don't recommend using AntPack in classifier mode because --
+However, we don't recommend using AntPack in classifier mode because
 like other classifiers in the literature (e.g. Hu-mAb), it fails on
 sequences from species not included in the training set (e.g. rabbit,
 camel). Also, species classification is less granular since it doesn't
@@ -74,7 +73,7 @@ Unfortunately there's no fixed answer to this question, because
 immunogenicity is a complex phenomenon that's a function both
 of humanness and of other factors. There are some sequences of
 mouse origin that are not immunogenic in humans, and some rare
-sequences of human origin that cause ADA in some patients. However,
+sequences of human origin that form ADA in some patients. However,
 the more human a sequence, the lower the *risk* of immunogenicity in
 *general*. Hence, we can say *roughly* what constitutes an acceptable
 humanness score based on the 400 million heavy and light sequences we
@@ -110,6 +109,11 @@ we average over the heavy and light chain scores.
 .. image:: images/light_scores_vs_species.png
    :width: 600
    :alt: AntPack light chain humanness score vs species of origin.
+
+See `Parkinson et al. 2024 <https://www.biorxiv.org/content/10.1101/2024.01.27.577555v3.abstract>_`
+to see what score distributions look like for specific sub-regions
+of heavy and light chains, or for more details on the distributions shown
+above.
 
 Notice that heavy and light chain scores have different distributions,
 so that combining them to form a single score for a whole antibody
