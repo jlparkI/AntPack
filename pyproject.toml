@@ -1,2 +1,14 @@
 [build-system]
 requires = ["setuptools", "wheel", "pybind11>=2.4", "numpy", "biopython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antpack"
+version = "0.1.5"
+readme = "README.md"
+authors = [{ name = "Jonathan Parkinson",
+        email = "jlparkinson1@gmail.com" }]
+dependencies = [
+    "pybind >= 2.4",
+    "numpy", "biopython",
+]
