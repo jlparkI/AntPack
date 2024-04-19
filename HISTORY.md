@@ -17,3 +17,8 @@ gaps are ignored) to yield masked scores only.
 Added scoring with a user-supplied mask, so that the
 user can filter out regions they would like to not include
 in the score. Also default to -O3 when compiling.
+
+### Version 0.1.5
+Minor updates to alignment; fixed a bug relevant to old versions
+of GCC that prevents compilation with old versions of GCC; removed
+the scipy dependency; fixed the double-normalization issue.
