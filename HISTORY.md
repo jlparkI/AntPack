@@ -19,7 +19,9 @@ user can filter out regions they would like to not include
 in the score. Also default to -O3 when compiling.
 
 ### Version 0.1.5
-Minor changes to defaults for alignment; also, moved installation to PyPi.
+Minor updates to alignment; fixed a bug relevant to old versions
+of GCC that prevents compilation with old versions of GCC; removed
+the scipy dependency; fixed the double-normalization issue.
 
 ### Version 0.2.0
 Added MultiChainAnnotator, LiabilitySearchTool and VDJAssignmentTool. This

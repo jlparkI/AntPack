@@ -58,6 +58,7 @@ def main():
         version=get_version(home_dir),
         description="A Python package for processing, manipulating and making inferences about antibody sequence data",
         long_description=long_description,
+        long_description_content_type='text/markdown',
         packages=find_namespace_packages(),
         cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
