@@ -8,14 +8,13 @@ use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 ## What's new in version 0.2.0
 
-Starting in version 0.2.0, there are only two dependencies, numpy and pybind. This
-does cause one breaking change in SingleChainAnnotator (for any downstream tools
-relying on the fasta file generator previously included in this tool).
-We've also introduced a tool for extracting the variable heavy and light regions from
-a sequence that may contain both, a tool for detecting common liabilities in antibody
-variable region sequences (N-glycosylation motifs, deamidation motifs, etc.),
-and a tool for identifying the human V or J gene *most* similar to an input
-sequence.
+Starting in version 0.2.0, there are only two dependencies, numpy and pybind. We've
+also simplified the SingleChainAnnotator API slightly (this does cause a possible
+breaking change). We've also introduced a tool for extracting the variable heavy
+and light regions from a sequence that may contain both, a tool for detecting
+common liabilities in antibody variable region sequences (N-glycosylation motifs,
+deamidation motifs, etc.), and a tool for identifying the human V or J gene *most*
+similar to an input sequence.
 
 
 ### Antibody numbering

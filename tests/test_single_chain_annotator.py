@@ -12,15 +12,15 @@ class TestSingleChainAnnotator(unittest.TestCase):
         # Pass dummy sequences with errors.
         aligner = SingleChainAnnotator(chains=["H", "K", "L"])
         with self.assertRaises(ValueError):
-            aligner.analyze_online_seqs("YYY")
+            aligner.analyze_seqs("YYY")
 
-        results = aligner.analyze_online_seqs(["YaY"])
+        results = aligner.analyze_seqs(["YaY"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        results = aligner.analyze_online_seqs(["YBW"])
+        results = aligner.analyze_seqs(["YBW"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        results = aligner.analyze_online_seqs(["Y K"])
+        results = aligner.analyze_seqs(["Y K"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        results = aligner.analyze_online_seqs(["Y-K"])
+        results = aligner.analyze_seqs(["Y-K"])
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
 
         results = aligner.analyze_seq("Y-K")
@@ -45,7 +45,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         for scheme in ["martin", "imgt", "kabat"]:
             aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                             scheme = scheme)
-            results = aligner.analyze_online_seqs([known_K, known_L, known_H])
+            results = aligner.analyze_seqs([known_K, known_L, known_H])
             self.assertTrue(results[0][2] == "K")
             self.assertTrue(results[1][2] == "L")
             self.assertTrue(results[2][2] == "H")
@@ -55,7 +55,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
             self.assertTrue(aligner.analyze_seq(known_H)[2] == "H")
 
             bad_chain = known_H[:100]
-            self.assertTrue(aligner.analyze_online_seqs([bad_chain])[0][3].startswith("Unexpected"))
+            self.assertTrue(aligner.analyze_seqs([bad_chain])[0][3].startswith("Unexpected"))
             self.assertTrue(aligner.analyze_seq(bad_chain)[3].startswith("Unexpected"))
 
     def test_performance(self):
@@ -86,7 +86,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
                         scheme=k) for k in schemes]
 
         for aligner, scheme, numbering in zip(aligners, schemes, numberings):
-            total_comparisons, num_correct = compare_results(aligner.analyze_online_seqs(seqs),
+            total_comparisons, num_correct = compare_results(aligner.analyze_seqs(seqs),
                                     numbering, seqs, scheme)
             print(f"{scheme}: Total comparisons: {total_comparisons}. Num matching: {num_correct}.")
             self.assertTrue(num_correct / total_comparisons > 0.97)

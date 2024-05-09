@@ -1,6 +1,6 @@
 #Used for determining the version if running setup.
 #Only change if building a new version.
-__version__ = "0.1.5.2"
+__version__ = "0.2.0"
 
 from .consensus_update_tools import build_consensus_alignment
 from .single_chain_annotator import SingleChainAnnotator
