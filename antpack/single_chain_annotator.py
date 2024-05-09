@@ -1,13 +1,9 @@
 """Contains the SingleChainAnnotator class, which provides the tools needed
-to parse antibody sequences of known chain type. A separate class is maintained
-to handle sequences of unknown chain type or that may contain multiple
-chains. SingleChainAnnotator is however substantially faster since it does
-not need to determine the type of chain or whether multiple chains are
-present, so it is useful when you have a large number of sequences of
-known chain type to process."""
+to parse single chains (either heavy or light) or a sequence which may contain
+a heavy or light chain. If you want to extract the heavy and light chain variable
+regions from a sequence that probably contains both, use MultiChainAnnotator."""
 import os
 import numpy as np
-from Bio import SeqIO
 from .constants import imgt_default_params, martin_default_params, kabat_default_params
 from ant_ext import BasicAligner, validate_sequence
 
@@ -125,7 +121,7 @@ class SingleChainAnnotator:
 
 
 
-    def analyze_online_seqs(self, sequences):
+    def analyze_seqs(self, sequences):
         """Numbers and scores a list of input sequences.
 
         Args:
@@ -177,39 +173,3 @@ class SingleChainAnnotator:
             sequence_results = results[-1]
 
         return sequence_results
-
-
-
-    def analyze_fasta(self, fasta_file):
-        """A generator that numbers and scores sequences from a fasta
-        file. Since it is a generator it will only load one sequence at
-        a time.
-
-        Args:
-            fasta_file (str): A filepath to a valid fasta file.
-
-        Returns:
-            seqrecord (SeqRecord): A BioPython seqrecord object with all the details of the
-                sequence.
-            best_result (tuple): A tuple of (sequence numbering, percent_identity,
-                chain_name, error_message). If no error was encountered, the error
-                message is "". An alignment with low percent identity (e.g. < 0.85)
-                may indicate a sequence that is not really an antibody, that contains
-                a large deletion, or is not of the selected chain type.
-
-        Raises:
-            ValueError: A ValueError is raised if unacceptable inputs are supplied.
-        """
-        if not os.path.isfile(fasta_file):
-            raise ValueError("Nonexistent file path supplied.")
-
-        with open(fasta_file, "r", encoding="utf-8") as fhandle:
-            for seqrecord in SeqIO.parse(fhandle, "fasta"):
-                sequence = str(seqrecord.seq)
-                if not validate_sequence(sequence):
-                    best_result = ([], 0.0, "", "invalid_sequence")
-                else:
-                    results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
-                    results = sorted(results, key=lambda x: x[1])
-                    best_result = results[-1]
-                yield seqrecord, best_result

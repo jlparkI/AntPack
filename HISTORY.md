@@ -17,3 +17,13 @@ gaps are ignored) to yield masked scores only.
 Added scoring with a user-supplied mask, so that the
 user can filter out regions they would like to not include
 in the score. Also default to -O3 when compiling.
+
+### Version 0.1.5
+Minor changes to defaults for alignment; also, moved installation to PyPi.
+
+### Version 0.2.0
+Added MultiChainAnnotator, LiabilitySearchTool and VDJAssignmentTool. This
+considerably expands the capabilities of the library to cover most basic
+antibody amino acid sequence analysis tasks. Removed BioPython as a dependency
+(it is not necessary to include a fasta file generator in SingleChainAnnotator
+since any users using Biopython can easily add this themselves.)
