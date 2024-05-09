@@ -1,8 +1,8 @@
 """Contains utilities useful for loading fitted models."""
 import os
 import numpy as np
-from ..categorical_mix import CategoricalMixture
-from ..constants.scoring_constants import allowed_imgt_pos as ahip
+from ..scoring_tools.categorical_mix import CategoricalMixture
+from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip
 
 
 def load_model(start_dir, chain_type="heavy", species="human"):

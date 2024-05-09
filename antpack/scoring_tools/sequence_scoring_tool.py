@@ -1,11 +1,11 @@
 """Provides a tool for scoring individual sequences."""
 import os
 import numpy as np
-from antpack import SingleChainAnnotator
-from .constants.scoring_constants import scoring_constants as constants
-from .constants.scoring_constants import allowed_imgt_pos as ahip
-from .utilities.model_loader_utils import load_model
-from .utilities.data_compile_utils import get_position_dict, get_reverse_position_dict
+from ..numbering_tools import SingleChainAnnotator
+from .scoring_constants import scoring_constants as constants
+from .scoring_constants import allowed_imgt_pos as ahip
+from ..utilities.model_loader_utils import load_model
+from ..utilities.data_compile_utils import get_position_dict, get_reverse_position_dict
 
 
 class SequenceScoringTool():

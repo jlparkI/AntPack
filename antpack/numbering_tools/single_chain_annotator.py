@@ -12,8 +12,8 @@ from ant_ext import BasicAligner, validate_sequence
 
 class SingleChainAnnotator:
     """This class contains the tools needed to parse and number
-    either a single sequence, a list of sequences, or a fasta file containing
-    many sequences that belong to one of several possible chain types.
+    either a single sequence or a list of sequences that are antibody
+    heavy or light chain variable regions.
     """
 
     def __init__(self, chains=["H", "K", "L"], scheme="imgt",

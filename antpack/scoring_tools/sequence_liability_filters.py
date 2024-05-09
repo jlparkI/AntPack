@@ -2,8 +2,8 @@
 sequences for certain motifs known to correspond to
 developability liabilities."""
 import re
-from .single_chain_annotator import SingleChainAnnotator
-from .constants.scoring_constants import allowed_imgt_pos as ahip
+from ..numbering_tools import SingleChainAnnotator
+from .scoring_constants import allowed_imgt_pos as ahip
 
 
 class LiabilitySearchTool:
