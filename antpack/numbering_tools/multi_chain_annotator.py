@@ -29,7 +29,7 @@ class MultiChainAnnotator(AnnotatorBaseClass):
         self.chain_maps = {"H":"H", "K":"L", "L":"L"}
 
 
-    def analyze_seq(self, sequence, identity_threshold = 0.85):
+    def analyze_seq(self, sequence, identity_threshold = 0.8):
         """Extracts the variable regions from a sequence. Also
         returns numbering if requested.
 
@@ -79,7 +79,7 @@ class MultiChainAnnotator(AnnotatorBaseClass):
 
 
 
-    def _assign_fragment(self, sequence, identity_threshold=0.85):
+    def _assign_fragment(self, sequence, identity_threshold=0.8):
         """Assigns a fragment of a validated sequence to a chain type.
 
         Args:
