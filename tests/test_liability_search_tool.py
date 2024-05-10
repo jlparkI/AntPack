@@ -36,7 +36,7 @@ class TestLiabilitySearchTool(unittest.TestCase):
         self.assertTrue(result[0][1] == "Unusual cysteine")
 
         liability_seq = corrected_seq.copy()
-        liability_seq[3:5] = "NAS"
+        liability_seq[-5:-2] = "NAS"
         result = search_tool.analyze_seq("".join(liability_seq))
         self.assertTrue(result[0][1] == "N-glycosylation")
 

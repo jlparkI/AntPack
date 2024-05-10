@@ -52,7 +52,8 @@ class TestSequenceScoringTool(unittest.TestCase):
 
         start_dir = os.path.abspath(os.path.dirname(__file__))
 
-        raw_data = pd.read_csv(os.path.join(start_dir, "test_data", "imgt_comp_scoring.csv"))
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
 
         aligners = {"H":SingleChainAnnotator(["H"]),
             "K":SingleChainAnnotator(["K"]),
@@ -90,7 +91,8 @@ class TestSequenceScoringTool(unittest.TestCase):
 
         start_dir = os.path.abspath(os.path.dirname(__file__))
 
-        raw_data = pd.read_csv(os.path.join(start_dir, "test_data", "imgt_comp_scoring.csv"))
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
 
         heavy_chains = raw_data[raw_data["chain_types"]=="H"]
         light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])]

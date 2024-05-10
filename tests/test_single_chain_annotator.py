@@ -1,5 +1,6 @@
 """Tests basic functionality for the SingleChainAnnotator class."""
 import os
+import gzip
 import unittest
 from antpack import SingleChainAnnotator
 
@@ -68,7 +69,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
-        with open("test_data.csv", "r") as fhandle:
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
             _ = fhandle.readline()
             seqs, martin_num, imgt_num, kabat_num = [], [], [], []
             for line in fhandle:
