@@ -3,7 +3,7 @@ shared by both."""
 import os
 import numpy as np
 from .constants import imgt_default_params, martin_default_params, kabat_default_params
-from ant_ext import BasicAligner
+from ant_ext import IGAligner
 
 
 
@@ -64,17 +64,17 @@ class AnnotatorBaseClass:
 
                 score_matrix = np.load(npy_filename)
                 con_map = self._load_consensus_map(text_file)
-                # Note that BasicAligner class constructor checks the input score
+                # Note that IGAligner class constructor checks the input score
                 # matrix to ensure the right dimensions; if it does not like these,
                 # it will throw an exception that the PyBind wrapper will hand
                 # off to Python.
-                self.scoring_tools.append(BasicAligner(score_matrix, con_map,
+                self.scoring_tools.append(IGAligner(score_matrix, con_map,
                                 chain_name, scheme, defaults.DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                                 defaults.DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                                 compress_init_gaps))
         except Exception as exc:
             os.chdir(current_dir)
-            raise ValueError("The consensus data for the package either has been deleted or "
+            raise RuntimeError("The consensus data for the package either has been deleted or "
                     "moved or was never properly installed.") from exc
 
         os.chdir(current_dir)

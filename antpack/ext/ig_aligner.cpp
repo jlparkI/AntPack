@@ -1,8 +1,8 @@
-#include "aligner.h"
+#include "ig_aligner.h"
 #include "utilities.h"
 
 
-BasicAligner::BasicAligner(
+IGAligner::IGAligner(
                  py::array_t<double> scoreArray,
                  std::vector<std::vector<std::string>> consensus,
                  std::string chainName,
@@ -23,11 +23,11 @@ BasicAligner::BasicAligner(
     // PyBind as long as this constructor is used within the wrapper.
     if (info.shape.size() != 2){
         throw std::runtime_error(std::string("The scoreArray passed to "
-                "BasicAligner must be a 2d array"));
+                "IGAligner must be a 2d array"));
     }
     if (info.shape[1] != NUM_AAS){
         throw std::runtime_error(std::string("The scoreArray passed to "
-                "BasicAligner must have 22 columns (1 per AA plus 2 for gap penalties)"));
+                "IGAligner must have 22 columns (1 per AA plus 2 for gap penalties)"));
     }
 
     // Check that the number of positions in the scoring and consensus is as expected,
@@ -39,13 +39,13 @@ BasicAligner::BasicAligner(
         if (info.shape[0] != NUM_HEAVY_IMGT_POSITIONS && info.shape[0] !=
                 NUM_LIGHT_IMGT_POSITIONS){
             throw std::runtime_error(std::string("The scoreArray passed to "
-                "BasicAligner must have the expected number of positions "
+                "IGAligner must have the expected number of positions "
                 "for the numbering system."));
         }
         if (consensus.size() != NUM_HEAVY_IMGT_POSITIONS && consensus.size() !=
                 NUM_LIGHT_IMGT_POSITIONS){
             throw std::runtime_error(std::string("The consensus sequence passed to "
-                "BasicAligner must have the expected number of positions "
+                "IGAligner must have the expected number of positions "
                 "for the numbering system."));
         }
     }
@@ -69,18 +69,18 @@ BasicAligner::BasicAligner(
         if (info.shape[0] != NUM_HEAVY_MARTIN_KABAT_POSITIONS && info.shape[0] !=
                 NUM_LIGHT_MARTIN_KABAT_POSITIONS){
             throw std::runtime_error(std::string("The scoreArray passed to "
-                "BasicAligner must have the expected number of positions "
+                "IGAligner must have the expected number of positions "
                 "for the numbering system."));
         }
         if (consensus.size() != NUM_HEAVY_MARTIN_KABAT_POSITIONS && consensus.size() !=
                 NUM_LIGHT_MARTIN_KABAT_POSITIONS){
             throw std::runtime_error(std::string("The consensus sequence passed to "
-                "BasicAligner must have the expected number of positions "
+                "IGAligner must have the expected number of positions "
                 "for the numbering system."));
         }
     }
     else{
-        throw std::runtime_error(std::string("Currently BasicAligner only recognizes "
+        throw std::runtime_error(std::string("Currently IGAligner only recognizes "
                     "schemes 'martin', 'kabat', 'imgt'."));
     }
 
@@ -118,14 +118,14 @@ BasicAligner::BasicAligner(
 
 
 std::tuple<std::vector<std::string>, double, std::string,
-        std::string> BasicAligner::align(std::string query_sequence){
+        std::string> IGAligner::align(std::string query_sequence){
 
     std::vector<std::string> finalNumbering;
     double percentIdentity = 0;
     std::string errorMessage;
 
     // A list of allowed error codes. These will be mapped to strings that explain
-    // in more detail by the BasicAligner class.
+    // in more detail by the IGAligner class.
     enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
             tooManyInsertions  = 3, alignmentWrongLength = 4,
             unacceptableConservedPositions = 5};
@@ -428,7 +428,7 @@ std::tuple<std::vector<std::string>, double, std::string,
 // Fill in the scoring table created by caller, using the position-specific
 // scores for indels and substitutions, and add the appropriate
 // pathway traces.
-void BasicAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
+void IGAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx){
     double lscore, uscore, dscore;
     int i, j, gridPos, diagNeighbor, upperNeighbor;
