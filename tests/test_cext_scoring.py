@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from antpack.utilities.special_functions import logsumexp
 from antpack import SequenceScoringTool
-from ant_ext import mask_terminal_deletions
+from antpack_cpp_ext import mask_terminal_deletions
 
 
 class TestCExtScoring(unittest.TestCase):
@@ -17,7 +17,8 @@ class TestCExtScoring(unittest.TestCase):
         for consistency with a simple Python version."""
         start_dir = os.path.abspath(os.path.dirname(__file__))
         score_tool = SequenceScoringTool()
-        raw_data = pd.read_csv(os.path.join(start_dir, "test_data", "imgt_comp_scoring.csv"))
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
 
         heavy_chains = raw_data[raw_data["chain_types"]=="H"]
         light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])]
@@ -62,7 +63,8 @@ class TestCExtScoring(unittest.TestCase):
         comparing it with a simple python implementation."""
         start_dir = os.path.abspath(os.path.dirname(__file__))
         score_tool = SequenceScoringTool()
-        raw_data = pd.read_csv(os.path.join(start_dir, "test_data", "imgt_comp_scoring.csv"))
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
 
         heavy_chains = raw_data[raw_data["chain_types"]=="H"].sequences.tolist()
         light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])].sequences.tolist()
@@ -114,7 +116,8 @@ class TestCExtScoring(unittest.TestCase):
         expected results."""
         start_dir = os.path.abspath(os.path.dirname(__file__))
         score_tool = SequenceScoringTool()
-        raw_data = pd.read_csv(os.path.join(start_dir, "test_data", "imgt_comp_scoring.csv"))
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
 
         heavy_chains = raw_data[raw_data["chain_types"]=="H"]
         light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])]

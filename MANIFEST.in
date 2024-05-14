@@ -1,5 +1,5 @@
 include LICENSE
 recursive-include antpack/ext *
-recursive-include antpack/consensus_data *
-recursive-include antpack/model_data *
+recursive-include antpack/numbering_tools/consensus_data *
+recursive-include antpack/scoring_tools/model_data *
 recursive-include tests/test_data *

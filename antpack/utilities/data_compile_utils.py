@@ -1,7 +1,6 @@
 """Contains utilities useful for compiling the raw sequence data
 and encoding."""
-import os
-from ..constants.scoring_constants import allowed_imgt_pos as ahip
+from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip
 
 def get_position_dict(chain_type="heavy"):
     """Loads the dictionary mapping IMGT numbers to positions."""
