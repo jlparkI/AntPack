@@ -46,7 +46,7 @@ def update_vj_databases():
             for gene in UTC.genes[receptor_type]:
                 target_url = f"https://www.imgt.org/download/V-QUEST/IMGT_V-QUEST_reference_directory/{species}/{receptor_type}/{receptor_type}{gene}.fasta"
                 fasta_file = wget.download(target_url)
-                ofname = f"{UTC.latin_to_common[species]}_{receptor_type}{gene}_{today}.fa"
+                ofname = f"{UTC.latin_to_common[species]}_{receptor_type}{gene}_{today}.fa.gz"
 
                 if gene.endswith("V") and receptor_type == "IG":
                     gene_formatter = format_v_genes
@@ -57,8 +57,7 @@ def update_vj_databases():
 
                 num_retained = 0
 
-                #with gzip.open(ofname, "wt", encoding="utf-8") as output_handle:
-                with open(ofname, "wt", encoding="utf-8") as output_handle:
+                with gzip.open(ofname, "wt", encoding="utf-8") as output_handle:
                     with open(fasta_file, "r", encoding="utf-8") as in_handle:
                         for seqrec in SeqIO.parse(in_handle, "fasta"):
                             nt_sequence = str(seqrec.seq)

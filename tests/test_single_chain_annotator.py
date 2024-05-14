@@ -69,6 +69,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
+
         with gzip.open("test_data.csv.gz", "rt") as fhandle:
             _ = fhandle.readline()
             seqs, martin_num, imgt_num, kabat_num = [], [], [], []
@@ -78,6 +79,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 martin_num.append(line_elements[1].split("_"))
                 imgt_num.append(line_elements[2].split("_"))
                 kabat_num.append(line_elements[3].split("_"))
+
         os.chdir(current_dir)
 
         numberings = [martin_num, imgt_num, kabat_num]

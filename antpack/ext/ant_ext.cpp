@@ -7,6 +7,7 @@
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
 #include "ig_aligner.h"
+#include "vj_match_counter.h"
 #include "responsibility_calcs.h"
 #include "utilities.h"
 
@@ -22,6 +23,13 @@ PYBIND11_MODULE(ant_ext, m){
                 std::string, std::string,
                 double, double, bool>())
         .def("align", &IGAligner::align);
+
+    py::class_<VJMatchCounter>(m, "VJMatchCounter")
+        .def(py::init<std::vector<std::string>,
+             std::vector<std::string>>() )
+        .def("vjMatch", &VJMatchCounter::vjMatch)
+        .def("findVJSequenceByName", &VJMatchCounter::findVJSequenceByName)
+        .def("getSeqLists", &VJMatchCounter::getSeqLists);
 
     m.def("getProbsCExt", &getProbsCExt, py::call_guard<py::gil_scoped_release>());
     m.def("mask_terminal_deletions", &mask_terminal_deletions, py::call_guard<py::gil_scoped_release>());

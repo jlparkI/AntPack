@@ -40,6 +40,7 @@ def main():
             sources=[
                 "antpack/ext/ant_ext.cpp",
                 "antpack/ext/ig_aligner.cpp",
+                "antpack/ext/vj_match_counter.cpp",
                 "antpack/ext/utilities.cpp",
                 "antpack/ext/responsibility_calcs.cpp"
             ],
