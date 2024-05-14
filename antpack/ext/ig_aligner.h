@@ -1,5 +1,5 @@
-#ifndef ALIGNERS_HEADER_H
-#define ALIGNERS_HEADER_H
+#ifndef IG_ALIGNERS_HEADER_H
+#define IG_ALIGNERS_HEADER_H
 
 #include <pybind11/numpy.h>
 #include <vector>
@@ -86,9 +86,9 @@ namespace py = pybind11;
 
 
 
-class BasicAligner {
+class IGAligner {
     public:
-        BasicAligner(py::array_t<double> scoreArray,
+        IGAligner(py::array_t<double> scoreArray,
                 std::vector<std::vector<std::string>> consensus,
                 std::string chainName, std::string scheme,
                 double terminalTemplateGapPenalty,
@@ -120,7 +120,7 @@ class BasicAligner {
         std::vector<int> highlyConservedPositions;
         std::array<std::string, 6> errorCodeToMessage {{"",
                 "Sequence contains invalid characters",
-                "Fatal runtime error in BasicAligner. Unusual. Please report",
+                "Fatal runtime error in IGAligner. Unusual. Please report",
                 "> 72 insertions. Suggests a problem with this sequence",
                 "Alignment length != length of input sequence. Unusual. Please report.",
                 "Unexpected AA at conserved position."}};

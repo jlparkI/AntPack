@@ -4,9 +4,9 @@ necessary to fit the model (via EM) are in a separate repo.
 Fitting right now is strictly via EM although we may evaluate
 variational methods in future."""
 import numpy as np
-from .utilities.special_functions import logsumexp
-from .constants import catmix_constants as constants
-from ant_ext import getProbsCExt, getProbsCExt_masked, mask_terminal_deletions
+from ..utilities.special_functions import logsumexp
+from .scoring_constants import catmix_constants as constants
+from antpack_cpp_ext import getProbsCExt, getProbsCExt_masked, mask_terminal_deletions
 
 
 

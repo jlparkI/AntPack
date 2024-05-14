@@ -2,8 +2,8 @@
 a preset formula."""
 import copy
 import numpy as np
-from antpack import SequenceScoringTool
-from .constants.scoring_constants import allowed_imgt_pos as ahip
+from .sequence_scoring_tool import SequenceScoringTool
+from .scoring_constants import allowed_imgt_pos as ahip
 
 
 class HumanizationTool():
