@@ -57,8 +57,11 @@ developability issues.
 
 ### Citing this work
 
-If using AntPack in research intended for publication, please cite:
+If using AntPack in research intended for publication, please cite
+either the preprint:
 
-[Jonathan Parkinson and Wei Wang. 2024. For antibody sequence generative modeling,
-mixture models may be all you need. bioRxiv:
-https://doi.org/10.1101/2024.01.27.577555](https://www.biorxiv.org/content/10.1101/2024.01.27.577555v1)
+Jonathan Parkinson and Wei Wang. 2024. For antibody sequence generative modeling,
+mixture models may be all you need.
+[bioRxiv: https://doi.org/10.1101/2024.01.27.577555](https://www.biorxiv.org/content/10.1101/2024.01.27.577555v1)
+
+or the final paper in [Bioinformatics.](https://academic.oup.com/bioinformatics/article/40/5/btae278/7656770)

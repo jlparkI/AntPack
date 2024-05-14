@@ -18,7 +18,7 @@ match or outperform more "sophisticated" models, e.g.
 currently available antibody LLMs and random forest
 classifiers. For some benchmarking of simple mixture models
 vs a variety of other options described in the literature,
-see `Parkinson et al. 2024 <https://www.biorxiv.org/content/10.1101/2024.01.27.577555v3.abstract>_`
+see `Parkinson et al. 2024 <https://www.biorxiv.org/content/10.1101/2024.01.27.577555v3.abstract>`_
 
 The humanness scoring tool in AntPack doesn't have to be used
 in conjunction with AntPack numbering, and AntPack numbering
@@ -109,7 +109,7 @@ we average over the heavy and light chain scores.
    :width: 600
    :alt: AntPack light chain humanness score vs species of origin.
 
-See `Parkinson et al. 2024 <https://www.biorxiv.org/content/10.1101/2024.01.27.577555v3.abstract>_`
+See `Parkinson et al. 2024 <https://www.biorxiv.org/content/10.1101/2024.01.27.577555v3.abstract>`_
 to see what score distributions look like for specific sub-regions
 of heavy and light chains, or for more details on the distributions shown
 above.
