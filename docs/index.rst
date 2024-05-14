@@ -24,13 +24,14 @@ Antibody Numbering
 
    Numbering example <numbering_example>
 
+
 Assigning V and J genes
 =======================
 
 .. toctree::
   :maxdepth: 1
    
-   VJ gene assignment <vj_gene_assignment>
+   VJ gene assignment tutorial <vj_gene_tutorial>
 
    VJ gene assignment example <vj_gene_example>
 
