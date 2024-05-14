@@ -57,4 +57,4 @@ html_static_path = []
 # IMPORTANT: Some build systems such as ReadTheDocs will not be
 # able to install the C extensions on which the package depends.
 # These should therefore be "mocked".
-autodoc_mock_imports = ["ant_ext"]
+autodoc_mock_imports = ["antpack_cpp_ext"]
