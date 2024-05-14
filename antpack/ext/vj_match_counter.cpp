@@ -44,10 +44,11 @@ std::tuple<std::string, double> VJMatchCounter::vjMatch(std::string query_sequen
         nonzeroPositions = 0;
 
         for (std::string::size_type j=0; j < REQUIRED_SEQUENCE_LENGTH; j++){
+            if (this->geneSeqs[i][j] == '-')
+                continue;
+            nonzeroPositions += 1;
             if (this->geneSeqs[i][j] == query_sequence[j])
                 matchingPositions += 1;
-            if (this->geneSeqs[i][j] != '-')
-                nonzeroPositions += 1;
         }
         if (nonzeroPositions == 0)
             nonzeroPositions = 1;
@@ -72,7 +73,7 @@ std::string VJMatchCounter::findVJSequenceByName(std::string query_name){
 
     if (this->namesToPositions.find(query_name) != this->namesToPositions.end()){
         matchID = this->namesToPositions[query_name];
-        output = this->geneNames[matchID];
+        output = this->geneSeqs[matchID];
     }
     else{
         output = "";

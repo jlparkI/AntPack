@@ -28,6 +28,24 @@ class TestVJGeneTool(unittest.TestCase):
         self.assertTrue(results[1] is None)
 
 
+    def test_gene_retrieval(self):
+        """Make sure that we can retrieve genes and gene families
+        using the appropriate methods."""
+        vj_tool = VJGeneTool()
+        seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", species="human")
+        self.assertTrue(seq == "QVTLKESGP-VLVKPTETLTLTCTVSGFSLS--NARMGVSWIRQPPGKALEWLAHIFSN---DEKSYSTSLK-SRLTISKDTSKSQVVLTMTNMDPVDTATYYCARI---------------------")
+
+        family_seqs, family_names = vj_tool.get_vj_gene_family("IGHV1", species="human")
+        self.assertTrue(len(family_seqs) == len(family_names))
+        self.assertTrue(len(family_seqs) > 45)
+        self.assertTrue(len([f for f in family_names if not f.startswith("IGHV1")])==0)
+
+        seq = vj_tool.get_vj_gene_sequence("cow", species="human")
+        self.assertTrue(seq is None)
+        family_seqs, family_names = vj_tool.get_vj_gene_family("cow", species="human")
+        self.assertTrue(len(family_seqs) == 0)
+        self.assertTrue(len(family_names) == 0)
+
 
     def test_percent_ident_calc(self):
         """Double checks the percent identity calculation
@@ -62,13 +80,16 @@ class TestVJGeneTool(unittest.TestCase):
 
                 best_pid, matchnum = 0, 0
                 for i, template in enumerate(seq_dict[recep]["seqs"]):
-                    matches = 0
+                    matches, ntot = 0, 0
 
                     for qletter, tletter in zip(fmt_seq, template):
+                        if tletter == "-":
+                            continue
+                        ntot += 1
                         if qletter == tletter:
                             matches += 1
 
-                    true_pid = float(matches) / float(len(template.replace("-", "")))
+                    true_pid = float(matches) / float(ntot)
                     if true_pid > best_pid:
                         matchnum = i
                         best_pid = copy.deepcopy(true_pid)
@@ -77,6 +98,54 @@ class TestVJGeneTool(unittest.TestCase):
 
                 self.assertTrue(gtrue == gpred)
                 self.assertTrue(best_pid == id_pred)
+
+
+    def test_vj_assignment(self):
+        """Checks vj assignments against those done by other
+        tools to ensure that they are usually the same."""
+        vj_tool = VJGeneTool()
+
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        vhmatches, vklmatches, vhtests, vkltests = 0, 0, 0, 0
+        jmatches, ntests = 0, 0
+
+        with gzip.open("vj_gene_testing.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+
+            for line in fhandle:
+                seq, vgene, jgene = line.strip().split(",")
+                # Eliminate problematic sequences (e.g. missing cysteine).
+                _, pid, chain, err = vj_tool.default_aligner.analyze_seq(seq)
+                if pid < 0.8 or err != "":
+                    continue
+                pred_vgene, pred_jgene = vj_tool.assign_sequence(seq, species="human")
+
+                if pred_vgene == vgene:
+                    if chain == "H":
+                        vhmatches += 1
+                    else:
+                        vklmatches += 1
+                if pred_jgene == jgene:
+                    jmatches += 1
+                if chain == "H":
+                    vhtests += 1
+                else:
+                    vkltests += 1
+                ntests += 1
+
+        print(f"On {vhtests}, vhgene, {vhmatches} success.")
+        print(f"On {vkltests}, vklgene, {vklmatches} success.")
+        print(f"On {ntests}, jgene, {jmatches} success.")
+
+        self.assertTrue((vhmatches / vhtests) > 0.9)
+        self.assertTrue((vklmatches / vkltests) > 0.9)
+        self.assertTrue((jmatches / ntests) > 0.9)
+
+        os.chdir(current_dir)
+
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ reliable, and that tools which offer a probabilistic assigment
 import os
 import gzip
 from ..numbering_tools.single_chain_annotator import SingleChainAnnotator
-from ant_ext import validate_sequence, VJMatchCounter
+from antpack_cpp_ext import validate_sequence, VJMatchCounter
 
 
 
@@ -79,8 +79,7 @@ class VJGeneTool:
         return vj_genes
 
 
-    def get_vj_gene_sequence(self, vj_gene_name, species = "human",
-            chain_type = "H"):
+    def get_vj_gene_sequence(self, vj_gene_name, species = "human"):
         """Retrieves the amino acid sequence of a specified V or J
         gene, if it is in AntPack's current database. You can use
         assign_sequence or assign_numbered_sequence to get VJ gene
@@ -91,7 +90,6 @@ class VJGeneTool:
             vj_gene_name (str): A valid V or J gene name, as generated
                 by for example assign_sequence.
             species (str): One of 'human', 'mouse'.
-            chain_type (str): One of "H", "K", "L".
 
         Returns:
             sequence (str): The amino acid sequence of the V or J gene
@@ -109,6 +107,37 @@ class VJGeneTool:
         if match_result == "":
             return None
         return match_result
+
+
+
+    def get_vj_gene_family(self, vj_family, species = "human"):
+        """Retrieves the amino acid sequences and names of all V or
+        J genes in a specified family (e.g. IGHV1) that are
+        currently in AntPack's database.
+
+        Args:
+            vj_family (str): A valid V or J gene family (e.g. IGHV1).
+            species (str): One of 'human', 'mouse'.
+
+        Returns:
+            sequences (list): A list of the v or j gene sequences in
+                the specified family. The list is empty if the family
+                supplied was not found.
+            names (list): A list of the v or j gene names in this family.
+                The list is empty if the family was not found.
+        """
+        if species not in self.vj_gene_matchups:
+            return [], []
+        if vj_family[:4] not in self.vj_gene_matchups[species]:
+            return [], []
+
+        seq_list, name_list = self.vj_gene_matchups[species][vj_family[:4]].getSeqLists()
+        idx = [i for i, name in enumerate(name_list) if name.startswith(vj_family)]
+        if len(idx) == 0:
+            return [], []
+        sequences, names = [seq_list[i] for i in idx], [name_list[i] for i in idx]
+        return sequences, names
+
 
 
 

@@ -24,7 +24,7 @@ of GCC that prevents compilation with old versions of GCC; removed
 the scipy dependency; fixed the double-normalization issue.
 
 ### Version 0.2.0
-Added MultiChainAnnotator, LiabilitySearchTool and VDJAssignmentTool. This
+Added MultiChainAnnotator, LiabilitySearchTool and VJGeneTool. This
 considerably expands the capabilities of the library to cover most basic
 antibody amino acid sequence analysis tasks. Removed BioPython as a dependency
 (it is not necessary to include a fasta file generator in SingleChainAnnotator

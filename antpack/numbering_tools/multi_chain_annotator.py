@@ -3,7 +3,7 @@ heavy and light chains from an input sequence and returns them together with
 appropriate numbering (if requested)."""
 import copy
 from .annotator_base_class import AnnotatorBaseClass
-from ant_ext import validate_sequence
+from antpack_cpp_ext import validate_sequence
 
 
 

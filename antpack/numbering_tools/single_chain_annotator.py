@@ -3,7 +3,7 @@ to parse single chains (either heavy or light) or a sequence which may contain
 a heavy or light chain. If you want to extract the heavy and light chain variable
 regions from a sequence that probably contains both, use MultiChainAnnotator."""
 from .annotator_base_class import AnnotatorBaseClass
-from ant_ext import validate_sequence
+from antpack_cpp_ext import validate_sequence
 
 
 

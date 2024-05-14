@@ -3,7 +3,7 @@ shared by both."""
 import os
 import numpy as np
 from .constants import imgt_default_params, martin_default_params, kabat_default_params
-from ant_ext import IGAligner
+from antpack_cpp_ext import IGAligner
 
 
 

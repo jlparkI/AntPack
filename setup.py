@@ -36,7 +36,7 @@ def main():
     ]
 
     extensions=[
-        Pybind11Extension("ant_ext",
+        Pybind11Extension("antpack_cpp_ext",
             sources=[
                 "antpack/ext/ant_ext.cpp",
                 "antpack/ext/ig_aligner.cpp",

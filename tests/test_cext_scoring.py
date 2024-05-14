@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from antpack.utilities.special_functions import logsumexp
 from antpack import SequenceScoringTool
-from ant_ext import mask_terminal_deletions
+from antpack_cpp_ext import mask_terminal_deletions
 
 
 class TestCExtScoring(unittest.TestCase):

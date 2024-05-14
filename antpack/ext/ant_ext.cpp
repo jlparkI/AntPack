@@ -14,7 +14,7 @@
 namespace py = pybind11;
 using namespace std;
 
-PYBIND11_MODULE(ant_ext, m){
+PYBIND11_MODULE(antpack_cpp_ext, m){
     m.def("validate_sequence", &validate_sequence);
 
     py::class_<IGAligner>(m, "IGAligner")
