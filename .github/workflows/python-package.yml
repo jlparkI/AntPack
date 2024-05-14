@@ -4,8 +4,6 @@
 name: antpack
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
