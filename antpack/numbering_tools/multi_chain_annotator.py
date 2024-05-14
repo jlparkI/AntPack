@@ -29,7 +29,8 @@ class MultiChainAnnotator(AnnotatorBaseClass):
         self.chain_maps = {"H":"H", "K":"L", "L":"L"}
 
 
-    def analyze_seq(self, sequence, identity_threshold = 0.8):
+    def analyze_seq(self, sequence, identity_threshold = 0.8,
+            max_chains_to_extract = 2):
         """Extracts the variable regions from a sequence. Also
         returns numbering if requested.
 
@@ -38,6 +39,8 @@ class MultiChainAnnotator(AnnotatorBaseClass):
                 containing the usual 20 amino acids.
             identity_threshold (float): A minimum percent identity to assign a
                 segment to a chain.
+            max_chains_to_extract (int): Up to this number of chains can be
+                extracted.
 
         Returns:
             extracted_seqs (list): A list of tuples of (subset, percent_identity,
@@ -55,7 +58,7 @@ class MultiChainAnnotator(AnnotatorBaseClass):
         new_fragments = [sequence]
         k = 0
 
-        while len(new_fragments) > 0 and k < 25:
+        while len(new_fragments) > 0 and k < max_chains_to_extract:
             fragments = copy.deepcopy(new_fragments)
             new_fragments = []
 

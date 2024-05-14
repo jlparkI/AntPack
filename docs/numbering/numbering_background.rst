@@ -29,36 +29,19 @@ proprietary tools but we do not address these here.)
 
 All of these tools have significant drawbacks. AbNum is only available as
 a webserver, which means that sequences need to be uploaded, so that use
-is very slow. ANARCI is available locally but is very slow for three reasons.
-First, it aligns each input sequence against many different possible profiles,
-even when those possible profiles are not relevant. You may know, for example,
-that your input sequence is not a T-cell receptor. ANARCI will try to align it against
-a variety of T-cell receptor profiles anyway. Second, ANARCI loads all input
-sequences from a fasta file into memory before processing, then writes them
-back to disk to query HMMer, which is highly inefficient if there are many
-sequences. Third, ANARCI has to make a series of "tweaks" and corrections to
-the HMMer alignment. If the input is a single domain sequence (e.g. a heavy
-chain), ANARCI will align part of it using HMMer *a second time* to correct possible
-issues with the first alignment.
+is very slow. ANARCI is available locally but is very slow. AbRSA is faster
+than ANARCI or AbNum but is not open source and is still relatively slow.
 
-AbRSA is faster than ANARCI or AbNum but is not open source. The available
-AbRSA software has very few options available to users -- it will for
-example print each result to the terminal and there does not seem (as of
-this writing) to be any way to disable this, which slows down processing
-dramatically. It's also harder to build into a Python-based data processing
-pipeline, because it's a command-line tool with no Python wrapper.
-
-In initial testing on about 1600 chains from PDB (more extensive benchmarking
-available soon), AntPack is > 50x faster than ANARCI and > 25x faster
+In initial testing on about 1600 chains from PDB (see the links at the
+github repo for more), AntPack is > 50x faster than ANARCI and > 25x faster
 than AbRSA, taking 0.5 seconds to align the same number of sequences that
 take > 35 seconds on ANARCI. If you know what chain type you're dealing with
 (e.g. heavy or light), it's > 100x faster than ANARCI.
 
-AntPack is written in Python-wrapped C++ and uses a very similar approach
-to AbRSA with a custom global alignment. It uses position-specific scoring
-to ensure that known highly conserved positions (e.g. the two cysteines)
-are maintained and that gaps are inserted at desired places. The scoring
-is constructed in such a way that most of the manual "tweaking" performed
-by some other tools is unnecessary. It's also easy to build into a Python-based
-workflow: create an e.g. ``SingleChainAnnotator`` class and use it to
-annotate any sequences or fasta files you like.
+For antibody numbering, AntPack uses a custom global alignment. with
+position-specific scoring to ensure that known highly conserved positions
+(e.g. the two cysteines) are maintained and that gaps are inserted at desired
+places. The scoring is constructed in such a way that most of the manual
+"tweaking" performed by some other tools is unnecessary. It's also easy
+to build into a Python-based workflow: create an e.g. ``SingleChainAnnotator``
+class and use it to annotate any sequences or fasta files you like.

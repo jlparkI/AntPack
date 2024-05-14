@@ -39,11 +39,9 @@ may have been scored the way it was, use ``get_diagnostic_info``.
 If you want a mask for all positions EXCEPT a standard IMGT-defined
 framework or cdr region, use ``get_standard_mask``; the resulting
 mask can then be passed to ``score_seqs``. This will enable you
-to just get the score for a specific region of the antibody
-sequence.
+to just get the score for a specific region.
 
-There are some other useful functions you can use for various
-purposes that are also described below.
+See below for details.
 
 .. autoclass:: antpack.SequenceScoringTool
    :members: score_seqs, get_diagnostic_info, get_standard_mask, get_standard_positions, convert_sequence_to_array, retrieve_cluster

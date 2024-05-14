@@ -12,7 +12,7 @@ there are portions of the code that have to be compiled on install. Pip should
 ordinarily handle this for you automatically. If you encounter any issues please
 contact us using the About / Contact section on the main page.
 
-Required dependencies are ``pybind11``, ``numpy``, ``setuptools`` and ``wheel``. These should be
+Required dependencies are ``pybind11`` and ``numpy``. These should be
 automatically installed but if desired can be installed first. Older versions also require Biopython
 but starting with 0.2.0 this is no longer needed.
 

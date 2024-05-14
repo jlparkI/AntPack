@@ -1,8 +1,9 @@
 AntPack
 =====================================================
-Tools for data cleaning and statistical modeling / ML
-for antibodies. Note that the AntPack library is
-currently undergoing very active development --
+Tools for numbering, sequence analysis and statistical
+modeling / ML for antibodies, using amino acid sequences
+(not nucleotides). Note that the AntPack library is
+currently undergoing active development --
 additional tools coming soon!
 
 .. toctree::
@@ -22,6 +23,26 @@ Antibody Numbering
    Antibody numbering <numbering_tutorial>
 
    Numbering example <numbering_example>
+
+Assigning V and J genes
+=======================
+
+.. toctree::
+  :maxdepth: 1
+   
+   VJ gene assignment <vj_gene_assignment>
+
+   VJ gene assignment example <vj_gene_example>
+
+
+Finding developability liabilities
+===================================
+
+.. toctree::
+  :maxdepth: 1
+
+   Finding liabilities <liability_tutorial>
+
 
 Humannness scoring, generative modeling and humanization
 ==================================================================

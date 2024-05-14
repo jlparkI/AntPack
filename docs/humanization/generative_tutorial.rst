@@ -28,7 +28,7 @@ sequence are least human / most problematic. See the example
 notebooks on the main page to see how to do this.
 
 It is important to realize that sampling from a specified cluster
-can occasionally generate low-probability sequences, i.e. sequences
+can generate low-probability sequences, i.e. sequences
 that are unlikely to be human, in the same way that sampling from
 a normal distribution can occasionally generate outliers. It may
 be useful to score any sequences generated in this fashion using

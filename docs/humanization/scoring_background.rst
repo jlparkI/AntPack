@@ -9,8 +9,7 @@ sequence datasets. This simple model is a distribution across
 sequence space that consists of *M* clusters, so we can use it
 to score sequences, generate new sequences that contain a desired
 motif, or suggest modifications to an existing sequence that would
-make it more similar to one of the clusters in the model (and hence
-more human).
+make it more similar to one of the clusters in the model.
 
 Remarkably, when it comes to distinguishing
 human from nonhuman sequences, simple models in this case
@@ -70,8 +69,8 @@ What is a good humanness score? or, how human do I need to be?
 ---------------------------------------------------------------
 
 Unfortunately there's no fixed answer to this question, because
-immunogenicity is a complex phenomenon that's a function both
-of humanness and of other factors. There are some sequences of
+immunogenicity is a complex phenomenon that is not a simple
+function of humanness. There are some sequences of
 mouse origin that are not immunogenic in humans, and some rare
 sequences of human origin that form ADA in some patients. However,
 the more human a sequence, the lower the *risk* of immunogenicity in
