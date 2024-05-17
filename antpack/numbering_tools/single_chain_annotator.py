@@ -27,9 +27,7 @@ class SingleChainAnnotator(AnnotatorBaseClass):
                 "martin", "kabat".
             compress_init_gaps (bool): If True, rearrange gaps in the first 5
                 positions post-alignment so that gaps are at the beginning of
-                the sequence wherever possible. This is more consistent with
-                results from some other tools although it is debatable
-                if this is more correct. Defaults to False.
+                the sequence wherever possible. Defaults to False.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are
