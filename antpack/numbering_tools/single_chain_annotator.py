@@ -43,7 +43,7 @@ class SingleChainAnnotator(AnnotatorBaseClass):
         Args:
             sequences (list): A list of strings, each of which is a sequence
                 containing the usual 20 amino acids.
-            get_region_labels (bool): If True, get a list of labels: "fmwk1",
+            get_region_labels (bool): If True, get a list of labels: "-", "fmwk1",
                 "cdr1", "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4" to indicate
                 to which region each numbered amino acid belongs. The cdr definitions
                 that are used are the same as those for the numbering scheme (i.e.
@@ -86,7 +86,7 @@ class SingleChainAnnotator(AnnotatorBaseClass):
         Args:
             sequence (str): A string which is a sequence
                 containing the usual 20 amino acids.
-            get_region_labels (bool): If True, get a list of labels: "fmwk1",
+            get_region_labels (bool): If True, get a list of labels: "-", "fmwk1",
                 "cdr1", "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4" to indicate
                 to which region each numbered amino acid belongs. The cdr definitions
                 that are used are the same as those for the numbering scheme (i.e.
