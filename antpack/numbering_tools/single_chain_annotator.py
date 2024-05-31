@@ -69,7 +69,8 @@ class SingleChainAnnotator(AnnotatorBaseClass):
                 sequence_results.append(([], 0.0, "",
                     "Invalid sequence supplied -- nonstandard AAs"))
                 continue
-            results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
+            results = [scoring_tool.align(sequence, get_region_labels) for
+                    scoring_tool in self.scoring_tools]
             results = sorted(results, key=lambda x: x[1])
             if get_region_labels:
                 sequence_results.append(results[-1])
@@ -104,7 +105,8 @@ class SingleChainAnnotator(AnnotatorBaseClass):
         if not validate_sequence(sequence):
             return ([], 0.0, "", "Invalid sequence supplied -- nonstandard AAs")
 
-        results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
+        results = [scoring_tool.align(sequence, get_region_labels) for
+                scoring_tool in self.scoring_tools]
         results = sorted(results, key=lambda x: x[1])
         sequence_results = results[-1]
         if get_region_labels:

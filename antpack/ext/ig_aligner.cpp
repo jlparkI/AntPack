@@ -431,7 +431,7 @@ std::tuple<std::vector<std::string>, double, std::string,
 
         for (int k=0; k < 7; k++){
             for (int m=this->cdrBreakpoints[k]; m < this->cdrBreakpoints[k+1]; m++){
-                for (int p=0; p < initNumbering[m]; p++)
+                for (size_t p=0; p < initNumbering[m]; p++)
                     cdrLabeling.push_back(this->cdrRegionLabels[k]);
             }
         }

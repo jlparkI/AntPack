@@ -98,7 +98,7 @@ class MultiChainAnnotator(AnnotatorBaseClass):
         if len(sequence) < 25:
             return None
 
-        results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
+        results = [scoring_tool.align(sequence, False) for scoring_tool in self.scoring_tools]
         results = sorted(results, key=lambda x: x[1])
         results = results[-1]
         if results[1] < identity_threshold:
