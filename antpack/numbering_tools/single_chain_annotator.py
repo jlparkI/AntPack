@@ -37,16 +37,24 @@ class SingleChainAnnotator(AnnotatorBaseClass):
 
 
 
-    def analyze_seqs(self, sequences):
+    def analyze_seqs(self, sequences, get_region_labels = False):
         """Numbers and scores a list of input sequences.
 
         Args:
             sequences (list): A list of strings, each of which is a sequence
                 containing the usual 20 amino acids.
+            get_region_labels (bool): If True, get a list of labels: "fmwk1",
+                "cdr1", "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4" to indicate
+                to which region each numbered amino acid belongs. The cdr definitions
+                that are used are the same as those for the numbering scheme (i.e.
+                if using IMGT numbering IMGT CDR definitions are used). If False
+                this list is not generated.
 
         Returns:
             sequence_results (list): A list of tuples of (sequence numbering, percent_identity,
-                chain_name, error_message). If no error was encountered, the error
+                chain_name, error_message) if get_region_labels is False or
+                (sequence_numbering, percent_identity, chain_name, error_message, region_labels)
+                if get_region_labels is True. If no error was encountered, the error
                 message is "". An alignment with low percent identity (e.g. < 0.85)
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.
@@ -63,21 +71,32 @@ class SingleChainAnnotator(AnnotatorBaseClass):
                 continue
             results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
             results = sorted(results, key=lambda x: x[1])
-            sequence_results.append(results[-1])
+            if get_region_labels:
+                sequence_results.append(results[-1])
+            else:
+                sequence_results.append(results[-1][:-1])
 
         return sequence_results
 
 
-    def analyze_seq(self, sequence):
+    def analyze_seq(self, sequence, get_region_labels = False):
         """Numbers and scores a single input sequence.
 
         Args:
             sequence (str): A string which is a sequence
                 containing the usual 20 amino acids.
+            get_region_labels (bool): If True, get a list of labels: "fmwk1",
+                "cdr1", "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4" to indicate
+                to which region each numbered amino acid belongs. The cdr definitions
+                that are used are the same as those for the numbering scheme (i.e.
+                if using IMGT numbering IMGT CDR definitions are used). If False
+                this list is not generated.
 
         Returns:
             sequence_results (tuple): A tuple of (sequence numbering, percent_identity,
-                chain_name, error_message). If no error was encountered, the error
+                chain_name, error_message) if get_region_labels is False or
+                (sequence_numbering, percent_identity, chain_name, error_message, region_labels)
+                if get_region_labels is True. If no error was encountered, the error
                 message is "". An alignment with low percent identity (e.g. < 0.85)
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.
@@ -88,4 +107,6 @@ class SingleChainAnnotator(AnnotatorBaseClass):
         results = [scoring_tool.align(sequence) for scoring_tool in self.scoring_tools]
         results = sorted(results, key=lambda x: x[1])
         sequence_results = results[-1]
-        return sequence_results
+        if get_region_labels:
+            return sequence_results
+        return sequence_results[:-1]

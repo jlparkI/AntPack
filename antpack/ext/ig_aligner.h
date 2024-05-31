@@ -1,7 +1,7 @@
 #ifndef IG_ALIGNERS_HEADER_H
 #define IG_ALIGNERS_HEADER_H
 
-#include <pybind11/numpy.h>
+//#include <pybind11/numpy.h>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -85,6 +85,56 @@ namespace py = pybind11;
 #define HIGHLY_CONSERVED_KABAT_LIGHT_6 100
 
 
+// The start and end of CDRs in IMGT (ignoring insertions).
+// These are the IMGTs - 1. The breakpoints are set on the last
+// amino acid before the start of the CDR and the last amino acid
+// in the CDR.
+#define IMGT_CDR_BREAKPOINT_1 25
+#define IMGT_CDR_BREAKPOINT_2 37
+#define IMGT_CDR_BREAKPOINT_3 54
+#define IMGT_CDR_BREAKPOINT_4 64
+#define IMGT_CDR_BREAKPOINT_5 103
+#define IMGT_CDR_BREAKPOINT_6 116
+
+
+// The start and end of CDRs in Kabat (ignoring insertions).
+// These are the #s - 1. The breakpoints are set on the last amino
+// acid before the start of the CDR and the last amino acid in the
+// cdr.
+#define KABAT_HEAVY_CDR_BREAKPOINT_1 29
+#define KABAT_HEAVY_CDR_BREAKPOINT_2 34
+#define KABAT_HEAVY_CDR_BREAKPOINT_3 48
+#define KABAT_HEAVY_CDR_BREAKPOINT_4 64
+#define KABAT_HEAVY_CDR_BREAKPOINT_5 93
+#define KABAT_HEAVY_CDR_BREAKPOINT_6 101
+
+#define KABAT_LIGHT_CDR_BREAKPOINT_1 22
+#define KABAT_LIGHT_CDR_BREAKPOINT_2 33
+#define KABAT_LIGHT_CDR_BREAKPOINT_3 48
+#define KABAT_LIGHT_CDR_BREAKPOINT_4 55
+#define KABAT_LIGHT_CDR_BREAKPOINT_5 87
+#define KABAT_LIGHT_CDR_BREAKPOINT_6 96
+
+// The start and end of CDRs in Martin (ignoring insertions).
+// These are the #s - 1. The breakpoints are set on the last amino
+// acid before the start of the CDR and the last amino acid in the
+// cdr.
+#define MARTIN_HEAVY_CDR_BREAKPOINT_1 24
+#define MARTIN_HEAVY_CDR_BREAKPOINT_2 31
+#define MARTIN_HEAVY_CDR_BREAKPOINT_3 50
+#define MARTIN_HEAVY_CDR_BREAKPOINT_4 55
+#define MARTIN_HEAVY_CDR_BREAKPOINT_5 93
+#define MARTIN_HEAVY_CDR_BREAKPOINT_6 101
+
+#define MARTIN_LIGHT_CDR_BREAKPOINT_1 24
+#define MARTIN_LIGHT_CDR_BREAKPOINT_2 31
+#define MARTIN_LIGHT_CDR_BREAKPOINT_3 48
+#define MARTIN_LIGHT_CDR_BREAKPOINT_4 51
+#define MARTIN_LIGHT_CDR_BREAKPOINT_5 89
+#define MARTIN_LIGHT_CDR_BREAKPOINT_6 95
+
+
+
 
 class IGAligner {
     public:
@@ -96,7 +146,8 @@ class IGAligner {
                 bool compressInitialGaps);
 
         std::tuple<std::vector<std::string>, double,
-                std::string, std::string> align(std::string query_sequence);
+           std::string, std::string, std::vector<std::string>> align(std::string query_sequence,
+                        bool retrieve_cdr_labeling);
 
     protected:
         void fillNeedleScoringTable(double *needleScores, int *pathTrace,
@@ -124,6 +175,11 @@ class IGAligner {
                 "> 72 insertions. Suggests a problem with this sequence",
                 "Alignment length != length of input sequence. Unusual. Please report.",
                 "Unexpected AA at conserved position."}};
+
+        std::array<std::string, 7> cdrRegionLabels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
+                                "fmwk3", "cdr3", "fmwk4"}};
+
+        std::vector<int> cdrBreakpoints;
 
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here
