@@ -49,7 +49,7 @@ def main():
                 pybind11.get_include(),
             ],
             language="c++",
-            extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden"], # needed by pybind
+            extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden", "-O3"], # needed by pybind
             extra_link_args=cpp_extra_link_args,
         )
     ]

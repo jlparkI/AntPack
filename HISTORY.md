@@ -29,3 +29,9 @@ considerably expands the capabilities of the library to cover most basic
 antibody amino acid sequence analysis tasks. Removed BioPython as a dependency
 (it is not necessary to include a fasta file generator in SingleChainAnnotator
 since any users using Biopython can easily add this themselves.)
+
+### Version 0.2.5
+Added the sort position codes function to SingleChainAnnotator, which enables
+the user to sort a list of position codes (this is useful and convenient when
+merging many lists of numbers). Set SingleChainAnnotator up to return a list
+indicating whether each position is cdr or framework if the user so requests.
