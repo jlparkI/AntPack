@@ -16,6 +16,7 @@ using namespace std;
 
 PYBIND11_MODULE(antpack_cpp_ext, m){
     m.def("validate_sequence", &validate_sequence);
+    m.def("sort_position_codes_cpp", &sort_position_codes_cpp);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,

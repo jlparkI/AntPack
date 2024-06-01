@@ -1,6 +1,9 @@
 """Tests basic functionality for the SingleChainAnnotator class."""
 import os
+import re
 import gzip
+import copy
+import random
 import unittest
 from antpack import SingleChainAnnotator
 
@@ -28,6 +31,13 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(results[3].startswith("Invalid sequence"))
         results = aligner.analyze_seq("yAy")
         self.assertTrue(results[3].startswith("Invalid sequence"))
+
+        with self.assertRaises(RuntimeError):
+            sorted_positions = aligner.sort_position_codes(["-", "1"], scheme="imgt")
+        with self.assertRaises(RuntimeError):
+            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"], scheme="imgt")
+        with self.assertRaises(RuntimeError):
+            sorted_positions = aligner.sort_position_codes(["1", "2", "3"], scheme="alpha")
 
 
     def test_chain_recognition(self):
@@ -93,6 +103,133 @@ class TestSingleChainAnnotator(unittest.TestCase):
                                     numbering, seqs, scheme)
             print(f"{scheme}: Total comparisons: {total_comparisons}. Num matching: {num_correct}.")
             self.assertTrue(num_correct / total_comparisons > 0.97)
+
+
+    def test_region_labeling(self):
+        """Ensure that the region labels assigned by the region labeling
+        procedure correspond to our expectations, using a fairly
+        inefficient procedure to determine ground-truth labeling."""
+        regex = re.compile("^(?P<numbers>\d*)(?P<letters>\w*)$")
+
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        imgt_labels = [(str(i), "fmwk1") for i in range(1,27)] + \
+                [(str(i), "cdr1") for i in range(27,40)] + \
+                [(str(i), "fmwk2") for i in range(39,56)] + \
+                [(str(i), "cdr2") for i in range(56,66)] + \
+                [(str(i), "fmwk3") for i in range(66,105)] + \
+                [(str(i), "cdr3") for i in range(105,118)] + \
+                [(str(i), "fmwk4") for i in range(118,129)]
+        imgt_labels = {a:k for (a,k) in imgt_labels}
+
+        martin_heavy = [(str(i), "fmwk1") for i in range(1,26)] + \
+                [(str(i), "cdr1") for i in range(26,33)] + \
+                [(str(i), "fmwk2") for i in range(33,52)] + \
+                [(str(i), "cdr2") for i in range(52,57)] + \
+                [(str(i), "fmwk3") for i in range(57,95)] + \
+                [(str(i), "cdr3") for i in range(95,103)] + \
+                [(str(i), "fmwk4") for i in range(103,114)]
+        martin_heavy = {a:k for (a,k) in martin_heavy}
+        martin_light = [(str(i), "fmwk1") for i in range(1,26)] + \
+                [(str(i), "cdr1") for i in range(26,33)] + \
+                [(str(i), "fmwk2") for i in range(33,50)] + \
+                [(str(i), "cdr2") for i in range(50,53)] + \
+                [(str(i), "fmwk3") for i in range(53,91)] + \
+                [(str(i), "cdr3") for i in range(91,97)] + \
+                [(str(i), "fmwk4") for i in range(97,108)]
+        martin_light = {a:k for (a,k) in martin_light}
+
+        kabat_heavy = [(str(i), "fmwk1") for i in range(1,31)] + \
+                [(str(i), "cdr1") for i in range(31,36)] + \
+                [(str(i), "fmwk2") for i in range(36,50)] + \
+                [(str(i), "cdr2") for i in range(50,66)] + \
+                [(str(i), "fmwk3") for i in range(66,95)] + \
+                [(str(i), "cdr3") for i in range(95,103)] + \
+                [(str(i), "fmwk4") for i in range(103,114)]
+        kabat_heavy = {a:k for (a,k) in kabat_heavy}
+        kabat_light = [(str(i), "fmwk1") for i in range(1,24)] + \
+                [(str(i), "cdr1") for i in range(24,35)] + \
+                [(str(i), "fmwk2") for i in range(35,50)] + \
+                [(str(i), "cdr2") for i in range(50,57)] + \
+                [(str(i), "fmwk3") for i in range(57,89)] + \
+                [(str(i), "cdr3") for i in range(89,98)] + \
+                [(str(i), "fmwk4") for i in range(98,108)]
+        kabat_light = {a:k for (a,k) in kabat_light}
+
+
+
+        scheme_labels = {"imgt":{"H":imgt_labels, "K":imgt_labels,
+                "L":imgt_labels},
+            "martin":{"H":martin_heavy, "K":martin_light,
+                "L":martin_light},
+            "kabat":{"H":kabat_heavy, "K":kabat_light,
+                "L":kabat_light}
+            }
+
+
+        def get_gt_regions(numbering, label_map):
+            gt_reg = []
+            for n in numbering:
+                if n == "-":
+                    gt_reg.append("-")
+                else:
+                    gt_reg.append(label_map[regex.search(n).groups()[0]])
+            return gt_reg
+
+        os.chdir(current_dir)
+
+        for scheme in ["imgt", "martin", "kabat"]:
+            aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                    scheme=scheme)
+            num_err = 0
+
+            for seq in seqs:
+                numbering = aligner.analyze_seq(seq, get_region_labels=True)
+                gt_regions = get_gt_regions(numbering[0],
+                        scheme_labels[scheme][numbering[2]])
+                if gt_regions != numbering[-1]:
+                    num_err += 1
+            self.assertTrue(num_err == 0)
+
+
+    def test_position_code_sorting(self):
+        """Checks the position code sorting function to make
+        sure it is sorting positions correctly for different schemes."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        os.chdir(current_dir)
+        random.seed(123)
+
+        num_err = 0
+
+        for scheme in ["martin", "imgt", "kabat"]:
+            aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme=scheme)
+            for seq in seqs:
+                numbering = aligner.analyze_seq(seq)[0]
+                numbering = [n for n in numbering if n != "-"]
+                shuffled_numbering = copy.deepcopy(numbering)
+                random.shuffle(shuffled_numbering)
+                sorted_numbering = aligner.sort_position_codes(shuffled_numbering,
+                        scheme)
+                if numbering != sorted_numbering:
+                    num_err += 1
+
+        self.assertTrue(num_err == 0)
+
+
+
 
 
 def compare_results(results, comparator_numbering, seqs, scheme):

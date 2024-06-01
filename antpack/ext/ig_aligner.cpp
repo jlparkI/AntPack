@@ -110,6 +110,55 @@ IGAligner::IGAligner(
             consensusMap[i].insert(AA[0]);
         }
     }
+
+
+
+
+    // Set up a list of breakpoints that mark the dividing lines between
+    // framework and CDR regions according to the selected chain type and
+    // numbering scheme.
+    if (scheme == "imgt"){
+        this->cdrBreakpoints = {0, IMGT_CDR_BREAKPOINT_1, IMGT_CDR_BREAKPOINT_2,
+                        IMGT_CDR_BREAKPOINT_3, IMGT_CDR_BREAKPOINT_4,
+                        IMGT_CDR_BREAKPOINT_5, IMGT_CDR_BREAKPOINT_6,
+                        this->numPositions};
+    }
+    else if (scheme == "kabat"){
+        if (chainName == "L" || chainName == "K"){
+            this->cdrBreakpoints = {0, KABAT_LIGHT_CDR_BREAKPOINT_1,
+                        KABAT_LIGHT_CDR_BREAKPOINT_2, KABAT_LIGHT_CDR_BREAKPOINT_3,
+                        KABAT_LIGHT_CDR_BREAKPOINT_4, KABAT_LIGHT_CDR_BREAKPOINT_5,
+                        KABAT_LIGHT_CDR_BREAKPOINT_6,
+                        this->numPositions};
+        }
+        else if (chainName == "H"){
+            this->cdrBreakpoints = {0, KABAT_HEAVY_CDR_BREAKPOINT_1,
+                        KABAT_HEAVY_CDR_BREAKPOINT_2, KABAT_HEAVY_CDR_BREAKPOINT_3,
+                        KABAT_HEAVY_CDR_BREAKPOINT_4, KABAT_HEAVY_CDR_BREAKPOINT_5,
+                        KABAT_HEAVY_CDR_BREAKPOINT_6,
+                        this->numPositions};
+        }
+    }
+    else if (scheme == "martin"){
+        if (chainName == "L" || chainName == "K"){
+            this->cdrBreakpoints = {0, MARTIN_LIGHT_CDR_BREAKPOINT_1,
+                        MARTIN_LIGHT_CDR_BREAKPOINT_2, MARTIN_LIGHT_CDR_BREAKPOINT_3,
+                        MARTIN_LIGHT_CDR_BREAKPOINT_4, MARTIN_LIGHT_CDR_BREAKPOINT_5,
+                        MARTIN_LIGHT_CDR_BREAKPOINT_6,
+                        this->numPositions};
+        }
+        else if (chainName == "H"){
+            this->cdrBreakpoints = {0, MARTIN_HEAVY_CDR_BREAKPOINT_1,
+                        MARTIN_HEAVY_CDR_BREAKPOINT_2, MARTIN_HEAVY_CDR_BREAKPOINT_3,
+                        MARTIN_HEAVY_CDR_BREAKPOINT_4, MARTIN_HEAVY_CDR_BREAKPOINT_5,
+                        MARTIN_HEAVY_CDR_BREAKPOINT_6,
+                        this->numPositions};
+        }
+    }
+    else{
+        throw std::runtime_error(std::string("Currently IGAligner only recognizes "
+                    "schemes 'martin', 'kabat', 'imgt'."));
+    }
 }
 
 
@@ -118,9 +167,12 @@ IGAligner::IGAligner(
 
 
 std::tuple<std::vector<std::string>, double, std::string,
-        std::string> IGAligner::align(std::string query_sequence){
+    std::string, std::vector<std::string>> IGAligner::align(std::string query_sequence,
+                bool retrieve_cdr_labeling){
+
 
     std::vector<std::string> finalNumbering;
+    std::vector<std::string> cdrLabeling;
     double percentIdentity = 0;
     std::string errorMessage;
 
@@ -135,8 +187,9 @@ std::tuple<std::vector<std::string>, double, std::string,
         errorCode = invalidSequence;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                        std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
     }
 
     std::vector<int> positionKey;
@@ -158,8 +211,9 @@ std::tuple<std::vector<std::string>, double, std::string,
         errorCode = invalidSequence;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                        std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
     }
 
     // Fill in the scoring table.
@@ -167,9 +221,8 @@ std::tuple<std::vector<std::string>, double, std::string,
                     query_sequence.length(), rowSize, queryAsIdx);
 
     // Set all members of initNumbering array to 0.
-    for (int i=0; i < this->numPositions; i++){
+    for (int i=0; i < this->numPositions; i++)
         initNumbering[i] = 0;
-    }
 
     // Backtrace the path, and determine how many insertions there
     // were at each position where there is an insertion. Determine
@@ -213,8 +266,9 @@ std::tuple<std::vector<std::string>, double, std::string,
                 errorCode = fatalRuntimeError;
                 errorMessage = this->errorCodeToMessage[errorCode];
                 return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                        std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
                 break;
         }
     }
@@ -232,9 +286,11 @@ std::tuple<std::vector<std::string>, double, std::string,
     
     // Next, let's check to see if there are gaps in positions 1 - 5. The convention
     // in most numbering tools is to push those gaps to the beginning of the
-    // sequence. (I'm personally not sure I agree with this, but it is what both ANARCI
-    // and AbNum do.) At this point, if the sequence has gaps in the first 5 numbered positions,
-    // we shuffle them around so the gaps are at the beginning.
+    // sequence. I'm personally not sure I agree with this, but it is what both ANARCI
+    // and AbNum do. As a result, we only do this if the user so requests (hence only
+    // if compressInitialGaps is true). At this point, if the sequence has gaps in the
+    // first 5 numbered positions, we shuffle them around so the gaps are at the beginning --
+    // but again only if user so requested.
     if (this->compressInitialGaps && query_sequence.length() > 5){
         bool gapsFilled = false;
         while (!gapsFilled){
@@ -260,9 +316,9 @@ std::tuple<std::vector<std::string>, double, std::string,
     // what AAs are expected at each position.
     if (this->scheme == "imgt"){
         for (i=0; i < this->numPositions; i++){
-            if (initNumbering[i] == 0){
+            if (initNumbering[i] == 0)
                 continue;
-            }
+
             // Highly unlikely given the size of the alphabet we've used that
             // we will ever run into a problem where there are too many insertions,
             // but at least possible.
@@ -274,8 +330,9 @@ std::tuple<std::vector<std::string>, double, std::string,
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
                     return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                            std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
             }
             int ceil_cutpoint, floor_cutpoint;
 
@@ -329,9 +386,9 @@ std::tuple<std::vector<std::string>, double, std::string,
     // Build vector of numbers for other schemes (much simpler).
     else{
         for (i=0; i < this->numPositions; i++){
-            if (initNumbering[i] == 0){
+            if (initNumbering[i] == 0)
                 continue;
-            }
+            
             if (initNumbering[i] > this->alphabet.size()){
                     delete[] queryAsIdx;
                     delete[] needleScores;
@@ -340,8 +397,9 @@ std::tuple<std::vector<std::string>, double, std::string,
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
                     return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                            std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
             }
             finalNumbering.push_back(std::to_string(i+1));
             positionKey.push_back(i);
@@ -361,6 +419,26 @@ std::tuple<std::vector<std::string>, double, std::string,
         positionKey.push_back(-1);
     }
 
+    // If the user wants to retrieve cdr labeling, we now populate a second vector
+    // which indicates what framework or CDR region each position belongs to. Note
+    // that this uses whatever numbering scheme is used to do the numbering. In some
+    // cases this may be undesired (e.g. user may want to extract Kabat CDRs from
+    // an IMGT-numbered sequence), but in the most common use-case they will not
+    // need to do this.
+    if (retrieve_cdr_labeling){
+        for (int k=0; k < numNTermGaps; k++)
+            cdrLabeling.push_back("-");
+
+        for (int k=0; k < 7; k++){
+            for (int m=this->cdrBreakpoints[k]; m < this->cdrBreakpoints[k+1]; m++){
+                for (size_t p=0; p < initNumbering[m]; p++)
+                    cdrLabeling.push_back(this->cdrRegionLabels[k]);
+            }
+        }
+
+        for (int k=0; k < numCTermGaps; k++)
+            cdrLabeling.push_back("-");
+    }
 
     // positionKey is now the same length as finalNumbering and indicates at
     // each position whether that position maps to a standard 
@@ -374,12 +452,12 @@ std::tuple<std::vector<std::string>, double, std::string,
 
     for (size_t k=0; k < positionKey.size(); k++){
         int schemeStdPosition = positionKey[k];
-        if (schemeStdPosition < 0){
+        if (schemeStdPosition < 0)
             continue;
-        }
-        if (this->consensusMap[schemeStdPosition].empty()){
+        
+        if (this->consensusMap[schemeStdPosition].empty())
             continue;
-        }
+
         if (this->consensusMap[schemeStdPosition].find(query_sequence[k]) !=
                 this->consensusMap[schemeStdPosition].end()){
             percentIdentity += 1;
@@ -405,17 +483,32 @@ std::tuple<std::vector<std::string>, double, std::string,
         errorCode = alignmentWrongLength;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                            std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
     }
-    if (numRequiredPositionsFound != 6){
+    // If the user requested cdr labeling, check to make sure the cdr labeling is
+    // the same length as the query sequence (again, anything else would be
+    // very unusual -- have not yet encountered such an issue).
+    if (retrieve_cdr_labeling){
+        if (query_sequence.length() != cdrLabeling.size()){
+            errorCode = alignmentWrongLength;
+            errorMessage = this->errorCodeToMessage[errorCode];
+            return std::tuple<std::vector<std::string>, double, std::string,
+                            std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
+        }
+    }
+
+    if (numRequiredPositionsFound != 6)
         errorCode = unacceptableConservedPositions;
-    }
 
     errorMessage = this->errorCodeToMessage[errorCode];
     return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering, percentIdentity,
-                            this->chainName, errorMessage};
+                            std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
 }
 
 
@@ -436,8 +529,7 @@ void IGAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
 
     // Fill in the first row of the tables. We use a default score here
     // to ensure that insertions in the template only are highly tolerated
-    // at the beginning of the sequence, UNLESS we are at a highly conserved
-    // position.
+    // at the beginning of the sequence.
     needleScores[0] = 0;
     pathTrace[0] = 0;
     for (i=0; i < querySeqLen; i++){
@@ -502,9 +594,8 @@ void IGAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         if (std::binary_search(this->highlyConservedPositions.begin(),
                     this->highlyConservedPositions.end(), i))
             uscore = needleScores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
-        else{
+        else
             uscore = needleScores[upperNeighbor] + this->CterminalQueryGapPenalty;
-        }
 
         if (lscore > uscore && lscore > dscore){
             needleScores[gridPos] = lscore;

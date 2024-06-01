@@ -9,7 +9,7 @@
 #include <set>
 #include <array>
 #include "utilities.h"
-
+#include "numbering_constants.h"
 
 #include <iostream>
 
@@ -23,17 +23,6 @@ namespace py = pybind11;
 // clearly a fragment that probably can't be reliably numbered.
 #define MINIMUM_SEQUENCE_LENGTH 25
 
-
-// The IMGT numbering system will always have (at least) 128 positions.
-// Technically light chains also have 128, but due to another weird quirk
-// position 128 is never used for light chains.
-#define NUM_HEAVY_IMGT_POSITIONS 128
-#define NUM_LIGHT_IMGT_POSITIONS 127
-
-// Expected number of positions for Martin, Kabat.
-#define NUM_HEAVY_MARTIN_KABAT_POSITIONS 113
-#define NUM_LIGHT_MARTIN_KABAT_POSITIONS 107
-
 // We have 22 AAs -- the 20 standard aminos then a gap in query penalty
 // vs gap in template -- thus, 22 expected values.
 #define NUM_AAS 22
@@ -44,45 +33,9 @@ namespace py = pybind11;
 #define DIAGONAL_TRANSFER 1
 #define UP_TRANSFER 2
 
-// These are "magic number" positions in the IMGT framework at
-// which "forwards-backwards" insertion numbering must be applied.
-// This is a nuisance, but is out of our control -- the IMGT #ing
-// system has this quirk built-in... Note that because IMGT numbers
-// from 1, these positions are the actual IMGT position - 1.
-#define CDR1_INSERTION_PT 32
-#define CDR2_INSERTION_PT 60
-#define CDR3_INSERTION_PT 110
-
 // The columns of the score matrix that are accessed for gap penalties.
 #define QUERY_GAP_COLUMN 20
 #define TEMPLATE_GAP_COLUMN 21
-
-// Highly conserved positions in the IMGT scheme. These are the IMGT #s - 1.
-#define HIGHLY_CONSERVED_IMGT_1 22
-#define HIGHLY_CONSERVED_IMGT_2 40
-#define HIGHLY_CONSERVED_IMGT_3 103
-#define HIGHLY_CONSERVED_IMGT_4 117
-#define HIGHLY_CONSERVED_IMGT_5 118
-#define HIGHLY_CONSERVED_IMGT_6 120
-
-
-// Highly conserved positions in the Martin / Kabat schemes for heavy chains.
-// These are the #s - 1.
-#define HIGHLY_CONSERVED_KABAT_HEAVY_1 21
-#define HIGHLY_CONSERVED_KABAT_HEAVY_2 35
-#define HIGHLY_CONSERVED_KABAT_HEAVY_3 91
-#define HIGHLY_CONSERVED_KABAT_HEAVY_4 102
-#define HIGHLY_CONSERVED_KABAT_HEAVY_5 103
-#define HIGHLY_CONSERVED_KABAT_HEAVY_6 105
-
-// Highly conserved positions in the Martin / Kabat schemes for light chains.
-// These are the #s - 1.
-#define HIGHLY_CONSERVED_KABAT_LIGHT_1 22
-#define HIGHLY_CONSERVED_KABAT_LIGHT_2 34
-#define HIGHLY_CONSERVED_KABAT_LIGHT_3 87
-#define HIGHLY_CONSERVED_KABAT_LIGHT_4 97
-#define HIGHLY_CONSERVED_KABAT_LIGHT_5 98
-#define HIGHLY_CONSERVED_KABAT_LIGHT_6 100
 
 
 
@@ -96,7 +49,8 @@ class IGAligner {
                 bool compressInitialGaps);
 
         std::tuple<std::vector<std::string>, double,
-                std::string, std::string> align(std::string query_sequence);
+           std::string, std::string, std::vector<std::string>> align(std::string query_sequence,
+                        bool retrieve_cdr_labeling);
 
     protected:
         void fillNeedleScoringTable(double *needleScores, int *pathTrace,
@@ -124,6 +78,11 @@ class IGAligner {
                 "> 72 insertions. Suggests a problem with this sequence",
                 "Alignment length != length of input sequence. Unusual. Please report.",
                 "Unexpected AA at conserved position."}};
+
+        std::array<std::string, 7> cdrRegionLabels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
+                                "fmwk3", "cdr3", "fmwk4"}};
+
+        std::vector<int> cdrBreakpoints;
 
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here
