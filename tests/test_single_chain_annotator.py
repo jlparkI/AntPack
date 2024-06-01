@@ -33,9 +33,9 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(results[3].startswith("Invalid sequence"))
 
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["-", "1"])
+            sorted_positions = aligner.sort_position_codes(["-", "1"], scheme="imgt")
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"])
+            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"], scheme="imgt")
         with self.assertRaises(RuntimeError):
             sorted_positions = aligner.sort_position_codes(["1", "2", "3"], scheme="alpha")
 

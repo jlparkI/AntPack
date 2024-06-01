@@ -45,3 +45,9 @@ places. The scoring is constructed in such a way that most of the manual
 "tweaking" performed by some other tools is unnecessary. It's also easy
 to build into a Python-based workflow: create an e.g. ``SingleChainAnnotator``
 class and use it to annotate any sequences or fasta files you like.
+
+``SingleChainAnnotator`` also provides functionality for extracting
+specific CDRs and framework regions and for merging numbering for many
+sequences of different lengths (convenient if you are trying to convert
+your sequences to a fixed-length array, e.g. as input to a gradient boosted
+trees algorithm).

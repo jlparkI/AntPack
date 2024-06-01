@@ -115,7 +115,7 @@ class SingleChainAnnotator(AnnotatorBaseClass):
 
 
 
-    def sort_position_codes(self, position_code_list, scheme = "imgt"):
+    def sort_position_codes(self, position_code_list, scheme):
         """Convenience function that takes as input a list of position codes
         in any order and sorts them in a way that respects the properties of
         the numbering scheme. This is not as trivial as it appears, since
