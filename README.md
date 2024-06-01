@@ -6,15 +6,13 @@ active development -- more updates soon! For installation and how to
 use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
-## What's new in version 0.2.0
+## What's new in version 0.2.5
 
-Starting in version 0.2.0, there are only two dependencies, numpy and pybind. We've
-also simplified the SingleChainAnnotator API slightly (this does cause a possible
-breaking change). We've also introduced a tool for extracting the variable heavy
-and light regions from a sequence that may contain both, a tool for detecting
-common liabilities in antibody variable region sequences (N-glycosylation motifs,
-deamidation motifs, etc.), and a tool for identifying the human V or J gene *most*
-similar to an input sequence.
+Starting in version 0.2.0, there are only two dependencies, numpy and pybind.
+AntPack can now also indicate to you in its output which numbered positions
+are framework and CDR and can sort a list of position codes (which makes
+it easy to merge numbering for many different numbered sequences to generate
+a fixed length array or MSA file).
 
 
 ### Antibody numbering
@@ -22,7 +20,8 @@ similar to an input sequence.
 Numbering antibody sequences is an important precursor for many statistical inference /
 machine learning applications. AntPack is orders of magnitude faster for numbering
 antibody sequences than existing tools in the literature (e.g. ANARCI, AbRSA),
-while providing >= reliability.
+while providing >= reliability. AntPack also provides tools for merging lists of
+position codes and for easy extraction of specific CDRs and framework regions.
 
 
 ### V / J genes
