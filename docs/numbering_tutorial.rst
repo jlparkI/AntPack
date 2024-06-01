@@ -47,7 +47,9 @@ array, e.g.:::
 
 and then use this when writing sequences to file or e.g. one-hot encoding them in
 an array. For an example of how to do this, see the numbering example on the
-main page.
+main page. It's important to note that "-" is *not* a valid position code,
+so you have to remove "-" if it's in your list of position codes before
+passing it to this function.
 
 
 Numbering sequences that contain both heavy and light chain variable regions
