@@ -2,6 +2,8 @@
 import os
 import re
 import gzip
+import copy
+import random
 import unittest
 from antpack import SingleChainAnnotator
 
@@ -29,6 +31,13 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(results[3].startswith("Invalid sequence"))
         results = aligner.analyze_seq("yAy")
         self.assertTrue(results[3].startswith("Invalid sequence"))
+
+        with self.assertRaises(RuntimeError):
+            sorted_positions = aligner.sort_position_codes(["-", "1"])
+        with self.assertRaises(RuntimeError):
+            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"])
+        with self.assertRaises(RuntimeError):
+            sorted_positions = aligner.sort_position_codes(["1", "2", "3"], scheme="alpha")
 
 
     def test_chain_recognition(self):
@@ -187,6 +196,37 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 if gt_regions != numbering[-1]:
                     num_err += 1
             self.assertTrue(num_err == 0)
+
+
+    def test_position_code_sorting(self):
+        """Checks the position code sorting function to make
+        sure it is sorting positions correctly for different schemes."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        os.chdir(current_dir)
+        random.seed(123)
+
+        num_err = 0
+
+        for scheme in ["martin", "imgt", "kabat"]:
+            aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme=scheme)
+            for seq in seqs:
+                numbering = aligner.analyze_seq(seq)[0]
+                numbering = [n for n in numbering if n != "-"]
+                shuffled_numbering = copy.deepcopy(numbering)
+                random.shuffle(shuffled_numbering)
+                sorted_numbering = aligner.sort_position_codes(shuffled_numbering,
+                        scheme)
+                if numbering != sorted_numbering:
+                    num_err += 1
+
+        self.assertTrue(num_err == 0)
 
 
 
