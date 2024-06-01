@@ -3,7 +3,7 @@ to parse single chains (either heavy or light) or a sequence which may contain
 a heavy or light chain. If you want to extract the heavy and light chain variable
 regions from a sequence that probably contains both, use MultiChainAnnotator."""
 from .annotator_base_class import AnnotatorBaseClass
-from antpack_cpp_ext import validate_sequence
+from antpack_cpp_ext import validate_sequence, sort_position_codes_cpp
 
 
 
@@ -112,3 +112,35 @@ class SingleChainAnnotator(AnnotatorBaseClass):
         if get_region_labels:
             return sequence_results
         return sequence_results[:-1]
+
+
+
+    def sort_position_codes(self, position_code_list, scheme = "imgt"):
+        """Convenience function that takes as input a list of position codes
+        in any order and sorts them in a way that respects the properties of
+        the numbering scheme. This is not as trivial as it appears, since
+        in the IMGT scheme for example '111', '111A', '112B', '112A', '112" is
+        correct ordering (but '86A', '87B', '87A' would not be). This is useful
+        if you have a list of all of the unique position codes observed in a large
+        dataset and would like to sort it so you can then encode all of these
+        sequences as fixed-length arrays.
+
+        Args:
+            position_code_list (list): A list of strings. Each must be a valid position
+                code for the scheme in question.
+            scheme (str): Must be a currently supported scheme.
+
+        Returns:
+            sorted_code_list (list): A list of sorted position codes.
+
+        Raises:
+            RuntimeError: A runtime error is raised if invalid codes are supplied.
+        """
+        if scheme not in ("imgt", "martin", "kabat"):
+            raise RuntimeError("An invalid scheme was supplied.")
+
+        sorted_codes, is_valid = sort_position_codes_cpp(position_code_list, scheme)
+        if not is_valid:
+            raise RuntimeError("One or more of the position codes supplied was rejected as "
+                    "invalid by the sorter.")
+        return sorted_codes
