@@ -160,6 +160,10 @@ class VJGeneTool:
         Returns:
             v_gene (str): The closest V-gene name, as measured by sequence identity.
             j_gene (str): The closest J-gene name, as measured by sequence identity.
+            v_pident (float): The number of positions at which the numbered sequence matches
+                the v-gene divided by the total number of non-blank positions in the v-gene.
+            j_pident (float): The number of positions at which the numbered sequence matches
+                the j-gene divided by the total number of non-blank positions in the j-gene.
 
         Raises:
             RuntimeError: A RuntimeError is raised if a sequence containing invalid amino
@@ -173,9 +177,9 @@ class VJGeneTool:
         v_matcher = self.vj_gene_matchups[species][f"IG{chain}V"]
         j_matcher = self.vj_gene_matchups[species][f"IG{chain}J"]
 
-        v_gene, _ = v_matcher.vjMatch(fmt_seq)
-        j_gene, _ = j_matcher.vjMatch(fmt_seq)
-        return v_gene, j_gene
+        v_gene, v_pident = v_matcher.vjMatch(fmt_seq)
+        j_gene, j_pident = j_matcher.vjMatch(fmt_seq)
+        return v_gene, j_gene, v_pident, j_pident
 
 
     def assign_sequence(self, sequence, species = "human"):
@@ -194,6 +198,12 @@ class VJGeneTool:
                 If there is an error in alignment None is returned.
             j_gene (str): The closest J-gene name, as measured by sequence identity.
                 If there is an error in alignment None is returned.
+            v_pident (float): The number of positions at which the numbered sequence matches
+                the v-gene divided by the total number of non-blank positions in the v-gene.
+                If there is an error in alignment None is returned.
+            j_pident (float): The number of positions at which the numbered sequence matches
+                the j-gene divided by the total number of non-blank positions in the j-gene.
+                If there is an error in alignment None is returned.
 
         Raises:
             RuntimeError: A RuntimeError is raised if a sequence containing invalid amino
@@ -202,16 +212,16 @@ class VJGeneTool:
         """
         numbering, p_ident, chain, err = self.default_aligner.analyze_seq(sequence)
         if p_ident < 0.8 or err != "":
-            return None, None
+            return None, None, None, None
 
         fmt_seq = self._prep_sequence(sequence, numbering)
 
         v_matcher = self.vj_gene_matchups[species][f"IG{chain}V"]
         j_matcher = self.vj_gene_matchups[species][f"IG{chain}J"]
 
-        v_gene, _ = v_matcher.vjMatch(fmt_seq)
-        j_gene, _ = j_matcher.vjMatch(fmt_seq)
-        return v_gene, j_gene
+        v_gene, v_pident = v_matcher.vjMatch(fmt_seq)
+        j_gene, j_pident = j_matcher.vjMatch(fmt_seq)
+        return v_gene, j_gene, v_pident, j_pident
 
 
     def _prep_sequence(self, sequence, numbering):

@@ -35,3 +35,7 @@ Added the sort position codes function to SingleChainAnnotator, which enables
 the user to sort a list of position codes (this is useful and convenient when
 merging many lists of numbers). Set SingleChainAnnotator up to return a list
 indicating whether each position is cdr or framework if the user so requests.
+
+### Version 0.2.6
+Updated the VJ gene tool to return BOTH the assigned V and J genes and the
+percent identity.

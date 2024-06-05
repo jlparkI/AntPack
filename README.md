@@ -6,13 +6,15 @@ active development -- more updates soon! For installation and how to
 use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
-## What's new in version 0.2.5
+## What's new in version 0.2.6
 
 Starting in version 0.2.0, there are only two dependencies, numpy and pybind.
 AntPack can now also indicate to you in its output which numbered positions
 are framework and CDR and can sort a list of position codes (which makes
 it easy to merge numbering for many different numbered sequences to generate
-a fixed length array or MSA file).
+a fixed length array or MSA file). Also there are some minor updates to the
+VJ gene tool; previously it just returned the V and J gene assignments, now
+it returns the percent identity to the assigned V and J genes as well.
 
 
 ### Antibody numbering
