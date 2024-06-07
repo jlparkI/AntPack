@@ -1,9 +1,8 @@
 # AntPack
 
 AntPack is a toolkit for antibody numbering, data processing, statistical inference and
-machine learning for antibody sequences. It is currently in
-active development -- more updates soon! For installation and how to
-use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
+machine learning for antibody sequences. For usage,
+see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
 ## Installation
@@ -12,8 +11,10 @@ use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 pip install antpack
 ```
 
+## Capabilities
 
-### Antibody numbering
+
+#### Antibody numbering
 
 Numbering antibody sequences is an important precursor for many statistical inference /
 machine learning applications. AntPack is orders of magnitude faster for numbering
@@ -22,14 +23,14 @@ while providing >= reliability. AntPack also provides tools for merging lists of
 position codes and for easy extraction of specific CDRs and framework regions.
 
 
-### V / J genes
+#### V / J genes
 
 Identifying the most similar human V / J gene sequences is useful for a variety of
 purposes. AntPack provides tools for determining which human V and J gene sequences
 are most similar to the variable region chain provided as input.
 
 
-### Humanness and developability
+#### Humanness and developability
 
 Minimizing the risk of immunogenicity is important for selecting clinical
 candidates. In AntPack v0.1.0, we introduce a simple, fully interpretable
@@ -41,7 +42,7 @@ human, identify liabilities, and generate highly human sequences that contain
 selected motifs.
 
 
-### Finding developability liabilities
+#### Finding developability liabilities
 
 Some sequence motifs are known to be associated with developability issues -- certain
 motifs are known, for example, to be prone to N-glycosylation or deamidation. AntPack
@@ -52,7 +53,7 @@ Still, these kinds of alerts can be useful for making yourself aware of potentia
 developability issues.
 
 
-### Citing this work
+#### Citing this work
 
 If using AntPack in research intended for publication, please cite
 either the preprint:
