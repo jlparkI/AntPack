@@ -6,6 +6,13 @@ active development -- more updates soon! For installation and how to
 use, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
+## Installation
+
+```
+pip install antpack
+```
+
+
 ## What's new in version 0.2.6
 
 Starting in version 0.2.0, there are only two dependencies, numpy and pybind.
