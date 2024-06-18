@@ -39,3 +39,6 @@ indicating whether each position is cdr or framework if the user so requests.
 ### Version 0.2.6
 Updated the VJ gene tool to return BOTH the assigned V and J genes and the
 percent identity.
+
+### Version 0.2.7
+Added cibuildwheel support to build cross-platform automatically.
