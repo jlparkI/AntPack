@@ -5,8 +5,8 @@ from setuptools import setup, find_namespace_packages
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-if sys.version_info[:2] < (3, 7):
-    raise RuntimeError("Python version >= 3.7 required.")
+if sys.version_info[:2] < (3, 6):
+    raise RuntimeError("Python version >= 3.6 required.")
 
 
 
@@ -66,7 +66,7 @@ def main():
         install_requires=['pybind11>=2.4', "numpy"],
         include_package_data=True,
         ext_modules=extensions,
-        python_requires=">=3.7",
+        python_requires=">=3.6",
         package_data={"": ["*.h", "*.c", "*.cpp"]}
     )
 
