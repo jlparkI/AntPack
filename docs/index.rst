@@ -2,9 +2,7 @@ AntPack
 =====================================================
 Tools for numbering, sequence analysis and statistical
 modeling / ML for antibodies, using amino acid sequences
-(not nucleotides). Note that the AntPack library is
-currently undergoing active development --
-additional tools coming soon!
+(not nucleotides).
 
 .. toctree::
   :maxdepth: 1

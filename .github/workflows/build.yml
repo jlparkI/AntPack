@@ -1,10 +1,8 @@
 name: Build
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  release:
+    types: [ published ]
 
 
 jobs:
@@ -18,13 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build wheels
+      - name: Build and test wheels
         env:
-          CIBW_SKIP: pp*
+          CIBW_SKIP: "pp* *-manylinux_i686"
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: "pytest {project}/tests"
         uses: pypa/cibuildwheel@v2.19.1
+      
       - uses: actions/upload-artifact@v4
         env:
-          CIBW_SKIP: pp*
+          CIBW_SKIP: "pp* *-manylinux_i686"
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
