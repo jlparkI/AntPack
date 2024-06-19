@@ -16,7 +16,7 @@ jobs:
 
       - name: Build and test wheels
         env:
-          CIBW_SKIP: "pp* *-manylinux_i686"
+          CIBW_SKIP: "pp* *-manylinux_i686 *-musllinux_*"
         uses: pypa/cibuildwheel@v2.19.1
       
       - uses: actions/upload-artifact@v4
