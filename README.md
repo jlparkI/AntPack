@@ -12,8 +12,8 @@ pip install antpack
 ```
 
 Starting with version 0.2.7, AntPack is distributed as a wheel precompiled
-for some platforms and CPython versions, so installation should be very straightforward. If your
-platform or Python version is unsupported, pip will install the sdist and
+for some platforms and CPython versions, so installation should be very straightforward.
+If your platform or Python version is not available as a wheel, pip will install the sdist and
 try to use whichever C++ compiler you have installed to compile. This should
 still be quite straightforward, but if you encounter any issues, please
 report them on the github issues page.
