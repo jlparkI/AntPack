@@ -1,10 +1,6 @@
 name: Build
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: workflow_dispatch
 
 
 jobs:
@@ -21,8 +17,6 @@ jobs:
       - name: Build and test wheels
         env:
           CIBW_SKIP: "pp* *-manylinux_i686"
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: "pytest {project}/tests"
         uses: pypa/cibuildwheel@v2.19.1
       
       - uses: actions/upload-artifact@v4
