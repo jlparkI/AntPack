@@ -1,3 +1,23 @@
 [build-system]
 requires = ["setuptools", "wheel", "pybind11>=2.4", "numpy"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "antpack"
+version = "0.3"
+authors = [
+    {name = "Jonathan Parkinson", email = "jlparkinson1@gmail.com"},
+]
+description = "A Python package for processing, manipulating and making inferences about antibody sequence data"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["antibody", "antibodies", "antibody numbering", "antibody humanization",
+           "antibody humanness", "antibody analysis"]
+license = {file = "LICENSE"}
+dependencies = [
+    "numpy"
+]
+
+[project.urls]
+Homepage = "https://github.com/jlparkI/AntPack"
+Documentation = "https://antpack.readthedocs.io/en/latest/index.html"

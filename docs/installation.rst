@@ -11,8 +11,9 @@ for most platforms. In these cases pip will install it without any need to
 compile any code. In the event of any issues, antpack is still available as a
 source distribution, and pip can still install
 easily -- pip will automatically try to find a C++ compiler on your system and
-compile from source. In the unlikely event that you encounter any issues please
-contact us using the Issues page on Github (see About / Contact section on the main page).
+compile from source (C++17 or later only). In the unlikely event that you encounter
+any issues please contact us using the Issues page on Github (see About / Contact
+section on the main page).
 
 Required dependencies are ``numpy``. These should be
 automatically installed but if desired can be installed first.

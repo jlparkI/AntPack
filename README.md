@@ -5,18 +5,30 @@ machine learning for antibody sequences. For usage,
 see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
-## Installation
+## What's new in v0.3
+
+v0.3 provides some API redesign for greater ease of use and convenience. The
+MultiChainAnnotator has been replaced with the PairedChainAnnotator, which
+is designed specifically for paired light and heavy chains. Both this tool
+and SingleChainAnnotator now offer a `build_msa` command that makes it easy
+to combine many numbered sequences into an fixed-length array for further
+analysis / writing to file.
+
+Coming soon: we're planning to add a GUI front-end you can use to review
+sequences numbered by AntPack, humanize sequences and determine how different
+mutations will impact predicted sequence properties. For more on this project
+as it matures, [see this repo](https://github.com/jlparkI/RESP_proteins).
+
+
+# Installation
 
 ```
 pip install antpack
 ```
 
-Starting with version 0.2.7, AntPack is distributed as a wheel precompiled
-for some platforms and CPython versions, so installation should be very straightforward.
-If your platform or Python version is not available as a wheel, pip will install the sdist and
-try to use whichever C++ compiler you have installed to compile. This should
-still be quite straightforward, but if you encounter any issues, please
-report them on the github issues page.
+AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.7,
+so installation should be very straightforward. A source distribution is also available
+(C++17) in case there is any need to compile from source.
 
 ## Capabilities
 
@@ -26,8 +38,9 @@ report them on the github issues page.
 Numbering antibody sequences is an important precursor for many statistical inference /
 machine learning applications. AntPack is orders of magnitude faster for numbering
 antibody sequences than existing tools in the literature (e.g. ANARCI, AbRSA),
-while providing >= reliability. AntPack also provides tools for merging lists of
-position codes and for easy extraction of specific CDRs and framework regions.
+while providing >= reliability. AntPack also provides tools for merging a list
+of numbered sequences into an MSA and for easy extraction of specific CDRs and
+framework regions.
 
 
 #### V / J genes
