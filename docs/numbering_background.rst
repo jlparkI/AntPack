@@ -38,16 +38,8 @@ than AbRSA, taking 0.5 seconds to align the same number of sequences that
 take > 35 seconds on ANARCI. If you know what chain type you're dealing with
 (e.g. heavy or light), it's > 100x faster than ANARCI.
 
-For antibody numbering, AntPack uses a custom global alignment. with
-position-specific scoring to ensure that known highly conserved positions
-(e.g. the two cysteines) are maintained and that gaps are inserted at desired
-places. The scoring is constructed in such a way that most of the manual
-"tweaking" performed by some other tools is unnecessary. It's also easy
-to build into a Python-based workflow: create an e.g. ``SingleChainAnnotator``
-class and use it to annotate any sequences or fasta files you like.
-
-``SingleChainAnnotator`` also provides functionality for extracting
-specific CDRs and framework regions and for merging numbering for many
-sequences of different lengths (convenient if you are trying to convert
-your sequences to a fixed-length array, e.g. as input to a gradient boosted
-trees algorithm).
+``SingleChainAnnotator`` and ``PairedChainAnnotator`` contain functionality
+for numbering sequences that likely contain a single chain (heavy or light) or
+two paired chains (heavy and light). They also contain functionality for
+easily converting a list of numbered sequences into a fixed-length MSA
+which is convenient for many kinds of analysis.

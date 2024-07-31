@@ -1,0 +1,11 @@
+# H C-terminal consensus
+1,W
+2,G
+3,Q,P,R,K,A,T
+4,G
+5,T,V,A,I
+6,L,T,M,S,Q,P
+7,V,L,I
+8,T,I,V
+9,V
+//

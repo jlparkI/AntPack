@@ -7,6 +7,7 @@
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
 #include "ig_aligner.h"
+#include "cterm_finder.h"
 #include "vj_match_counter.h"
 #include "responsibility_calcs.h"
 #include "utilities.h"
@@ -23,7 +24,12 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
                 std::vector<std::vector<std::string>>,
                 std::string, std::string,
                 double, double, bool>())
-        .def("align", &IGAligner::align);
+        .def("align", &IGAligner::align)
+        .def("align_test_only", &IGAligner::align_test_only);
+
+    py::class_<CTermFinder>(m, "CTermFinder")
+        .def(py::init<py::array_t<double>>() )
+        .def("find_c_terminals", &CTermFinder::find_c_terminals);
 
     py::class_<VJMatchCounter>(m, "VJMatchCounter")
         .def(py::init<std::vector<std::string>,

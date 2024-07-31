@@ -2,6 +2,6 @@
 #Only change if building a new version.
 __version__ = "0.2.7"
 
-from .numbering_tools import SingleChainAnnotator, MultiChainAnnotator
+from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool, HumanizationTool, LiabilitySearchTool

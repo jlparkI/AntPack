@@ -4,31 +4,23 @@ so that they are aligned and numbered."""
 import os
 import numpy as np
 from Bio.Align import substitution_matrices
-from ..constants.allowed_inputs import allowed_aa_list
 from ..constants import imgt_default_params as imgt_dp
 from ..constants import kabat_default_params as kabat_dp
 from ..constants import martin_default_params as martin_dp
 from ..constants import all_scheme_default_params as shared_dp
 
 
-def build_consensus_alignment(output_path):
-    """Constructs consensus alignment schemes for all species and chains.
+def build_consensus_files():
+    fdir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(fdir, "..", "consensus_data")
+    cdir = os.getcwd()
 
-    output_path (str): Filename of a folder where the output is
-        saved.
-    """
-    current_dir = os.getcwd()
-    try:
-        os.chdir(output_path)
-        os.chdir(current_dir)
-    except Exception as exc:
-        raise ValueError("Invalid output file path supplied.") from exc
-
-    for scheme in ["kabat", "martin", "imgt"]:
-        for chain in ["H", "K", "L"]:
-            consensus_file = f"{scheme.upper()}_CONSENSUS_{chain}.txt"
-            build_scoring_files(output_path, current_dir, consensus_file,
-                        chain_type = chain, scheme = scheme)
+    for scheme_name in ["kabat", "martin", "imgt", "ctermfinder"]:
+        for chain_name in ["H", "K", "L"]:
+            confile = f"{scheme_name.upper()}_CONSENSUS_{chain_name}.txt"
+            build_scoring_files(data_path, cdir, confile,
+                        chain_type = chain_name,
+                        scheme = scheme_name)
 
 
 def build_scoring_files(target_dir, current_dir, consensus_file,
@@ -50,6 +42,9 @@ def build_scoring_files(target_dir, current_dir, consensus_file,
         save_consensus_array(consensus_list, chain_type, martin_dp, "martin")
     elif scheme == "imgt":
         save_consensus_array(consensus_list, chain_type, imgt_dp, "imgt")
+    elif scheme == "ctermfinder":
+        save_cterm_finder_array(consensus_list, chain_type)
+
     os.chdir(current_dir)
 
 
@@ -85,6 +80,11 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
     the gap penalties to encourage this. Meanwhile, other positions are
     HIGHLY conserved, so we tailor the penalties to encourage this as well.
     IMGT numbers from 1 so we have to adjust for this."""
+    allowed_amino_acids = {"A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"}
+    #The list of allowed amino acids. Must be in alphabetical order, very important.
+    allowed_aa_list = sorted(list(allowed_amino_acids))
+
     blosum = substitution_matrices.load("BLOSUM62")
     blosum_key = {letter:i for i, letter in enumerate(blosum.alphabet)}
 
@@ -140,3 +140,43 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
                     k != "-" else 0 for k in observed_aas])
 
     np.save(f"{scheme.upper()}_CONSENSUS_{chain_type}.npy", key_array)
+
+
+
+def save_cterm_finder_array(consensus_list, chain_type):
+    """Converts a list of sequences for a specific chain type
+    to an array with the score for each possible amino acid substitution at
+    each position SPECIFIC to the specialized c-terminal finder. Each
+    covers an array of shape """
+    allowed_amino_acids = {"A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"}
+    #The list of allowed amino acids. Must be in alphabetical order, very important.
+    allowed_aa_list = sorted(list(allowed_amino_acids))
+
+    blosum = substitution_matrices.load("BLOSUM62")
+    blosum_key = {letter:i for i, letter in enumerate(blosum.alphabet)}
+
+    conserved_positions = {0,1,3}
+
+    key_array = np.zeros((len(consensus_list), 20))
+
+    for i, observed_aas in enumerate(consensus_list):
+
+        #Fill in the scores for amino acid substitutions. If a conserved
+        #residue, use an arbitrary large bonus. Otherwise, use the best possible
+        #score given the amino acids observed in the alignments. If the only
+        #thing observed in the alignments is gaps, no penalty is applied.
+        for j, letter in enumerate(allowed_aa_list):
+            letter_blosum_idx = blosum_key[letter]
+            if i in conserved_positions:
+                if len(observed_aas) > 1:
+                    raise RuntimeError("There should be only one aa at a highly conserved "
+                            "position. There is very likely an error in a template file; "
+                            "please investigate.")
+                if letter == observed_aas[0]:
+                    key_array[i,j] = 65
+            else:
+                key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if
+                    k != "-" else 0 for k in observed_aas])
+
+    np.save(f"CTERMFINDER_CONSENSUS_{chain_type}.npy", key_array)

@@ -25,14 +25,14 @@ class LiabilitySearchTool:
     def __init__(self):
         """Class constructor."""
         self.search_filters = [
-                (re.compile("N[^P][ST]"), False, "N-glycosylation"),
-                (re.compile("N[GS]"), True, "Deamidation (elevated risk)"),
-                (re.compile("D[DGHST]"), True, "Isomerization (elevated risk)"),
-                (re.compile("N[AHNT]"), True, "Deamidation (moderate risk)"),
-                (re.compile("[ND]P"), True, "pH-dependent hydrolysis (moderate risk)"),
-                (re.compile("TS"), True, "pH-dependent hydrolysis risk"),
-                (re.compile("[MW]"), True, "Methionine / Tryptophan oxidation moderate risk"),
-                (re.compile("[STK]N"), True, "Deamidation (low risk)"),
+                (re.compile(r"N[^P][ST]"), False, "N-glycosylation"),
+                (re.compile(r"N[GS]"), True, "Deamidation (elevated risk)"),
+                (re.compile(r"D[DGHST]"), True, "Isomerization (elevated risk)"),
+                (re.compile(r"N[AHNT]"), True, "Deamidation (moderate risk)"),
+                (re.compile(r"[ND]P"), True, "pH-dependent hydrolysis (moderate risk)"),
+                (re.compile(r"TS"), True, "pH-dependent hydrolysis risk"),
+                (re.compile(r"[MW]"), True, "Methionine / Tryptophan oxidation moderate risk"),
+                (re.compile(r"[STK]N"), True, "Deamidation (low risk)"),
                 ]
 
         self.aligner = SingleChainAnnotator(chains = ["H", "K", "L"],

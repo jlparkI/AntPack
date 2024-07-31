@@ -16,13 +16,6 @@
 
 namespace py = pybind11;
 
-// The minimum number of amino acids in a sequence to try to align it.
-// Less than this and it will be immediately rejected. This is fairly
-// arbitrary, we didn't put much thought into the selection of 25 --
-// a typical chain is > 100 AAs, so anything MUCH less than that is
-// clearly a fragment that probably can't be reliably numbered.
-#define MINIMUM_SEQUENCE_LENGTH 25
-
 // We have 22 AAs -- the 20 standard aminos then a gap in query penalty
 // vs gap in template -- thus, 22 expected values.
 #define NUM_AAS 22
@@ -39,22 +32,38 @@ namespace py = pybind11;
 
 
 
+
+
 class IGAligner {
     public:
-        IGAligner(py::array_t<double> scoreArray,
+        IGAligner(py::array_t<double, py::array::c_style> scoreArray,
                 std::vector<std::vector<std::string>> consensus,
                 std::string chainName, std::string scheme,
                 double terminalTemplateGapPenalty,
                 double CterminalQueryGapPenalty,
                 bool compressInitialGaps);
+        std::tuple<std::vector<std::string>, double, std::string,
+                std::string, std::vector<std::string>> align_test_only(std::string query_sequence,
+                bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
+                py::array_t<uint8_t> pathTrace);
+        std::tuple<std::vector<std::string>, double, std::string,
+                std::string, std::vector<std::string>> align(std::string query_sequence,
+                bool retrieve_cdr_labeling);
+        // Allowed error codes. These will be mapped to strings which explain in more detail.
+        enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
+            tooManyInsertions  = 3, alignmentWrongLength = 4,
+            unacceptableConservedPositions = 5};
 
-        std::tuple<std::vector<std::string>, double,
-           std::string, std::string, std::vector<std::string>> align(std::string query_sequence,
-                        bool retrieve_cdr_labeling);
 
     protected:
-        void fillNeedleScoringTable(double *needleScores, int *pathTrace,
+        void fillNeedleScoringTable(double *needleScores, uint8_t *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx);
+        double core_align_test_only(std::string const &query_sequence,
+                bool retrieve_cdr_labeling, std::vector<std::string> &finalNumbering,
+                std::vector<std::string> &cdrLabeling,
+                allowedErrorCodes &errorCode,
+                py::array_t<double> scoreMatrix,
+                py::array_t<uint8_t> pathTrace);
 
         // Default gap penalties for gaps at the beginning and end of the sequence.
         // template is a weak penalty for placing gaps outside the numbering,
@@ -63,7 +72,7 @@ class IGAligner {
 
         int numPositions;
         int numRestrictedPositions;
-        py::array_t<double> scoreArray;
+        py::array_t<double, py::array::c_style> scoreArray;
         const std::string chainName;
         std::string scheme;
         double terminalTemplateGapPenalty;

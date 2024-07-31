@@ -5,15 +5,15 @@ from setuptools import setup, find_namespace_packages
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-if sys.version_info[:2] < (3, 6):
-    raise RuntimeError("Python version >= 3.6 required.")
+if sys.version_info[:2] < (3, 7):
+    raise RuntimeError("Python version >= 3.7 required.")
 
 
 
 def get_version(setup_fpath):
     """Retrieves the version number."""
 
-    os.chdir(os.path.join(setup_fpath, "antpack"))
+    os.chdir(os.path.join(setup_fpath, "src", "antpack"))
     with open("__init__.py", "r", encoding="utf-8") as fhandle:
         version_line = [l for l in fhandle.readlines() if
                     l.startswith("__version__")]
@@ -32,41 +32,47 @@ def main():
 
     cpp_extra_link_args = []
     cpp_extra_compile_args = [
-        "-std=c++11"
+        "-std=c++14"
     ]
 
     extensions=[
         Pybind11Extension("antpack_cpp_ext",
             sources=[
-                "antpack/ext/ant_ext.cpp",
-                "antpack/ext/ig_aligner.cpp",
-                "antpack/ext/vj_match_counter.cpp",
-                "antpack/ext/utilities.cpp",
-                "antpack/ext/responsibility_calcs.cpp"
+                "src/antpack/ext/ant_ext.cpp",
+                "src/antpack/ext/ig_aligner.cpp",
+                "src/antpack/ext/vj_match_counter.cpp",
+                "src/antpack/ext/utilities.cpp",
+                "src/antpack/ext/responsibility_calcs.cpp",
+                "src/antpack/ext/cterm_finder.cpp"
             ],
             include_dirs=[
-                "antpack/ext",
+                "src/antpack/ext",
                 pybind11.get_include(),
             ],
             language="c++",
-            extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden", "-O3"], # needed by pybind
+            extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden", "-O3"],
             extra_link_args=cpp_extra_link_args,
         )
     ]
 
     setup(
         name="antpack",
+        package_dir={"":"src"},
         version=get_version(home_dir),
         description="A Python package for processing, manipulating and making inferences about antibody sequence data",
         long_description=long_description,
         long_description_content_type='text/markdown',
-        packages=find_namespace_packages(),
+        #packages=find_namespace_packages(),
         cmdclass={"build_ext":build_ext},
         setup_requires=['pybind11>=2.4'],
         install_requires=['pybind11>=2.4', "numpy"],
         include_package_data=True,
         ext_modules=extensions,
-        python_requires=">=3.6",
+        python_requires=">=3.7",
+        project_urls = {
+            'Homepage': 'https://github.com/jlparkI/AntPack',
+            'Documentation': 'https://antpack.readthedocs.io/en/latest/index.html'
+            },
         package_data={"": ["*.h", "*.c", "*.cpp"]}
     )
 
