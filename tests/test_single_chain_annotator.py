@@ -33,7 +33,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(results[3].endswith("nonstandard AAs"))
 
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["-", "1"])
+            sorted_positions = aligner.sort_position_codes(["a", "1"])
         with self.assertRaises(RuntimeError):
             sorted_positions = aligner.sort_position_codes(["1", "2", "C3"])
 
@@ -128,7 +128,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         """Ensure that the region labels assigned by the region labeling
         procedure correspond to our expectations, using a fairly
         inefficient procedure to determine ground-truth labeling."""
-        regex = re.compile("^(?P<numbers>\d*)(?P<letters>\w*)$")
+        regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
