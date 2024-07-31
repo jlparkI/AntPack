@@ -1,0 +1,11 @@
+# cterminal finder L
+1,F
+2,G
+3,G,T,S
+4,G
+5,T
+6,K,T,R,Q
+7,V,L
+8,T
+9,V
+//

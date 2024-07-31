@@ -19,25 +19,23 @@ class TestSingleChainAnnotator(unittest.TestCase):
             aligner.analyze_seqs("YYY")
 
         results = aligner.analyze_seqs(["YaY"])
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
         results = aligner.analyze_seqs(["YBW"])
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
         results = aligner.analyze_seqs(["Y K"])
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
         results = aligner.analyze_seqs(["Y-K"])
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
 
         results = aligner.analyze_seq("Y-K")
-        self.assertTrue(results[3].startswith("Invalid sequence"))
+        self.assertTrue(results[3].endswith("nonstandard AAs"))
         results = aligner.analyze_seq("yAy")
-        self.assertTrue(results[3].startswith("Invalid sequence"))
+        self.assertTrue(results[3].endswith("nonstandard AAs"))
 
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["-", "1"], scheme="imgt")
+            sorted_positions = aligner.sort_position_codes(["a", "1"])
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"], scheme="imgt")
-        with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["1", "2", "3"], scheme="alpha")
+            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"])
 
 
     def test_chain_recognition(self):
@@ -75,7 +73,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
         by another tool. There will occasionally be small differences in
         cases where there are multiple possible acceptable alignments,
         but in general we expect the numbering to be the same the vast
-        majority of the time."""
+        majority of the time. Also check that the sequences can be correctly
+        formed into an MSA."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -92,24 +91,44 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         os.chdir(current_dir)
 
-        numberings = [martin_num, imgt_num, kabat_num]
-        schemes = ["martin", "imgt", "kabat"]
+        numberings = [martin_num, kabat_num, imgt_num]
+        schemes = ["martin", "kabat", "imgt"]
 
         aligners = [SingleChainAnnotator(chains=["H", "K", "L"],
                         scheme=k) for k in schemes]
 
         for aligner, scheme, numbering in zip(aligners, schemes, numberings):
-            total_comparisons, num_correct = compare_results(aligner.analyze_seqs(seqs),
+            aligner_results = aligner.analyze_seqs(seqs)
+            total_comparisons, num_correct = compare_results(aligner_results,
                                     numbering, seqs, scheme)
             print(f"{scheme}: Total comparisons: {total_comparisons}. Num matching: {num_correct}.")
             self.assertTrue(num_correct / total_comparisons > 0.97)
+
+        # The last one produced is IMGT. Use this to test MSA construction.
+        hnumbering, lnumbering, hseqs, lseqs = [], [], [], []
+
+        for seq, numbering in zip(seqs, aligner_results):
+            if numbering[2] == "H":
+                hnumbering.append(numbering)
+                hseqs.append(seq)
+            elif numbering[2] in ["K", "L"]:
+                lnumbering.append(numbering)
+                lseqs.append(seq)
+
+        hpositions, hmsa = aligner.build_msa(hseqs, hnumbering)
+        lpositions, lmsa = aligner.build_msa(lseqs, lnumbering)
+
+        for position_set, msa in [(hpositions, hmsa), (lpositions, lmsa)]:
+            for msa_seq in msa:
+                self.assertTrue(len(msa_seq) == len(position_set))
+
 
 
     def test_region_labeling(self):
         """Ensure that the region labels assigned by the region labeling
         procedure correspond to our expectations, using a fairly
         inefficient procedure to determine ground-truth labeling."""
-        regex = re.compile("^(?P<numbers>\d*)(?P<letters>\w*)$")
+        regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
@@ -221,8 +240,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 numbering = [n for n in numbering if n != "-"]
                 shuffled_numbering = copy.deepcopy(numbering)
                 random.shuffle(shuffled_numbering)
-                sorted_numbering = aligner.sort_position_codes(shuffled_numbering,
-                        scheme)
+                sorted_numbering = aligner.sort_position_codes(shuffled_numbering)
                 if numbering != sorted_numbering:
                     num_err += 1
 

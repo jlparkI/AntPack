@@ -11,6 +11,12 @@
 
 
 
+// The minimum number of amino acids in a sequence to try to align it.
+// Less than this and it will be immediately rejected. This is fairly
+// arbitrary, we didn't put much thought into the selection of 25 --
+// a typical chain is > 100 AAs, so anything MUCH less than that is
+// clearly a fragment that probably can't be reliably numbered.
+#define MINIMUM_SEQUENCE_LENGTH 25
 
 
 

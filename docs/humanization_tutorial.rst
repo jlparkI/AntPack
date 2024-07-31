@@ -2,10 +2,7 @@ Humanizing sequences with AntPack
 ===============================================
 
 AntPack can also suggest mutations to "humanize" a sequence or make
-it more human. Humanization always involves a challenging tradeoff between
-improving the humanness score as much as possible and preserving
-as much of the original sequence as possible (to reduce the risk
-of loss of affinity). You can manually humanize a sequence
+it more human. You can manually humanize a sequence
 by 1) scoring it using AntPack, 2) retrieving the closest clusters
 (see the "Generating new human sequences" page), 3) determining
 which regions of the sequence are least human, 4) mutating these
@@ -34,11 +31,11 @@ function:
 
 The "knob" you can turn here is ``s_thresh``. A value <= 1 means that
 AntPack will basically do a straight *in silico* CDR graft. This is
-not usually desirable. A value > 1 means that AntPack will 1) score
-the straight *in silico* CDR graft of your sequence, which will generally
-achieve a very high humanness score (the "optimal score"), then 2) revert
-as many positions as possible to the original sequence without causing
-the score to go over s_thresh * optimal score. Larger values of s_thresh
+straightforward but may lose affinity. A value > 1 means that AntPack will
+1) score the straight *in silico* CDR graft of your sequence, which will
+generally achieve a very high humanness score (the "optimal score"), then
+2) revert as many positions as possible to the original sequence without
+causing the score to go over s_thresh * optimal score. Larger values of s_thresh
 cause more of the original sequence to be preserved at the expense of
 a smaller improvement in humanness.
 

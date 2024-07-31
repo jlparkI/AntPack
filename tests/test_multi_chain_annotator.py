@@ -6,7 +6,7 @@ import os
 import random
 import gzip
 import unittest
-from antpack import MultiChainAnnotator, SingleChainAnnotator
+from antpack import PairedChainAnnotator, SingleChainAnnotator
 from antpack.scoring_tools.scoring_constants import scoring_constants as SCCONST
 
 
@@ -18,16 +18,23 @@ class TestMultiChainAnnotator(unittest.TestCase):
         """Check that sequences which have known issues are flagged
         as such, and that deliberately invalid inputs are recognized."""
         # Pass dummy sequences with errors.
-        aligner = MultiChainAnnotator()
+        aligner = PairedChainAnnotator()
 
         results = aligner.analyze_seq("YaY")
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+
         results = aligner.analyze_seq("YBW")
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+
         results = aligner.analyze_seq("Y K")
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+
         results = aligner.analyze_seq("Y-K")
         self.assertTrue(results[0][3].startswith("Invalid sequence"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence"))
 
 
 
@@ -48,7 +55,7 @@ class TestMultiChainAnnotator(unittest.TestCase):
         os.chdir(current_dir)
 
         sc_aligner = SingleChainAnnotator(scheme="imgt")
-        m_aligner = MultiChainAnnotator(scheme="imgt")
+        m_aligner = PairedChainAnnotator(scheme="imgt")
 
         alignments = [sc_aligner.analyze_seq(seq) for seq in seqs]
 
@@ -59,7 +66,7 @@ class TestMultiChainAnnotator(unittest.TestCase):
 
         random.seed(0)
 
-        for q, (hc, lc) in enumerate(zip(heavy_chains, light_chains)):
+        for hc, lc in zip(heavy_chains, light_chains):
             prefix = [SCCONST.aa_list[random.randint(0,19)]
                 for i in range(random.randint(0,25))]
             suffix = [SCCONST.aa_list[random.randint(0,19)]
@@ -79,7 +86,6 @@ class TestMultiChainAnnotator(unittest.TestCase):
             lc_align = sc_aligner.analyze_seq(merged_lc)
             if hc_align[1] < 0.8 or lc_align[1] < 0.8:
                 continue
-            mc_analysis = m_aligner.analyze_seq(merged_chain)
 
             for i, lcpos in enumerate(lc_align[0]):
                 if lcpos != "-":
@@ -105,14 +111,17 @@ class TestMultiChainAnnotator(unittest.TestCase):
             if not trimmed_hc_align[-1] == "128":
                 continue
 
-            mc_heavy = [k for k in mc_analysis if k[3] == "H"][0]
-            mc_light = [k for k in mc_analysis if k[3] != "H"][0]
+            mc_heavy, mc_light = m_aligner.analyze_seq(merged_chain)
+            _, mchn, hstart, hend = m_aligner.trim_alignment(merged_chain, mc_heavy)
+            _, mcln, lstart, lend = m_aligner.trim_alignment(merged_chain, mc_light)
 
-            self.assertTrue(len(mc_analysis) == 2)
-            self.assertTrue(mc_heavy[0] == trimmed_hc_seq)
-            self.assertTrue(mc_heavy[1] == trimmed_hc_align)
-            self.assertTrue(mc_light[0] == trimmed_lc_seq)
-            self.assertTrue(mc_light[1] == trimmed_lc_align)
+            self.assertTrue(mcln == trimmed_lc_align)
+            self.assertTrue(mchn == trimmed_hc_align)
+            self.assertTrue(merged_chain[lstart:lend] ==
+                    trimmed_lc_seq)
+            self.assertTrue(merged_chain[hstart:hend] ==
+                    trimmed_hc_seq)
+
 
 
 if __name__ == "__main__":

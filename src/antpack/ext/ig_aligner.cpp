@@ -3,7 +3,7 @@
 
 
 IGAligner::IGAligner(
-                 py::array_t<double> scoreArray,
+                 py::array_t<double, py::array::c_style> scoreArray,
                  std::vector<std::vector<std::string>> consensus,
                  std::string chainName,
                  std::string scheme,
@@ -166,22 +166,22 @@ IGAligner::IGAligner(
 
 
 
+
+
+
+// This core alignment function is wrapped by other alignment functions.
+// It modifies a reference to the finalNumbering, cdrLabeling and errorCode
+// inputs and returns the percent identity.
 std::tuple<std::vector<std::string>, double, std::string,
     std::string, std::vector<std::string>> IGAligner::align(std::string query_sequence,
                 bool retrieve_cdr_labeling){
 
-
     std::vector<std::string> finalNumbering;
     std::vector<std::string> cdrLabeling;
-    double percentIdentity = 0;
-    std::string errorMessage;
-
-    // A list of allowed error codes. These will be mapped to strings that explain
-    // in more detail by the IGAligner class.
-    enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
-            tooManyInsertions  = 3, alignmentWrongLength = 4,
-            unacceptableConservedPositions = 5};
     allowedErrorCodes errorCode;
+    std::string errorMessage;
+    double percentIdentity = 0;
+
 
     if (query_sequence.length() < MINIMUM_SEQUENCE_LENGTH){
         errorCode = invalidSequence;
@@ -197,17 +197,13 @@ std::tuple<std::vector<std::string>, double, std::string,
     int rowSize = query_sequence.length() + 1;
     int numElements = rowSize * (this->numPositions + 1);
 
-    double *needleScores = new double[ numElements ];
-    int *queryAsIdx = new int[ query_sequence.length() ];
-    int *pathTrace = new int[ numElements ];
-    int unsigned *initNumbering = new unsigned int[ this->numPositions ];
+    auto needleScores = std::make_unique<double[]>( numElements );
+    auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
+    auto pathTrace = std::make_unique<uint8_t[]>( numElements );
+    auto initNumbering = std::make_unique<unsigned int[]>( this->numPositions );
 
 
-    if (!convert_sequence_to_array(queryAsIdx, query_sequence)){
-        delete[] queryAsIdx;
-        delete[] needleScores;
-        delete[] pathTrace;
-        delete[] initNumbering;
+    if (!convert_sequence_to_array(queryAsIdx.get(), query_sequence)){
         errorCode = invalidSequence;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
@@ -217,8 +213,8 @@ std::tuple<std::vector<std::string>, double, std::string,
     }
 
     // Fill in the scoring table.
-    fillNeedleScoringTable(needleScores, pathTrace,
-                    query_sequence.length(), rowSize, queryAsIdx);
+    fillNeedleScoringTable(needleScores.get(), pathTrace.get(),
+                    query_sequence.length(), rowSize, queryAsIdx.get());
 
     // Set all members of initNumbering array to 0.
     for (int i=0; i < this->numPositions; i++)
@@ -237,15 +233,12 @@ std::tuple<std::vector<std::string>, double, std::string,
         int gridPos = i * rowSize + j;
         switch (pathTrace[gridPos]){
             case LEFT_TRANSFER:
-                if (i > 0 && i < this->numPositions){
+                if (i > 0 && i < this->numPositions)
                     initNumbering[i-1] += 1;
-                }
-                else if (i == 0){
+                else if (i == 0)
                     numNTermGaps += 1;
-                }
-                else{
+                else
                     numCTermGaps += 1;
-                }
                 j -= 1;
                 break;
             case UP_TRANSFER:
@@ -259,10 +252,6 @@ std::tuple<std::vector<std::string>, double, std::string,
             // This should never happen -- if it does, report it as a
             // SERIOUS error.
             default:
-                delete[] queryAsIdx;
-                delete[] needleScores;
-                delete[] pathTrace;
-                delete[] initNumbering;
                 errorCode = fatalRuntimeError;
                 errorMessage = this->errorCodeToMessage[errorCode];
                 return std::tuple<std::vector<std::string>, double, std::string,
@@ -323,14 +312,10 @@ std::tuple<std::vector<std::string>, double, std::string,
             // we will ever run into a problem where there are too many insertions,
             // but at least possible.
             if (initNumbering[i] > this->alphabet.size()){
-                    delete[] queryAsIdx;
-                    delete[] needleScores;
-                    delete[] pathTrace;
-                    delete[] initNumbering;
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
                     return std::tuple<std::vector<std::string>, double, std::string,
-                            std::string, std::vector<std::string>>{finalNumbering,
+                        std::string, std::vector<std::string>>{finalNumbering,
                             percentIdentity, this->chainName, errorMessage,
                             cdrLabeling};
             }
@@ -390,14 +375,10 @@ std::tuple<std::vector<std::string>, double, std::string,
                 continue;
             
             if (initNumbering[i] > this->alphabet.size()){
-                    delete[] queryAsIdx;
-                    delete[] needleScores;
-                    delete[] pathTrace;
-                    delete[] initNumbering;
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
                     return std::tuple<std::vector<std::string>, double, std::string,
-                            std::string, std::vector<std::string>>{finalNumbering,
+                        std::string, std::vector<std::string>>{finalNumbering,
                             percentIdentity, this->chainName, errorMessage,
                             cdrLabeling};
             }
@@ -470,11 +451,6 @@ std::tuple<std::vector<std::string>, double, std::string,
 
     percentIdentity /= this->numRestrictedPositions;
 
-    delete[] queryAsIdx;
-    delete[] needleScores;
-    delete[] pathTrace;
-    delete[] initNumbering;
-
     errorCode = noError;
     // Check to make sure query sequence and numbering are same length. If not,
     // this is a fatal error. (This should be extremely rare -- we have not
@@ -483,7 +459,7 @@ std::tuple<std::vector<std::string>, double, std::string,
         errorCode = alignmentWrongLength;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
-                            std::string, std::vector<std::string>>{finalNumbering,
+                        std::string, std::vector<std::string>>{finalNumbering,
                             percentIdentity, this->chainName, errorMessage,
                             cdrLabeling};
     }
@@ -495,7 +471,7 @@ std::tuple<std::vector<std::string>, double, std::string,
             errorCode = alignmentWrongLength;
             errorMessage = this->errorCodeToMessage[errorCode];
             return std::tuple<std::vector<std::string>, double, std::string,
-                            std::string, std::vector<std::string>>{finalNumbering,
+                        std::string, std::vector<std::string>>{finalNumbering,
                             percentIdentity, this->chainName, errorMessage,
                             cdrLabeling};
         }
@@ -515,13 +491,10 @@ std::tuple<std::vector<std::string>, double, std::string,
 
 
 
-
-
-
 // Fill in the scoring table created by caller, using the position-specific
 // scores for indels and substitutions, and add the appropriate
 // pathway traces.
-void IGAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
+void IGAligner::fillNeedleScoringTable(double *needleScores, uint8_t *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx){
     double lscore, uscore, dscore;
     int i, j, gridPos, diagNeighbor, upperNeighbor;
@@ -668,4 +641,329 @@ void IGAligner::fillNeedleScoringTable(double *needleScores, int *pathTrace,
         needleScores[gridPos] = dscore;
         pathTrace[gridPos] = DIAGONAL_TRANSFER;
     }
+}
+
+
+
+
+
+// Wraps IGAligner::core_align_test_only.
+std::tuple<std::vector<std::string>, double, std::string,
+    std::string, std::vector<std::string>> IGAligner::align_test_only(std::string query_sequence,
+            bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
+            py::array_t<uint8_t> pathTrace){
+
+    std::vector<std::string> finalNumbering;
+    std::vector<std::string> cdrLabeling;
+    allowedErrorCodes errorCode = noError;
+
+    double percentIdentity = this->core_align_test_only(query_sequence, retrieve_cdr_labeling,\
+                        finalNumbering, cdrLabeling, errorCode, scoreMatrix, pathTrace);
+
+    std::string errorMessage = this->errorCodeToMessage[errorCode];
+    return std::tuple<std::vector<std::string>, double, std::string,
+                            std::string, std::vector<std::string>>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage,
+                            cdrLabeling};
+}
+
+
+
+
+
+// This alignment function is a test-only version of core_align. It ensures that caller
+// can access the filled-out scoring matrix, which is useful for testing and diagnostics
+// but not really essential for a typical run.
+double IGAligner::core_align_test_only(std::string const &query_sequence,
+                bool retrieve_cdr_labeling, std::vector<std::string> &finalNumbering,
+                std::vector<std::string> &cdrLabeling,
+                allowedErrorCodes &errorCode,
+                py::array_t<double> scoreMatrix,
+                py::array_t<uint8_t> pathTraceMat){
+
+
+    double percentIdentity = 0;
+
+
+    if (query_sequence.length() < MINIMUM_SEQUENCE_LENGTH){
+        errorCode = invalidSequence;
+        return percentIdentity;
+    }
+
+    std::vector<int> positionKey;
+
+    int rowSize = query_sequence.length() + 1;
+
+    if (scoreMatrix.shape(1) != rowSize || scoreMatrix.shape(0) != this->numPositions + 1){
+        throw std::runtime_error(std::string("The scoreMatrix passed to a test function "
+                    "does not have the correct shape.")); 
+    }
+    if (pathTraceMat.shape(1) != rowSize || pathTraceMat.shape(0) != this->numPositions + 1){
+        throw std::runtime_error(std::string("The pathTrace passed to a test function "
+                    "does not have the correct shape.")); 
+    }
+
+    auto buffer_info = scoreMatrix.request();
+    double *needleScores = static_cast<double*>(buffer_info.ptr);
+    auto ptrace_buffer_info = pathTraceMat.request();
+    uint8_t *pathTrace = static_cast<uint8_t*>(ptrace_buffer_info.ptr);
+
+    auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
+    auto initNumbering = std::make_unique<unsigned int[]>( this->numPositions );
+
+
+    if (!convert_sequence_to_array(queryAsIdx.get(), query_sequence)){
+        errorCode = invalidSequence;
+        return percentIdentity;
+    }
+
+    // Fill in the scoring table.
+    fillNeedleScoringTable(needleScores, pathTrace,
+                    query_sequence.length(), rowSize, queryAsIdx.get());
+
+    // Set all members of initNumbering array to 0.
+    for (int i=0; i < this->numPositions; i++)
+        initNumbering[i] = 0;
+
+    // Backtrace the path, and determine how many insertions there
+    // were at each position where there is an insertion. Determine
+    // how many gaps exist at the beginning and end of the sequence
+    // as well (the "N-terminus" and "C-terminus").
+    int i = this->numPositions;
+    int j = query_sequence.length();
+    int numNTermGaps = 0;
+    int numCTermGaps = 0;
+
+    while (i > 0 || j > 0){
+        int gridPos = i * rowSize + j;
+        switch (pathTrace[gridPos]){
+            case LEFT_TRANSFER:
+                if (i > 0 && i < this->numPositions)
+                    initNumbering[i-1] += 1;
+                else if (i == 0)
+                    numNTermGaps += 1;
+                else
+                    numCTermGaps += 1;
+                j -= 1;
+                break;
+            case UP_TRANSFER:
+                i -= 1;
+                break;
+            case DIAGONAL_TRANSFER:
+                initNumbering[i-1] += 1;
+                i -= 1;
+                j -= 1;
+                break;
+            // This should never happen -- if it does, report it as a
+            // SERIOUS error.
+            default:
+                errorCode = fatalRuntimeError;
+                return percentIdentity;
+                break;
+        }
+    }
+
+    // Add gaps at the beginning of the numbering corresponding to the
+    // number of N-terminal insertions. This ensures the numbering has
+    // the same length as the input sequence.
+    // positionKey is set to -1 to indicate these positions should not
+    // be considered for percent identity calculation.
+    for (i=0; i < numNTermGaps; i++){
+        finalNumbering.push_back("-");
+        positionKey.push_back(-1);
+    }
+
+    
+    // Next, let's check to see if there are gaps in positions 1 - 5. The convention
+    // in most numbering tools is to push those gaps to the beginning of the
+    // sequence. I'm personally not sure I agree with this, but it is what both ANARCI
+    // and AbNum do. As a result, we only do this if the user so requests (hence only
+    // if compressInitialGaps is true). At this point, if the sequence has gaps in the
+    // first 5 numbered positions, we shuffle them around so the gaps are at the beginning --
+    // but again only if user so requested.
+    if (this->compressInitialGaps && query_sequence.length() > 5){
+        bool gapsFilled = false;
+        while (!gapsFilled){
+            gapsFilled = true;
+            for (int i=0; i < 5; i++){
+                if (initNumbering[i] ==1 && initNumbering[i+1] == 0){
+                        initNumbering[i+1] = initNumbering[i];
+                        initNumbering[i] = 0;
+                        gapsFilled = false;
+                }
+            }
+        }
+    }
+
+
+    // Build vector of IMGT numbers. Unfortunately the IMGT system adds insertion codes
+    // forwards then backwards where there is > 1 insertion at a given position,
+    // but ONLY if the insertion is at an expected position in the CDRs!
+    // Everywhere else, insertions are recognized by just placing in
+    // the usual order (?!!!?) This annoying quirk adds some complications.
+    // We also create the positionKey here which we can quickly use to determine
+    // percent identity by referencing this->consensusMap, which indicates
+    // what AAs are expected at each position.
+    if (this->scheme == "imgt"){
+        for (i=0; i < this->numPositions; i++){
+            if (initNumbering[i] == 0)
+                continue;
+
+            // Highly unlikely given the size of the alphabet we've used that
+            // we will ever run into a problem where there are too many insertions,
+            // but at least possible.
+            if (initNumbering[i] > this->alphabet.size()){
+                    errorCode = tooManyInsertions;
+                    return percentIdentity;
+            }
+            int ceil_cutpoint, floor_cutpoint;
+
+            // These are the positions for which we need to deploy forward-backward
+            // lettering (because the IMGT system is weird, but also the default...)
+            // positionKey is set to -1 for all insertions to indicate these should
+            // not be considered for calculating percent identity.
+            switch (i){
+                case CDR1_INSERTION_PT:
+                case CDR2_INSERTION_PT:
+                    ceil_cutpoint = initNumbering[i] / 2;
+                    floor_cutpoint = (initNumbering[i] - 1) / 2;
+                    for (j=0; j < floor_cutpoint; j++){
+                        finalNumbering.push_back(std::to_string(i) + this->alphabet[j]);
+                        positionKey.push_back(-1);
+                    }
+                    for (j=ceil_cutpoint; j > 0; j--){
+                        finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j-1]);
+                        positionKey.push_back(-1);
+                    }
+    
+                    finalNumbering.push_back(std::to_string(i+1));
+                    positionKey.push_back(i);
+                    break;
+
+                case CDR3_INSERTION_PT:
+                    finalNumbering.push_back(std::to_string(i+1));
+                    positionKey.push_back(i);
+                    ceil_cutpoint = initNumbering[i] / 2;
+                    floor_cutpoint = (initNumbering[i] - 1) / 2;
+                    for (j=0; j < floor_cutpoint; j++){
+                        finalNumbering.push_back(std::to_string(i+1) + this->alphabet[j]);
+                        positionKey.push_back(-1);
+                    }
+                    for (j=ceil_cutpoint; j > 0; j--){
+                        finalNumbering.push_back(std::to_string(i+2) + this->alphabet[j-1]);
+                        positionKey.push_back(-1);
+                    }
+                    break;
+                default:
+                    finalNumbering.push_back(std::to_string(i+1));
+                    positionKey.push_back(i);
+                    for (size_t k=1; k < initNumbering[i]; k++){
+                        finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
+                        positionKey.push_back(-1);
+                    }
+                    break;
+            }
+        }
+    }
+    // Build vector of numbers for other schemes (much simpler).
+    else{
+        for (i=0; i < this->numPositions; i++){
+            if (initNumbering[i] == 0)
+                continue;
+            
+            if (initNumbering[i] > this->alphabet.size()){
+                    errorCode = tooManyInsertions;
+                    return percentIdentity;
+            }
+            finalNumbering.push_back(std::to_string(i+1));
+            positionKey.push_back(i);
+            for (size_t k=1; k < initNumbering[i]; k++){
+                finalNumbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
+                positionKey.push_back(-1);
+            }
+        }
+    }
+
+
+    // Add gaps at the end of the numbering corresponding to the
+    // number of C-terminal insertions. This ensures the numbering has
+    // the same length as the input sequence.
+    for (int k=0; k < numCTermGaps; k++){
+        finalNumbering.push_back("-");
+        positionKey.push_back(-1);
+    }
+
+    // If the user wants to retrieve cdr labeling, we now populate a second vector
+    // which indicates what framework or CDR region each position belongs to. Note
+    // that this uses whatever numbering scheme is used to do the numbering. In some
+    // cases this may be undesired (e.g. user may want to extract Kabat CDRs from
+    // an IMGT-numbered sequence), but in the most common use-case they will not
+    // need to do this.
+    if (retrieve_cdr_labeling){
+        for (int k=0; k < numNTermGaps; k++)
+            cdrLabeling.push_back("-");
+
+        for (int k=0; k < 7; k++){
+            for (int m=this->cdrBreakpoints[k]; m < this->cdrBreakpoints[k+1]; m++){
+                for (size_t p=0; p < initNumbering[m]; p++)
+                    cdrLabeling.push_back(this->cdrRegionLabels[k]);
+            }
+        }
+
+        for (int k=0; k < numCTermGaps; k++)
+            cdrLabeling.push_back("-");
+    }
+
+    // positionKey is now the same length as finalNumbering and indicates at
+    // each position whether that position maps to a standard 
+    // position and if so what. Now use this to calculate percent identity,
+    // excluding those positions at which the numbering system tolerates any
+    // amino acid (i.e. CDRs). At the same time, we can check whether the
+    // expected amino acids are present at the highly conserved residues.
+    // The consensus map will have only one possible amino acid at those positions.
+
+    int numRequiredPositionsFound = 0;
+
+    for (size_t k=0; k < positionKey.size(); k++){
+        int schemeStdPosition = positionKey[k];
+        if (schemeStdPosition < 0)
+            continue;
+        
+        if (this->consensusMap[schemeStdPosition].empty())
+            continue;
+
+        if (this->consensusMap[schemeStdPosition].find(query_sequence[k]) !=
+                this->consensusMap[schemeStdPosition].end()){
+            percentIdentity += 1;
+            if(std::binary_search(this->highlyConservedPositions.begin(),
+                this->highlyConservedPositions.end(), schemeStdPosition)){
+                    numRequiredPositionsFound += 1;
+            }
+        }
+    }
+
+    percentIdentity /= this->numRestrictedPositions;
+
+    errorCode = noError;
+    // Check to make sure query sequence and numbering are same length. If not,
+    // this is a fatal error. (This should be extremely rare -- we have not
+    // encountered it so far).
+    if (query_sequence.length() != finalNumbering.size()){
+        errorCode = alignmentWrongLength;
+        return percentIdentity;
+    }
+    // If the user requested cdr labeling, check to make sure the cdr labeling is
+    // the same length as the query sequence (again, anything else would be
+    // very unusual -- have not yet encountered such an issue).
+    if (retrieve_cdr_labeling){
+        if (query_sequence.length() != cdrLabeling.size()){
+            errorCode = alignmentWrongLength;
+            return percentIdentity;
+        }
+    }
+
+    if (numRequiredPositionsFound != 6)
+        errorCode = unacceptableConservedPositions;
+
+    return percentIdentity;
 }
