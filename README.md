@@ -7,20 +7,26 @@ see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 ## What's new in v0.3
 
-v0.3 provides some API redesign for greater ease of use and convenience. The
-MultiChainAnnotator has been replaced with the PairedChainAnnotator, which
-is designed specifically for paired light and heavy chains. Both this tool
-and SingleChainAnnotator now offer a `build_msa` command that makes it easy
-to combine many numbered sequences into an fixed-length array for further
-analysis / writing to file.
+In v0.3.5, we've added the Aho numbering scheme. We've also improved the
+accuracy of VJ gene assignment -- previously AntPack used an algorithm
+very similar to ANARCI for VJ gene assignment which is suboptimal. Starting
+in v0.3.5 we are using an improved algorithm which offers greater accuracy.
+The API has been slightly redesigned, with VJ gene assignment merged with
+the numbering tools for greater ease of use. We've also added some multithreading
+to further speed up sequence numbering.
 
-Coming soon: we're planning to add a GUI front-end you can use to review
-sequences numbered by AntPack, humanize sequences and determine how different
-mutations will impact predicted sequence properties. For more on this project
-as it matures, [see this repo](https://github.com/jlparkI/RESP_proteins).
+Finally, starting in v0.3.5 we're providing a GUI -- currently in active
+development -- which makes it easy to load and view sequences if you only
+have a few. You can align / number sequences, see how and where they differ,
+view predicted properties of each sequence, and see which regions are least
+human / should be changed in order to humanize a given sequence. The GUI
+is handy for qualitative analysis of a few sequences, while
+the Python package is better for building your own tools and workflows.
+We're planning to add more functionality to this (e.g. sequence clustering)
+and to AntPack generally -- coming soon!
 
 
-# Installation
+# :hammer_and_wrench: Installation
 
 ```
 pip install antpack
@@ -29,6 +35,10 @@ pip install antpack
 AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.7,
 so installation should be very straightforward. A source distribution is also available
 (C++17) in case there is any need to compile from source.
+
+Starting with v0.3.5, AntPack can also be used / accessed as a GUI tool. If you wish
+to make use of this tool, you'll have to follow a separate installation procedure;
+for more on this, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 ## Capabilities
 
