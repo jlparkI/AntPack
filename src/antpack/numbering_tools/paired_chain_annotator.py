@@ -74,15 +74,12 @@ class PairedChainAnnotator(AnnotatorBaseClass):
 
         Returns:
             heavy_chain_result (tuple): A tuple of (numbering, percent_identity,
-                chain_name, error_message, start, end), where start and end mark the
-                points in the input sequence at which the heavy chain numbering starts
-                and ends. Notice the numbering is consequently not the same length as
-                the input sequnce (unlike SingleChainAnnotator). A low percent identity
-                or an error message may indicate a problem with the input sequence.
+                chain_name, error_message). Numbering is the same length as the
+                input sequence. A low percent identity or an error message may
+                indicate a problem with the input sequence.
             light_chain_result (tuple): A tuple of (numbering, percent_identity,
-                chain_name, error_message), where start and end mark the
-                points in the input sequence at which the light chain numbering starts
-                and ends. A low percent identity or an error message may indicate a problem
+                chain_name, error_message). Numbering is the same length as the input
+                sequence. A low percent identity or an error message may indicate a problem
                 with the input sequence.
 
         Raises:
