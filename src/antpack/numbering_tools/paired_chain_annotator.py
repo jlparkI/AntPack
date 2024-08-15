@@ -94,7 +94,7 @@ class PairedChainAnnotator(AnnotatorBaseClass):
 
         if err != "" or mscores.max() == 0:
             invalid_heavy_result = ([], 0.0, "", "Invalid sequence supplied -- "
-                    "nonstandard AAs", 0, 0)
+                    "nonstandard AAs")
             invalid_light_result = copy.copy(invalid_heavy_result)
             return invalid_heavy_result, invalid_light_result
 
@@ -116,7 +116,7 @@ class PairedChainAnnotator(AnnotatorBaseClass):
         if start_position < 85 or len(sequence) - start_position < 85:
             invalid_heavy_result = ([], 0.0, "", "Could not find c-terminal "
                 "of first variable chain -- sequence may not be a paired "
-                "chain sequence", 0, 0)
+                "chain sequence")
             invalid_light_result = copy.copy(invalid_heavy_result)
             return invalid_heavy_result, invalid_light_result
 

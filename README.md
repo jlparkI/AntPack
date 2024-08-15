@@ -26,7 +26,7 @@ We're planning to add more functionality to this (e.g. sequence clustering)
 and to AntPack generally -- coming soon!
 
 
-## :hammer_and_wrench: Installation
+## Installation
 
 ```
 pip install antpack

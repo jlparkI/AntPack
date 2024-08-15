@@ -1,7 +1,7 @@
 """Launches the application event loop; entry point."""
 from PySide6.QtWidgets import QApplication
-from main_window import MainWindow
 import qdarktheme
+from gui_src.main_window import MainWindow
 
 
 if __name__ == "__main__":
