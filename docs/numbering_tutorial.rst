@@ -33,11 +33,11 @@ as False (default) and may deprecate this option in future.
 
 .. autoclass:: antpack.SingleChainAnnotator
    :special-members: __init__
-   :members: analyze_seqs, analyze_seq, sort_position_codes, build_msa
+   :members: analyze_seqs, analyze_seq, sort_position_codes, build_msa, trim_alignment
 
 .. autoclass:: antpack.PairedChainAnnotator
    :special-members: __init__
-   :members: analyze_seq, sort_position_codes, build_msa
+   :members: analyze_seq, sort_position_codes, build_msa, trim_alignment
 
 Notice that these tools do not have a multithreading
 option. That's because the *best* way to do multithreading / multiprocessing
