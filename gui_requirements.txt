@@ -1,6 +1,0 @@
-antpack>=0.3.5
-pybind11==2.11.1
-numpy>=1.10.0
-matplotlib==3.6.3
-pyinstaller==6.10.0
-pyqtdarktheme==2.1.0
