@@ -38,15 +38,15 @@ def main():
     extensions=[
         Pybind11Extension("antpack_cpp_ext",
             sources=[
-                "src/antpack/ext/ant_ext.cpp",
-                "src/antpack/ext/ig_aligner.cpp",
-                "src/antpack/ext/vj_match_counter.cpp",
-                "src/antpack/ext/utilities.cpp",
-                "src/antpack/ext/responsibility_calcs.cpp",
-                "src/antpack/ext/cterm_finder.cpp"
+                "src/antpack/cpp_src/ant_ext.cpp",
+                "src/antpack/cpp_src/ig_aligner.cpp",
+                "src/antpack/cpp_src/vj_match_counter.cpp",
+                "src/antpack/cpp_src/utilities.cpp",
+                "src/antpack/cpp_src/responsibility_calcs.cpp",
+                "src/antpack/cpp_src/cterm_finder.cpp"
             ],
             include_dirs=[
-                "src/antpack/ext",
+                "src/antpack/cpp_src",
                 pybind11.get_include(),
             ],
             language="c++",
