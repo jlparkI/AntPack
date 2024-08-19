@@ -2,3 +2,6 @@
 	path = extern/pybind11
 	url = ../../pybind/pybind11
 	branch = stable
+[submodule "extern/cnpy"]
+	path = extern/cnpy
+	url = https://github.com/rogersce/cnpy
