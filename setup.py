@@ -43,7 +43,8 @@ def main():
                 "src/antpack/cpp_src/vj_match_counter.cpp",
                 "src/antpack/cpp_src/utilities.cpp",
                 "src/antpack/cpp_src/responsibility_calcs.cpp",
-                "src/antpack/cpp_src/cterm_finder.cpp"
+                "src/antpack/cpp_src/cterm_finder.cpp",
+                "extern/cnpy/cnpy.cpp"
             ],
             include_dirs=[
                 "src/antpack/cpp_src",

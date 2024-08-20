@@ -8,11 +8,20 @@
 #include <set>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include "numbering_constants.h"
 
 int validate_sequence(std::string query_sequence);
+
 int convert_sequence_to_array(int *queryAsIdx, std::string query_sequence);
+
 std::tuple<std::vector<std::string>, int> sort_position_codes_cpp(std::vector<std::string> position_codes,
         std::string scheme);
+
+int read_consensus_file(std::filesystem::path consFPath,
+        std::vector<std::vector<std::string>> &allowedAAs);
 
 #endif

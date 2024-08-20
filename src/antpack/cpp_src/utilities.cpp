@@ -7,10 +7,13 @@
 #define VALID_SEQUENCE 1
 #define INVALID_SEQUENCE 0
 
+// Codes for consensus file load.
+#define VALID_CONSENSUS_FILE 1
+#define INVALID_CONSENSUS_FILE 0
+
 
 //Checks a query sequence to ensure it contains only recognized
-//amino acids. This function is directly available to Python
-// callers through the wrapper.
+//amino acids.
 int validate_sequence(std::string query_sequence){
     bool validQuery = true;
 
@@ -266,4 +269,63 @@ std::tuple<std::vector<std::string>, int> sort_position_codes_cpp(std::vector<st
     }
 
     return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, VALID_SEQUENCE};
+}
+
+
+// Reads a specially formatted text file into a vector of vectors of strings.
+// Each entry in the outer vector is a vector of amino acids allowed at that
+// position. Note that an empty vector at a given position indicates any AA is
+// tolerated at that position. Therefore, if a '-' is found at a given postiion,
+// assume any AA is tolerated there.
+int read_consensus_file(std::filesystem::path consFPath,
+        std::vector<std::vector<std::string>> &consensusAAs){
+
+    if (!std::filesystem::exists(consFPath))
+        return INVALID_CONSENSUS_FILE;
+
+    std::ifstream file(consFPath.string());
+
+    int lastPosition = 0;
+    bool readNow = false;
+    std::string currentLine;
+
+    while (std::getline(file, currentLine))
+    {
+        if (currentLine.at(0) == '#'){
+            readNow = true;
+            continue;
+        }
+        if (currentLine.at(0) == '/')
+            break;
+        if (!readNow)
+            continue;
+
+        std::stringstream splitString("this_is_a_test_string");
+        std::string segment;
+        bool firstSegment = true, allAAsAllowed = false;
+        std::vector<std::string> allowedAAs;
+
+        while(std::getline(splitString, segment, ',')){
+            if (firstSegment){
+                int position = std::stoi(segment);
+                if (position - 1 != lastPosition)
+                    return INVALID_CONSENSUS_FILE;
+                firstSegment = false;
+            }
+            else{
+                if (segment == "-"){
+                    consensusAAs.push_back( {} );
+                    allAAsAllowed = true;
+                    break;
+                }
+                allowedAAs.push_back(segment);
+            }
+        }
+
+        if (!allAAsAllowed)
+            consensusAAs.push_back(allowedAAs);
+    }
+
+    return VALID_CONSENSUS_FILE;
+
 }

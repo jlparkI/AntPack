@@ -47,8 +47,8 @@ class IGAligner {
                 bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
                 py::array_t<uint8_t> pathTrace);
         std::tuple<std::vector<std::string>, double, std::string,
-                std::string, std::vector<std::string>> align(std::string query_sequence,
-                bool retrieve_cdr_labeling);
+                std::string> align(std::string query_sequence,
+                int *queryAsIdx);
         // Allowed error codes. These will be mapped to strings which explain in more detail.
         enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
             tooManyInsertions  = 3, alignmentWrongLength = 4,

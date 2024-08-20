@@ -170,14 +170,18 @@ IGAligner::IGAligner(
 
 
 // This core alignment function is wrapped by other alignment functions.
-// It modifies a reference to the finalNumbering, cdrLabeling and errorCode
-// inputs and returns the percent identity.
+// Previously this function was available to Python but is no longer made
+// available; indeed, it now expects queryAsidx, which is an int array that
+// must be of the same length as query_sequence -- caller must guarantee this.
+// Therefore this function is now accessed only by the SingleChainAnnotator /
+// PairedChainAnnotator classes (for an align function that can be accessed
+// directly by Python wrappers, see align_test_only).
 std::tuple<std::vector<std::string>, double, std::string,
-    std::string, std::vector<std::string>> IGAligner::align(std::string query_sequence,
-                bool retrieve_cdr_labeling){
+    std::string> IGAligner::align(std::string query_sequence,
+                int *queryAsIdx){
 
+    bool retrieve_cdr_labeling = false;
     std::vector<std::string> finalNumbering;
-    std::vector<std::string> cdrLabeling;
     allowedErrorCodes errorCode;
     std::string errorMessage;
     double percentIdentity = 0;
@@ -187,9 +191,8 @@ std::tuple<std::vector<std::string>, double, std::string,
         errorCode = invalidSequence;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
+                        std::string>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage};
     }
 
     std::vector<int> positionKey;
@@ -198,23 +201,12 @@ std::tuple<std::vector<std::string>, double, std::string,
     int numElements = rowSize * (this->numPositions + 1);
 
     auto needleScores = std::make_unique<double[]>( numElements );
-    auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
     auto pathTrace = std::make_unique<uint8_t[]>( numElements );
     auto initNumbering = std::make_unique<unsigned int[]>( this->numPositions );
 
-
-    if (!convert_sequence_to_array(queryAsIdx.get(), query_sequence)){
-        errorCode = invalidSequence;
-        errorMessage = this->errorCodeToMessage[errorCode];
-        return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
-    }
-
     // Fill in the scoring table.
     fillNeedleScoringTable(needleScores.get(), pathTrace.get(),
-                    query_sequence.length(), rowSize, queryAsIdx.get());
+                    query_sequence.length(), rowSize, queryAsIdx);
 
     // Set all members of initNumbering array to 0.
     for (int i=0; i < this->numPositions; i++)
@@ -255,9 +247,8 @@ std::tuple<std::vector<std::string>, double, std::string,
                 errorCode = fatalRuntimeError;
                 errorMessage = this->errorCodeToMessage[errorCode];
                 return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
+                        std::string>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage};
                 break;
         }
     }
@@ -315,9 +306,8 @@ std::tuple<std::vector<std::string>, double, std::string,
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
                     return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
+                        std::string>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage};
             }
             int ceil_cutpoint, floor_cutpoint;
 
@@ -378,9 +368,8 @@ std::tuple<std::vector<std::string>, double, std::string,
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
                     return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
+                        std::string>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage};
             }
             finalNumbering.push_back(std::to_string(i+1));
             positionKey.push_back(i);
@@ -400,26 +389,6 @@ std::tuple<std::vector<std::string>, double, std::string,
         positionKey.push_back(-1);
     }
 
-    // If the user wants to retrieve cdr labeling, we now populate a second vector
-    // which indicates what framework or CDR region each position belongs to. Note
-    // that this uses whatever numbering scheme is used to do the numbering. In some
-    // cases this may be undesired (e.g. user may want to extract Kabat CDRs from
-    // an IMGT-numbered sequence), but in the most common use-case they will not
-    // need to do this.
-    if (retrieve_cdr_labeling){
-        for (int k=0; k < numNTermGaps; k++)
-            cdrLabeling.push_back("-");
-
-        for (int k=0; k < 7; k++){
-            for (int m=this->cdrBreakpoints[k]; m < this->cdrBreakpoints[k+1]; m++){
-                for (size_t p=0; p < initNumbering[m]; p++)
-                    cdrLabeling.push_back(this->cdrRegionLabels[k]);
-            }
-        }
-
-        for (int k=0; k < numCTermGaps; k++)
-            cdrLabeling.push_back("-");
-    }
 
     // positionKey is now the same length as finalNumbering and indicates at
     // each position whether that position maps to a standard 
@@ -459,22 +428,8 @@ std::tuple<std::vector<std::string>, double, std::string,
         errorCode = alignmentWrongLength;
         errorMessage = this->errorCodeToMessage[errorCode];
         return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
-    }
-    // If the user requested cdr labeling, check to make sure the cdr labeling is
-    // the same length as the query sequence (again, anything else would be
-    // very unusual -- have not yet encountered such an issue).
-    if (retrieve_cdr_labeling){
-        if (query_sequence.length() != cdrLabeling.size()){
-            errorCode = alignmentWrongLength;
-            errorMessage = this->errorCodeToMessage[errorCode];
-            return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
-        }
+                        std::string>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage};
     }
 
     if (numRequiredPositionsFound != 6)
@@ -482,9 +437,8 @@ std::tuple<std::vector<std::string>, double, std::string,
 
     errorMessage = this->errorCodeToMessage[errorCode];
     return std::tuple<std::vector<std::string>, double, std::string,
-                            std::string, std::vector<std::string>>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage,
-                            cdrLabeling};
+                            std::string>{finalNumbering,
+                            percentIdentity, this->chainName, errorMessage};
 }
 
 
@@ -647,7 +601,8 @@ void IGAligner::fillNeedleScoringTable(double *needleScores, uint8_t *pathTrace,
 
 
 
-// Wraps IGAligner::core_align_test_only.
+// Wraps IGAligner::core_align_test_only. Unlike align, this function can be
+// (and should be) accessed by external Python callers.
 std::tuple<std::vector<std::string>, double, std::string,
     std::string, std::vector<std::string>> IGAligner::align_test_only(std::string query_sequence,
             bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
