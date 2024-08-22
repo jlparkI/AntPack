@@ -11,6 +11,10 @@
 #define VALID_CONSENSUS_FILE 1
 #define INVALID_CONSENSUS_FILE 0
 
+// Codes for chain type identification when building MSAs.
+#define MSA_HEAVY_CHAIN_ONLY 1
+#define MSA_LIGHT_CHAIN_ONLY 2
+
 
 //Checks a query sequence to ensure it contains only recognized
 //amino acids.
@@ -161,14 +165,13 @@ int convert_sequence_to_array(int *queryAsIdx, std::string query_sequence){
 //each call, calling it 1000s of times is not efficient or advisable.
 //Indeed, since it should only be necessary to call it once per
 //dataset, that should never actually happen.
-std::tuple<std::vector<std::string>, int> sort_position_codes_cpp(std::vector<std::string> position_codes,
-        std::string scheme){
+int sort_position_codes_utility(std::vector<std::string> position_codes,
+        std::string scheme, std::vector<std::string> &orderedTranslatedCodes){
     std::vector<float> orderedFloatCodes;
-    std::vector<std::string> orderedTranslatedCodes;
     float arbitraryDivisor = 1000.0;
     
     if (position_codes.size() == 0)
-        return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, INVALID_SEQUENCE};
+        return INVALID_SEQUENCE;
 
     // Map from a standard alphabet Our preference would be to number insertions
     // as _1, _2 etc, but most numbering programs use letters, so we do the same here
@@ -213,10 +216,10 @@ std::tuple<std::vector<std::string>, int> sort_position_codes_cpp(std::vector<st
             numericPortion = std::stoi(inputCode);
         }
         catch (...){
-            return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, INVALID_SEQUENCE};
+            return INVALID_SEQUENCE;
         }
         if (numericPortion <= 0 || numericPortion > 128)
-            return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, INVALID_SEQUENCE};
+            return INVALID_SEQUENCE;
 
         convertedCode = static_cast<float>(numericPortion);
 
@@ -237,7 +240,7 @@ std::tuple<std::vector<std::string>, int> sort_position_codes_cpp(std::vector<st
                 convertedCode += (static_cast<float>(alphabet.at(nonNumericPortion)) / arbitraryDivisor);
         }
         else
-            return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, INVALID_SEQUENCE};
+            return INVALID_SEQUENCE;
 
         orderedFloatCodes.push_back(convertedCode);
     }
@@ -262,13 +265,13 @@ std::tuple<std::vector<std::string>, int> sort_position_codes_cpp(std::vector<st
             ostring += reverseAlphabet.at(nonNumericPortion);
         else{
             printf("\n%d\n", nonNumericPortion);
-            return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, INVALID_SEQUENCE};
+            return INVALID_SEQUENCE;
         }
 
         orderedTranslatedCodes.push_back(ostring);
     }
 
-    return std::tuple<std::vector<std::string>, int>{orderedTranslatedCodes, VALID_SEQUENCE};
+    return VALID_SEQUENCE;
 }
 
 
@@ -300,7 +303,7 @@ int read_consensus_file(std::filesystem::path consFPath,
         if (!readNow)
             continue;
 
-        std::stringstream splitString("this_is_a_test_string");
+        std::stringstream splitString(currentLine);
         std::string segment;
         bool firstSegment = true, allAAsAllowed = false;
         std::vector<std::string> allowedAAs;
@@ -311,10 +314,11 @@ int read_consensus_file(std::filesystem::path consFPath,
                 if (position - 1 != lastPosition)
                     return INVALID_CONSENSUS_FILE;
                 firstSegment = false;
+                lastPosition += 1;
             }
             else{
                 if (segment == "-"){
-                    consensusAAs.push_back( {} );
+                    consensusAAs.push_back( std::vector<std::string>{} );
                     allAAsAllowed = true;
                     break;
                 }
@@ -327,5 +331,70 @@ int read_consensus_file(std::filesystem::path consFPath,
     }
 
     return VALID_CONSENSUS_FILE;
+}
 
+
+
+// Converts a list of sequences and a corresponding list of annotations into an MSA.
+// Convenient for a smaller number of sequences that can fit in memory.
+int build_msa_utility(std::vector<std::string> sequences,
+        std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations,
+        std::vector<std::string> &positionCodes,
+        std::vector<std::string> &alignedSeqs,
+        std::string scheme){
+    if (sequences.size() != annotations.size() || sequences.size() == 0)
+        throw std::runtime_error(std::string("The number of sequences and annotations must match."));
+
+    std::set<std::string> allPositionCodes;
+    int errCode;
+    int chainType = -1;
+
+    for (auto &annotation : annotations){
+        for (auto &posCode : std::get<0>(annotation)){
+            if (posCode != "-")
+                allPositionCodes.insert(posCode);
+        }
+        if (std::get<2>(annotation) == "H"){
+            if (chainType > 0 && chainType != MSA_HEAVY_CHAIN_ONLY){
+                throw std::runtime_error(std::string("An MSA can only be built "
+                            "from one chain type."));
+            }
+            else
+                chainType = MSA_HEAVY_CHAIN_ONLY;
+        }
+        else if (std::get<2>(annotation) == "K" || std::get<2>(annotation) == "L"){
+            if (chainType > 0 && chainType != MSA_LIGHT_CHAIN_ONLY){
+                throw std::runtime_error(std::string("An MSA can only be built "
+                            "from one chain type."));
+            }
+            else
+                chainType = MSA_LIGHT_CHAIN_ONLY;
+        }
+    }
+
+    std::vector<std::string> allPositionCodesVec(allPositionCodes.begin(), allPositionCodes.end()); 
+    errCode = sort_position_codes_utility(allPositionCodesVec, scheme, positionCodes);
+    if (errCode != VALID_SEQUENCE)
+        throw std::runtime_error(std::string("Invalid position codes were supplied."));
+
+
+    std::unordered_map<std::string, int> codeToLocation;
+
+    for (size_t i=0; i < positionCodes.size(); i++)
+        codeToLocation[positionCodes[i]] = i;
+
+    for (size_t i=0; i < sequences.size(); i++){
+        std::string alignedSeq(positionCodes.size(), '-');
+
+        for (size_t j=0; j < sequences[i].length(); j++){
+            std::string posCode = std::get<0>(annotations[i])[j];
+            if (codeToLocation.find(posCode) == codeToLocation.end())
+                throw std::runtime_error(std::string("Invalid position codes were supplied."));
+            
+            int location = codeToLocation[posCode];
+            alignedSeq[location] = sequences[i][j];
+        }
+        alignedSeqs.push_back(alignedSeq);
+    }
+    return VALID_SEQUENCE;
 }

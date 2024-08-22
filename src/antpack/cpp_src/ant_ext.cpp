@@ -6,6 +6,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
+#include "single_chain_annotator.h"
 #include "ig_aligner.h"
 #include "cterm_finder.h"
 #include "vj_match_counter.h"
@@ -17,14 +18,20 @@ using namespace std;
 
 PYBIND11_MODULE(antpack_cpp_ext, m){
     m.def("validate_sequence", &validate_sequence);
-    m.def("sort_position_codes_cpp", &sort_position_codes_cpp);
+    
+    py::class_<SingleChainAnnotatorCpp>(m, "SingleChainAnnotatorCpp")
+        .def(py::init<std::vector<std::string>,
+                std::string, bool, bool, std::string>())
+        .def("analyze_seq", &SingleChainAnnotatorCpp::analyze_seq)
+        .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs)
+        .def("sort_position_codes", &SingleChainAnnotatorCpp::sort_position_codes)
+        .def("build_msa", &SingleChainAnnotatorCpp::build_msa);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,
                 std::vector<std::vector<std::string>>,
                 std::string, std::string,
                 double, double, bool>())
-        .def("align", &IGAligner::align)
         .def("align_test_only", &IGAligner::align_test_only);
 
     py::class_<CTermFinder>(m, "CTermFinder")

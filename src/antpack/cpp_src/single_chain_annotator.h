@@ -5,6 +5,9 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <thread>
+#include <future>
+#include <functional>
 #include <filesystem>
 #include <iostream>
 #include "../../../extern/cnpy/cnpy.h"
@@ -35,11 +38,11 @@ namespace py = pybind11;
 
 
 
-class SingleChainAnnotator {
+class SingleChainAnnotatorCpp {
     public:
-        SingleChainAnnotator(std::vector<std::string> chains = {"H", "K", "L"},
+        SingleChainAnnotatorCpp(std::vector<std::string> chains = {"H", "K", "L"},
                 std::string scheme = "imgt", bool compress_init_gaps = false,
-                bool multithread = true);
+                bool multithread = true, std::string project_filepath = "");
         std::tuple<std::vector<std::string>, double, std::string,
             std::string> analyze_seq(std::string);
         std::vector<std::tuple<std::vector<std::string>, double, std::string,
@@ -48,17 +51,17 @@ class SingleChainAnnotator {
         std::vector<std::string> sort_position_codes(std::vector<std::string>
                 position_code_list);
         std::tuple<std::vector<std::string>, std::vector<std::string>> build_msa(std::vector<std::string> sequences,
-                    std::vector<std::tuple<std::vector<std::string>, double, std::string,
-                    std::string>> annotations);
-        std::tuple<std::string, std::vector<std::string>, int, int> trim_alignment(std::string sequence,
-                std::tuple<std::vector<std::string>, double, std::string, std::string> alignment);
+            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations);
+        //std::tuple<std::string, std::vector<std::string>, int, int> trim_alignment(std::string sequence,
+        //        std::tuple<std::vector<std::string>, double, std::string, std::string> alignment);
 
     protected:
         std::vector<std::string> chains;
         std::string scheme;
-        std::vector<std::unique_ptr<IGAligner>> scoring_tools;
-        bool multithread;
         bool compress_init_gaps;
+        bool multithread;
+
+        std::vector<std::unique_ptr<IGAligner>> scoring_tools;
 
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string, std::vector<std::string>> analyze_test_only(std::string query_sequence,

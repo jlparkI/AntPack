@@ -31,15 +31,13 @@ def main():
         long_description = "".join(fhandle.readlines())
 
     cpp_extra_link_args = []
-    cpp_extra_compile_args = [
-        "-std=c++14"
-    ]
 
     extensions=[
         Pybind11Extension("antpack_cpp_ext",
             sources=[
                 "src/antpack/cpp_src/ant_ext.cpp",
                 "src/antpack/cpp_src/ig_aligner.cpp",
+                "src/antpack/cpp_src/single_chain_annotator.cpp",
                 "src/antpack/cpp_src/vj_match_counter.cpp",
                 "src/antpack/cpp_src/utilities.cpp",
                 "src/antpack/cpp_src/responsibility_calcs.cpp",
@@ -51,7 +49,9 @@ def main():
                 pybind11.get_include(),
             ],
             language="c++",
-            extra_compile_args=cpp_extra_compile_args  + ["-fvisibility=hidden", "-O3"],
+            extra_compile_args=["-fvisibility=hidden",
+                "-O3", "-std=c++17"],
+                #"-std=c++17", "-ggdb", "-O0"],
             extra_link_args=cpp_extra_link_args,
         )
     ]

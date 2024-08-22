@@ -8,6 +8,7 @@
 #include <tuple>
 #include <set>
 #include <array>
+#include <omp.h>
 #include "utilities.h"
 #include "numbering_constants.h"
 
@@ -44,11 +45,15 @@ class IGAligner {
                 bool compressInitialGaps);
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string, std::vector<std::string>> align_test_only(std::string query_sequence,
-                bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
+                py::array_t<double> scoreMatrix,
                 py::array_t<uint8_t> pathTrace);
-        std::tuple<std::vector<std::string>, double, std::string,
-                std::string> align(std::string query_sequence,
-                int *queryAsIdx);
+        void align(std::string query_sequence, int *queryAsIdx,
+                std::vector<std::string> &finalNumbering,
+                double &percentIdentity, std::string &errorMessage);
+        void threaded_align(std::string query_sequence, int *queryAsIdx,
+                std::tuple<> resultValues);
+        std::string get_chain_name();
+
         // Allowed error codes. These will be mapped to strings which explain in more detail.
         enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
             tooManyInsertions  = 3, alignmentWrongLength = 4,
@@ -59,7 +64,7 @@ class IGAligner {
         void fillNeedleScoringTable(double *needleScores, uint8_t *pathTrace,
                     int querySeqLen, int rowSize, int *queryAsIdx);
         double core_align_test_only(std::string const &query_sequence,
-                bool retrieve_cdr_labeling, std::vector<std::string> &finalNumbering,
+                std::vector<std::string> &finalNumbering,
                 std::vector<std::string> &cdrLabeling,
                 allowedErrorCodes &errorCode,
                 py::array_t<double> scoreMatrix,

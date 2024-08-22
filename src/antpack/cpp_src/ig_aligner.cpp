@@ -162,8 +162,10 @@ IGAligner::IGAligner(
 }
 
 
-
-
+// Convenience function for retrieving the chain name.
+std::string IGAligner::get_chain_name(){
+    return this->chainName;
+}
 
 
 
@@ -176,23 +178,18 @@ IGAligner::IGAligner(
 // Therefore this function is now accessed only by the SingleChainAnnotator /
 // PairedChainAnnotator classes (for an align function that can be accessed
 // directly by Python wrappers, see align_test_only).
-std::tuple<std::vector<std::string>, double, std::string,
-    std::string> IGAligner::align(std::string query_sequence,
-                int *queryAsIdx){
+void IGAligner::align(std::string query_sequence,
+                int *queryAsIdx, std::vector<std::string> &finalNumbering,
+                double &percentIdentity, std::string &errorMessage){
 
-    bool retrieve_cdr_labeling = false;
-    std::vector<std::string> finalNumbering;
     allowedErrorCodes errorCode;
-    std::string errorMessage;
-    double percentIdentity = 0;
+    percentIdentity = 0;
 
 
     if (query_sequence.length() < MINIMUM_SEQUENCE_LENGTH){
         errorCode = invalidSequence;
         errorMessage = this->errorCodeToMessage[errorCode];
-        return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage};
+        return;
     }
 
     std::vector<int> positionKey;
@@ -246,9 +243,7 @@ std::tuple<std::vector<std::string>, double, std::string,
             default:
                 errorCode = fatalRuntimeError;
                 errorMessage = this->errorCodeToMessage[errorCode];
-                return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage};
+                return;
                 break;
         }
     }
@@ -305,9 +300,7 @@ std::tuple<std::vector<std::string>, double, std::string,
             if (initNumbering[i] > this->alphabet.size()){
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
-                    return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage};
+                    return;
             }
             int ceil_cutpoint, floor_cutpoint;
 
@@ -367,9 +360,7 @@ std::tuple<std::vector<std::string>, double, std::string,
             if (initNumbering[i] > this->alphabet.size()){
                     errorCode = tooManyInsertions;
                     errorMessage = this->errorCodeToMessage[errorCode];
-                    return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage};
+                    return;
             }
             finalNumbering.push_back(std::to_string(i+1));
             positionKey.push_back(i);
@@ -427,18 +418,13 @@ std::tuple<std::vector<std::string>, double, std::string,
     if (query_sequence.length() != finalNumbering.size()){
         errorCode = alignmentWrongLength;
         errorMessage = this->errorCodeToMessage[errorCode];
-        return std::tuple<std::vector<std::string>, double, std::string,
-                        std::string>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage};
+        return;
     }
 
     if (numRequiredPositionsFound != 6)
         errorCode = unacceptableConservedPositions;
 
     errorMessage = this->errorCodeToMessage[errorCode];
-    return std::tuple<std::vector<std::string>, double, std::string,
-                            std::string>{finalNumbering,
-                            percentIdentity, this->chainName, errorMessage};
 }
 
 
@@ -605,14 +591,13 @@ void IGAligner::fillNeedleScoringTable(double *needleScores, uint8_t *pathTrace,
 // (and should be) accessed by external Python callers.
 std::tuple<std::vector<std::string>, double, std::string,
     std::string, std::vector<std::string>> IGAligner::align_test_only(std::string query_sequence,
-            bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
-            py::array_t<uint8_t> pathTrace){
+            py::array_t<double> scoreMatrix, py::array_t<uint8_t> pathTrace){
 
     std::vector<std::string> finalNumbering;
     std::vector<std::string> cdrLabeling;
     allowedErrorCodes errorCode = noError;
 
-    double percentIdentity = this->core_align_test_only(query_sequence, retrieve_cdr_labeling,\
+    double percentIdentity = this->core_align_test_only(query_sequence,\
                         finalNumbering, cdrLabeling, errorCode, scoreMatrix, pathTrace);
 
     std::string errorMessage = this->errorCodeToMessage[errorCode];
@@ -630,7 +615,7 @@ std::tuple<std::vector<std::string>, double, std::string,
 // can access the filled-out scoring matrix, which is useful for testing and diagnostics
 // but not really essential for a typical run.
 double IGAligner::core_align_test_only(std::string const &query_sequence,
-                bool retrieve_cdr_labeling, std::vector<std::string> &finalNumbering,
+                std::vector<std::string> &finalNumbering,
                 std::vector<std::string> &cdrLabeling,
                 allowedErrorCodes &errorCode,
                 py::array_t<double> scoreMatrix,
@@ -848,26 +833,6 @@ double IGAligner::core_align_test_only(std::string const &query_sequence,
         positionKey.push_back(-1);
     }
 
-    // If the user wants to retrieve cdr labeling, we now populate a second vector
-    // which indicates what framework or CDR region each position belongs to. Note
-    // that this uses whatever numbering scheme is used to do the numbering. In some
-    // cases this may be undesired (e.g. user may want to extract Kabat CDRs from
-    // an IMGT-numbered sequence), but in the most common use-case they will not
-    // need to do this.
-    if (retrieve_cdr_labeling){
-        for (int k=0; k < numNTermGaps; k++)
-            cdrLabeling.push_back("-");
-
-        for (int k=0; k < 7; k++){
-            for (int m=this->cdrBreakpoints[k]; m < this->cdrBreakpoints[k+1]; m++){
-                for (size_t p=0; p < initNumbering[m]; p++)
-                    cdrLabeling.push_back(this->cdrRegionLabels[k]);
-            }
-        }
-
-        for (int k=0; k < numCTermGaps; k++)
-            cdrLabeling.push_back("-");
-    }
 
     // positionKey is now the same length as finalNumbering and indicates at
     // each position whether that position maps to a standard 
@@ -906,15 +871,6 @@ double IGAligner::core_align_test_only(std::string const &query_sequence,
     if (query_sequence.length() != finalNumbering.size()){
         errorCode = alignmentWrongLength;
         return percentIdentity;
-    }
-    // If the user requested cdr labeling, check to make sure the cdr labeling is
-    // the same length as the query sequence (again, anything else would be
-    // very unusual -- have not yet encountered such an issue).
-    if (retrieve_cdr_labeling){
-        if (query_sequence.length() != cdrLabeling.size()){
-            errorCode = alignmentWrongLength;
-            return percentIdentity;
-        }
     }
 
     if (numRequiredPositionsFound != 6)

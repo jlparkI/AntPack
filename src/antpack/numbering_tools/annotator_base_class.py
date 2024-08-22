@@ -1,6 +1,5 @@
 """This is the base class for Single and MultiChainAnnotator. Contains routines
 shared by both."""
-from antpack_cpp_ext import sort_position_codes_cpp
 
 
 
