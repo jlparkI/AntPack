@@ -25,7 +25,8 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
         .def("analyze_seq", &SingleChainAnnotatorCpp::analyze_seq)
         .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs)
         .def("sort_position_codes", &SingleChainAnnotatorCpp::sort_position_codes)
-        .def("build_msa", &SingleChainAnnotatorCpp::build_msa);
+        .def("build_msa", &SingleChainAnnotatorCpp::build_msa)
+        .def("trim_alignment", &SingleChainAnnotatorCpp::trim_alignment);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,

@@ -10,8 +10,8 @@
 #include <functional>
 #include <filesystem>
 #include <iostream>
-#include "../../../extern/cnpy/cnpy.h"
 #include "utilities.h"
+#include "consensus_file_utilities.h"
 #include "ig_aligner.h"
 #include "numbering_constants.h"
 
@@ -48,12 +48,13 @@ class SingleChainAnnotatorCpp {
         std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> analyze_seqs(std::vector<std::string> sequences);
 
-        std::vector<std::string> sort_position_codes(std::vector<std::string>
-                position_code_list);
+        std::vector<std::string> sort_position_codes(std::vector<std::string> position_code_list);
         std::tuple<std::vector<std::string>, std::vector<std::string>> build_msa(std::vector<std::string> sequences,
             std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations);
-        //std::tuple<std::string, std::vector<std::string>, int, int> trim_alignment(std::string sequence,
-        //        std::tuple<std::vector<std::string>, double, std::string, std::string> alignment);
+        std::tuple<std::string, std::vector<std::string>, int, int> trim_alignment(std::string sequence,
+            std::tuple<std::vector<std::string>, double, std::string, std::string> alignment);
+        std::vector<std::string> assign_cdr_labels(std::tuple<std::vector<std::string>, 
+               double, std::string, std::string> alignment, std::string cdr_scheme = "");
 
     protected:
         std::vector<std::string> chains;

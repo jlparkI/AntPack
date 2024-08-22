@@ -7,10 +7,6 @@
 #define VALID_SEQUENCE 1
 #define INVALID_SEQUENCE 0
 
-// Codes for consensus file load.
-#define VALID_CONSENSUS_FILE 1
-#define INVALID_CONSENSUS_FILE 0
-
 // Codes for chain type identification when building MSAs.
 #define MSA_HEAVY_CHAIN_ONLY 1
 #define MSA_LIGHT_CHAIN_ONLY 2
@@ -165,7 +161,7 @@ int convert_sequence_to_array(int *queryAsIdx, std::string query_sequence){
 //each call, calling it 1000s of times is not efficient or advisable.
 //Indeed, since it should only be necessary to call it once per
 //dataset, that should never actually happen.
-int sort_position_codes_utility(std::vector<std::string> position_codes,
+int sort_position_codes_utility(std::vector<std::string> &position_codes,
         std::string scheme, std::vector<std::string> &orderedTranslatedCodes){
     std::vector<float> orderedFloatCodes;
     float arbitraryDivisor = 1000.0;
@@ -275,73 +271,15 @@ int sort_position_codes_utility(std::vector<std::string> position_codes,
 }
 
 
-// Reads a specially formatted text file into a vector of vectors of strings.
-// Each entry in the outer vector is a vector of amino acids allowed at that
-// position. Note that an empty vector at a given position indicates any AA is
-// tolerated at that position. Therefore, if a '-' is found at a given postiion,
-// assume any AA is tolerated there.
-int read_consensus_file(std::filesystem::path consFPath,
-        std::vector<std::vector<std::string>> &consensusAAs){
-
-    if (!std::filesystem::exists(consFPath))
-        return INVALID_CONSENSUS_FILE;
-
-    std::ifstream file(consFPath.string());
-
-    int lastPosition = 0;
-    bool readNow = false;
-    std::string currentLine;
-
-    while (std::getline(file, currentLine))
-    {
-        if (currentLine.at(0) == '#'){
-            readNow = true;
-            continue;
-        }
-        if (currentLine.at(0) == '/')
-            break;
-        if (!readNow)
-            continue;
-
-        std::stringstream splitString(currentLine);
-        std::string segment;
-        bool firstSegment = true, allAAsAllowed = false;
-        std::vector<std::string> allowedAAs;
-
-        while(std::getline(splitString, segment, ',')){
-            if (firstSegment){
-                int position = std::stoi(segment);
-                if (position - 1 != lastPosition)
-                    return INVALID_CONSENSUS_FILE;
-                firstSegment = false;
-                lastPosition += 1;
-            }
-            else{
-                if (segment == "-"){
-                    consensusAAs.push_back( std::vector<std::string>{} );
-                    allAAsAllowed = true;
-                    break;
-                }
-                allowedAAs.push_back(segment);
-            }
-        }
-
-        if (!allAAsAllowed)
-            consensusAAs.push_back(allowedAAs);
-    }
-
-    return VALID_CONSENSUS_FILE;
-}
-
 
 
 // Converts a list of sequences and a corresponding list of annotations into an MSA.
 // Convenient for a smaller number of sequences that can fit in memory.
-int build_msa_utility(std::vector<std::string> sequences,
-        std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations,
+int build_msa_utility(std::vector<std::string> &sequences,
+        std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> &annotations,
         std::vector<std::string> &positionCodes,
         std::vector<std::string> &alignedSeqs,
-        std::string scheme){
+        const std::string &scheme){
     if (sequences.size() != annotations.size() || sequences.size() == 0)
         throw std::runtime_error(std::string("The number of sequences and annotations must match."));
 
@@ -396,5 +334,36 @@ int build_msa_utility(std::vector<std::string> sequences,
         }
         alignedSeqs.push_back(alignedSeq);
     }
+    return VALID_SEQUENCE;
+}
+
+
+// Trims an annotation / alignment to remove gaps at either end that correspond to
+// non-numbered AAs.
+int trim_alignment_utility(const std::string &sequence,
+        std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment,
+        std::vector<std::string> &trimmedAlignment, int &exstart, int &exend,
+        std::vector<char> &trimmedSeq){
+    if (std::get<0>(alignment).size() != sequence.length())
+        return INVALID_SEQUENCE;
+
+    exstart = -1;
+    exend = -1;
+
+    for (size_t i=0; i < std::get<0>(alignment).size(); i++){
+        if (std::get<0>(alignment)[i] == "-"){
+            if (exstart >= 0 && exend < 0)
+                exend = i;
+            continue;
+        }
+        if (exstart < 0)
+            exstart = i;
+        trimmedSeq.push_back(sequence.at(i));
+        trimmedAlignment.push_back(std::get<0>(alignment)[i]);
+    }
+
+    if (exend < 0)
+        exend = sequence.length();
+
     return VALID_SEQUENCE;
 }

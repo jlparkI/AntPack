@@ -1,6 +1,7 @@
 """Tests basic functionality for the SingleChainAnnotator class."""
 import os
 import re
+import random
 import gzip
 import copy
 import random
@@ -119,6 +120,53 @@ class TestSingleChainAnnotator(unittest.TestCase):
         for position_set, msa in [(hpositions, hmsa), (lpositions, lmsa)]:
             for msa_seq in msa:
                 self.assertTrue(len(msa_seq) == len(position_set))
+
+
+
+
+    def test_alignment_trimming(self):
+        """Make sure the alignment trimming procedure yields correct results."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        padded_seqs = []
+        AAs = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+        random.seed(123)
+
+        for seq in seqs:
+            left_padding = random.randint(0,10)
+            right_padding = random.randint(0,10)
+            padded_seq = "".join([random.choice(AAs) for i in range(left_padding)]) + \
+                    seq + "".join([random.choice(AAs) for i in range(right_padding)])
+            padded_seqs.append(padded_seq)
+
+        os.chdir(current_dir)
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                    scheme="imgt")
+        aligner_results = aligner.analyze_seqs(padded_seqs)
+        
+        for sequence, alignment in zip(padded_seqs, aligner_results):
+            numbering = alignment[0]
+            exstart = next((i for i in range(len(numbering)) if numbering[i] != '-'), 0)
+            exend = next((i for i in range(exstart + 1, len(numbering)) if numbering[i] == '-'),
+                    len(numbering))
+            trimmed_sequence = sequence[exstart:exend]
+            trimmed_numbering = numbering[exstart:exend]
+
+            eval_seq, eval_numbering, eval_start, eval_end = aligner.trim_alignment(sequence,
+                    alignment)
+
+            self.assertTrue(eval_seq == trimmed_sequence)
+            self.assertTrue(eval_seq == sequence[eval_start:eval_end])
+            self.assertTrue(eval_numbering == trimmed_numbering)
+
 
 
     def test_region_labeling(self):

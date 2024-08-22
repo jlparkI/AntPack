@@ -199,7 +199,8 @@ std::vector<std::tuple<std::vector<std::string>, double, std::string,
 
 
 // SingleChainAnnotatorCpp function which sorts a list of position codes (essentially
-// by calling the corresponding function in utilities).
+// by calling the corresponding function in utilities). Essentially a wrapper on the
+// corresponding utility function that can be accessed by Python or outside callers.
 std::vector<std::string> SingleChainAnnotatorCpp::sort_position_codes(std::vector<std::string> position_code_list){
     std::vector<std::string> cleanedCodes, sortedCodes;
     int isValid;
@@ -221,7 +222,8 @@ std::vector<std::string> SingleChainAnnotatorCpp::sort_position_codes(std::vecto
 
 // SingleChainAnnotatorCpp function which builds a multiple sequence alignment from
 // a list of previously numbered sequences. The sequences must all be of the
-// same chain type.
+// same chain type. Essentially a wrapper on the corresponding utility function
+// that can be accessed by Python or outside callers.
 std::tuple<std::vector<std::string>, std::vector<std::string>> SingleChainAnnotatorCpp::build_msa(std::vector<std::string> sequences,
         std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations){
     std::vector<std::string> positionCodes, alignedSeqs;
@@ -232,4 +234,49 @@ std::tuple<std::vector<std::string>, std::vector<std::string>> SingleChainAnnota
     if (errCode != 1)
         throw std::runtime_error(std::string("A fatal error occured when building an MSA -- please report."));
     return std::tuple<std::vector<std::string>, std::vector<std::string>>{positionCodes, alignedSeqs};
+}
+
+
+// SingleChainAnnotatorCpp function which trims an alignment to remove gap positions at
+// either end. Essentially a wrapper on the corresponding utility function that can
+// be accessed by Python or outside callers.
+std::tuple<std::string, std::vector<std::string>, int, int> SingleChainAnnotatorCpp::trim_alignment(std::string sequence,
+        std::tuple<std::vector<std::string>, double, std::string, std::string> alignment){
+    int exstart, exend;
+    std::vector<char> trimmedSeq;
+    std::vector<std::string> trimmedAlignment;
+
+    int errCode = trim_alignment_utility(sequence, alignment, trimmedAlignment,
+            exstart, exend, trimmedSeq);
+    if (errCode != 1)
+        throw std::runtime_error(std::string("Invalid sequence / alignment pairing supplied."));
+
+    std::string trimmedSeqStr(trimmedSeq.begin(), trimmedSeq.end());
+
+    return std::tuple<std::string, std::vector<std::string>, int, int>{trimmedSeqStr,
+        trimmedAlignment, exstart, exend};
+}
+
+
+// SingleChainAnnotatorCpp function that assigns cdr and framework labels based on an
+// alignment performed by analyze_seq (or similar). It can use a scheme other than
+// the one used by the SingleChainAnnotatorCpp object, so that the user can assign
+// cdr labels for an IMGT-numbered scheme using Kabat CDR definitions if desired.
+std::vector<std::string> SingleChainAnnotatorCpp::assign_cdr_labels(std::tuple<std::vector<std::string>, 
+               double, std::string, std::string> alignment, std::string cdr_scheme){
+    std::string currentScheme;
+    std::vector<std::string> cdrLabeling;
+
+    if (cdr_scheme == "")
+        currentScheme = this->scheme;
+    else if (cdr_scheme == "imgt" || cdr_scheme == "kabat" || cdr_scheme == "martin" ||
+            cdr_scheme == "aho")
+        currentScheme = cdr_scheme;
+    else{
+        throw std::runtime_error(std::string("Unrecognized scheme supplied. Use '' to use "
+                    "the scheme currently selected for this Annotator, or use a currently "
+                    "accepted scheme."));
+    }
+
+    return cdrLabeling;
 }
