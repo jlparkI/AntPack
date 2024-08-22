@@ -61,8 +61,12 @@ class SingleChainAnnotatorCpp {
         std::string scheme;
         bool compress_init_gaps;
         bool multithread;
+        std::unordered_map<std::string, std::vector<int>> cdr_breakpoints;
 
         std::vector<std::unique_ptr<IGAligner>> scoring_tools;
+
+        std::array<std::string, 7> cdr_region_labels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
+                                "fmwk3", "cdr3", "fmwk4"}};
 
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string, std::vector<std::string>> analyze_test_only(std::string query_sequence,

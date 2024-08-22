@@ -173,7 +173,6 @@ class TestSingleChainAnnotator(unittest.TestCase):
         """Ensure that the region labels assigned by the region labeling
         procedure correspond to our expectations, using a fairly
         inefficient procedure to determine ground-truth labeling."""
-        return
         regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
@@ -255,10 +254,12 @@ class TestSingleChainAnnotator(unittest.TestCase):
             num_err = 0
 
             for seq in seqs:
-                numbering = aligner.analyze_seq(seq, get_region_labels=True)
+                numbering = aligner.analyze_seq(seq)
+                labels = aligner.assign_cdr_labels(numbering, scheme)
+
                 gt_regions = get_gt_regions(numbering[0],
                         scheme_labels[scheme][numbering[2]])
-                if gt_regions != numbering[-1]:
+                if gt_regions != labels:
                     num_err += 1
             self.assertTrue(num_err == 0)
 

@@ -110,55 +110,6 @@ IGAligner::IGAligner(
             consensusMap[i].insert(AA[0]);
         }
     }
-
-
-
-
-    // Set up a list of breakpoints that mark the dividing lines between
-    // framework and CDR regions according to the selected chain type and
-    // numbering scheme.
-    if (scheme == "imgt"){
-        this->cdrBreakpoints = {0, IMGT_CDR_BREAKPOINT_1, IMGT_CDR_BREAKPOINT_2,
-                        IMGT_CDR_BREAKPOINT_3, IMGT_CDR_BREAKPOINT_4,
-                        IMGT_CDR_BREAKPOINT_5, IMGT_CDR_BREAKPOINT_6,
-                        this->numPositions};
-    }
-    else if (scheme == "kabat"){
-        if (chainName == "L" || chainName == "K"){
-            this->cdrBreakpoints = {0, KABAT_LIGHT_CDR_BREAKPOINT_1,
-                        KABAT_LIGHT_CDR_BREAKPOINT_2, KABAT_LIGHT_CDR_BREAKPOINT_3,
-                        KABAT_LIGHT_CDR_BREAKPOINT_4, KABAT_LIGHT_CDR_BREAKPOINT_5,
-                        KABAT_LIGHT_CDR_BREAKPOINT_6,
-                        this->numPositions};
-        }
-        else if (chainName == "H"){
-            this->cdrBreakpoints = {0, KABAT_HEAVY_CDR_BREAKPOINT_1,
-                        KABAT_HEAVY_CDR_BREAKPOINT_2, KABAT_HEAVY_CDR_BREAKPOINT_3,
-                        KABAT_HEAVY_CDR_BREAKPOINT_4, KABAT_HEAVY_CDR_BREAKPOINT_5,
-                        KABAT_HEAVY_CDR_BREAKPOINT_6,
-                        this->numPositions};
-        }
-    }
-    else if (scheme == "martin"){
-        if (chainName == "L" || chainName == "K"){
-            this->cdrBreakpoints = {0, MARTIN_LIGHT_CDR_BREAKPOINT_1,
-                        MARTIN_LIGHT_CDR_BREAKPOINT_2, MARTIN_LIGHT_CDR_BREAKPOINT_3,
-                        MARTIN_LIGHT_CDR_BREAKPOINT_4, MARTIN_LIGHT_CDR_BREAKPOINT_5,
-                        MARTIN_LIGHT_CDR_BREAKPOINT_6,
-                        this->numPositions};
-        }
-        else if (chainName == "H"){
-            this->cdrBreakpoints = {0, MARTIN_HEAVY_CDR_BREAKPOINT_1,
-                        MARTIN_HEAVY_CDR_BREAKPOINT_2, MARTIN_HEAVY_CDR_BREAKPOINT_3,
-                        MARTIN_HEAVY_CDR_BREAKPOINT_4, MARTIN_HEAVY_CDR_BREAKPOINT_5,
-                        MARTIN_HEAVY_CDR_BREAKPOINT_6,
-                        this->numPositions};
-        }
-    }
-    else{
-        throw std::runtime_error(std::string("Currently IGAligner only recognizes "
-                    "schemes 'martin', 'kabat', 'imgt'."));
-    }
 }
 
 

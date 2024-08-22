@@ -93,10 +93,6 @@ class IGAligner {
                 "Alignment length != length of input sequence. Unusual. Please report.",
                 "Unexpected AA at conserved position."}};
 
-        std::array<std::string, 7> cdrRegionLabels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
-                                "fmwk3", "cdr3", "fmwk4"}};
-
-        std::vector<int> cdrBreakpoints;
 
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here
