@@ -6,7 +6,6 @@ import copy
 import numpy as np
 from .annotator_base_class import AnnotatorBaseClass
 from .single_chain_annotator import SingleChainAnnotator
-from antpack_cpp_ext import CTermFinder
 
 
 

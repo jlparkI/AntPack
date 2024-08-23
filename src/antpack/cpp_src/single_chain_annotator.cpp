@@ -44,30 +44,30 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
             std::filesystem::path npyFPath = extensionPath / npyFName;
             std::filesystem::path consFPath = extensionPath / consFName;
 
-            std::vector<std::vector<std::string>> positionConsensus;
-            int errCode = read_consensus_file(consFPath, positionConsensus);
+            std::vector<std::vector<std::string>> position_consensus;
+            int errCode = read_consensus_file(consFPath, position_consensus);
             if (errCode != 1){
                 throw std::runtime_error(std::string("The consensus file / library installation "
                             "has an issue."));
             }
 
-            cnpy::NpyArray rawScoreArr = cnpy::npy_load(npyFPath.string());
-            double *rawScorePtr = rawScoreArr.data<double>();
-            if (rawScoreArr.word_size != 8){
+            cnpy::NpyArray raw_score_arr = cnpy::npy_load(npyFPath.string());
+            double *raw_score_ptr = raw_score_arr.data<double>();
+            if (raw_score_arr.word_size != 8){
                 throw std::runtime_error(std::string("The consensus file / library installation "
                             "has an issue."));
             }
 
-            py::array_t<double, py::array::c_style> scoreArr({rawScoreArr.shape[0],
-                    rawScoreArr.shape[1]});
+            py::array_t<double, py::array::c_style> scoreArr({raw_score_arr.shape[0],
+                    raw_score_arr.shape[1]});
             double *scorePtr = static_cast<double*>(scoreArr.request().ptr);
 
-            for (size_t k=0; k < rawScoreArr.shape[0] * rawScoreArr.shape[1]; k++)
-                scorePtr[k] = rawScorePtr[k];
+            for (size_t k=0; k < raw_score_arr.shape[0] * raw_score_arr.shape[1]; k++)
+                scorePtr[k] = raw_score_ptr[k];
 
             if (scheme == "imgt"){
                 this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            positionConsensus, chain, scheme,
+                            position_consensus, chain, scheme,
                             IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)
@@ -75,7 +75,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
             }
             else if (scheme == "martin"){
                 this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            positionConsensus, chain, scheme,
+                            position_consensus, chain, scheme,
                             MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)
@@ -83,7 +83,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
             }
             else if (scheme == "kabat"){
                 this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            positionConsensus, chain, scheme,
+                            position_consensus, chain, scheme,
                             KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)

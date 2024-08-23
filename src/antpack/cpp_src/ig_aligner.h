@@ -8,7 +8,6 @@
 #include <tuple>
 #include <set>
 #include <array>
-#include <omp.h>
 #include "utilities.h"
 #include "numbering_constants.h"
 
@@ -42,16 +41,14 @@ class IGAligner {
                 std::string chainName, std::string scheme,
                 double terminalTemplateGapPenalty,
                 double CterminalQueryGapPenalty,
-                bool compressInitialGaps);
+                bool compress_initial_gaps);
         std::tuple<std::vector<std::string>, double, std::string,
-                std::string, std::vector<std::string>> align_test_only(std::string query_sequence,
-                py::array_t<double> scoreMatrix,
-                py::array_t<uint8_t> pathTrace);
-        void align(std::string query_sequence, int *queryAsIdx,
-                std::vector<std::string> &finalNumbering,
-                double &percentIdentity, std::string &errorMessage);
-        void threaded_align(std::string query_sequence, int *queryAsIdx,
-                std::tuple<> resultValues);
+                std::string> align_test_only(std::string query_sequence,
+                py::array_t<double> score_matrix,
+                py::array_t<uint8_t> path_trace);
+        void align(std::string query_sequence, int *encoded_sequence,
+                std::vector<std::string> &final_numbering,
+                double &percent_identity, std::string &error_message);
         std::string get_chain_name();
 
         // Allowed error codes. These will be mapped to strings which explain in more detail.
@@ -61,13 +58,12 @@ class IGAligner {
 
 
     protected:
-        void fillNeedleScoringTable(double *needleScores, uint8_t *pathTrace,
-                    int querySeqLen, int rowSize, int *queryAsIdx);
+        void fill_needle_scoring_table(double *needle_scores, uint8_t *path_trace,
+                    int query_seq_len, int row_size, int *encoded_sequence);
         double core_align_test_only(std::string const &query_sequence,
-                std::vector<std::string> &finalNumbering,
-                std::vector<std::string> &cdrLabeling,
-                allowedErrorCodes &errorCode,
-                py::array_t<double> scoreMatrix,
+                std::vector<std::string> &final_numbering,
+                allowedErrorCodes &error_code,
+                py::array_t<double> score_matrix,
                 py::array_t<uint8_t> pathTrace);
 
         // Default gap penalties for gaps at the beginning and end of the sequence.
@@ -75,18 +71,18 @@ class IGAligner {
         // while query is a weak penalty for placing gaps in the numbering
         // (i.e. skipping numbers).
 
-        int numPositions;
-        int numRestrictedPositions;
-        py::array_t<double, py::array::c_style> scoreArray;
-        const std::string chainName;
+        int num_positions;
+        int num_restricted_positions;
+        py::array_t<double, py::array::c_style> score_array;
+        const std::string chain_name;
         std::string scheme;
         double terminalTemplateGapPenalty;
         double CterminalQueryGapPenalty;
-        bool compressInitialGaps;
+        bool compress_initial_gaps;
 
-        std::vector<std::set<char>> consensusMap;
-        std::vector<int> highlyConservedPositions;
-        std::array<std::string, 6> errorCodeToMessage {{"",
+        std::vector<std::set<char>> consensus_map;
+        std::vector<int> highly_conserved_positions;
+        std::array<std::string, 6> error_code_to_message {{"",
                 "Sequence contains invalid characters",
                 "Fatal runtime error in IGAligner. Unusual. Please report",
                 "> 72 insertions. Suggests a problem with this sequence",

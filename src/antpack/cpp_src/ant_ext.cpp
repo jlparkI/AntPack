@@ -36,10 +36,6 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
                 double, double, bool>())
         .def("align_test_only", &IGAligner::align_test_only);
 
-    py::class_<CTermFinder>(m, "CTermFinder")
-        .def(py::init<py::array_t<double>>() )
-        .def("find_c_terminals", &CTermFinder::find_c_terminals);
-
     py::class_<VJMatchCounter>(m, "VJMatchCounter")
         .def(py::init<std::vector<std::string>,
              std::vector<std::string>>() )

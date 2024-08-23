@@ -42,7 +42,7 @@ class SingleChainAnnotatorCpp {
     public:
         SingleChainAnnotatorCpp(std::vector<std::string> chains = {"H", "K", "L"},
                 std::string scheme = "imgt", bool compress_init_gaps = false,
-                bool multithread = true, std::string project_filepath = "");
+                bool multithread = false, std::string project_filepath = "");
         std::tuple<std::vector<std::string>, double, std::string,
             std::string> analyze_seq(std::string);
         std::vector<std::tuple<std::vector<std::string>, double, std::string,

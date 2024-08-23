@@ -7,6 +7,7 @@ CTermFinder::CTermFinder(
 ):
     scoreArray(scoreArray)
 {
+    
     py::buffer_info info = scoreArray.request();
     // Note that exceptions thrown here are go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
