@@ -1,7 +1,6 @@
 """Contains the SingleChainAnnotator class, which provides the tools needed
-to parse single chains (either heavy or light) or a sequence which may contain
-a heavy or light chain. If you want to extract the heavy and light chain variable
-regions from a sequence that contains both, use MultiChainAnnotator."""
+to parse single chains (either heavy or light) or a sequence which likely contains
+a heavy or light chain."""
 import os
 from antpack_cpp_ext import SingleChainAnnotatorCpp
 
@@ -31,6 +30,7 @@ class SingleChainAnnotator(SingleChainAnnotatorCpp):
             ValueError: A ValueError is raised if unacceptable inputs are
                 supplied.
         """
-        project_path = os.path.abspath(os.path.dirname(__file__))
+        consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                "consensus_data")
         super().__init__(chains, scheme, compress_init_gaps,
-                False, project_path)
+                False, consensus_path)

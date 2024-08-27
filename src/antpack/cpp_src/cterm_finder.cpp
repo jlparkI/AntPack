@@ -37,41 +37,26 @@ CTermFinder::CTermFinder(
 
 // Does a fast (relative to typical alignments) search for templates
 // which indicate the c-terminal of a kappa, lambda or heavy chain.
-std::string CTermFinder::find_c_terminals(std::string query_sequence,
-        py::array_t<double, py::array::c_style> bestScores,
-        py::array_t<int32_t, py::array::c_style> bestPositions){
+int CTermFinder::find_c_terminals(std::string query_sequence,
+        std::array<double, 3> &best_scores, std::array<int, 3> &best_positions){
 
-    cTermAllowedErrorCodes errorCode;
     std::string errorMessage;
-    size_t numQueryAlignments = query_sequence.length() - this->numPositions;
+    size_t numQueryAlignments = query_sequence.length() - this->num_positions;
     auto scoreMatItr = this->score_array.unchecked<3>();
-    auto bestScoresItr = bestScores.mutable_unchecked<1>();
-    auto bestPositionsItr = bestPositions.mutable_unchecked<1>();
-
-    if (bestScores.shape(0) != 3 || bestPositions.shape(0) != 3){
-        throw std::runtime_error(std::string("Arguments passed to CTermFinder do "
-                    "not have the correct shape.")); 
-    }
 
     for (int k=0; k < 3; k++){
-        bestScoresItr[k] = 0;
-        bestPositionsItr[k] = 0;
+        best_scores[k] = 0;
+        best_positions[k] = 0;
     }
 
     if (query_sequence.length() < MINIMUM_SEQUENCE_LENGTH ||
-            numQueryAlignments <= 0){
-        errorCode = invalidSequence;
-        errorMessage = this->errorCodeToMessage[errorCode];
-        return errorMessage;
-    }
+            numQueryAlignments <= 0)
+        return INVALID_SEQUENCE;
 
-    auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
+    auto encoded_sequence = std::make_unique<int[]>( query_sequence.length() );
 
-    if (!convert_sequence_to_array(queryAsIdx.get(), query_sequence)){
-        errorCode = invalidSequence;
-        errorMessage = this->errorCodeToMessage[errorCode];
-        return errorMessage;
-    }
+    if (!convert_sequence_to_array(encoded_sequence.get(), query_sequence))
+        return INVALID_SEQUENCE;
 
 
     // Look for the first two cysteines in the sequence,
@@ -80,7 +65,7 @@ std::string CTermFinder::find_c_terminals(std::string query_sequence,
     size_t startPosition = 0, ncysteines = 0;
 
     for (size_t i=0; i < query_sequence.length(); i++){
-        if (queryAsIdx[i] == 1){
+        if (encoded_sequence[i] == 1){
             ncysteines += 1;
             if (ncysteines >= 2){
                 startPosition = i + 1;
@@ -92,32 +77,27 @@ std::string CTermFinder::find_c_terminals(std::string query_sequence,
     // If we could not find two cysteines, or if the resulting starting
     // position is too close to the end of the sequence, there is
     // something wrong; abort.
-    if ( ncysteines < 2 || startPosition >= numQueryAlignments ){
-        errorCode = invalidSequence;
-        errorMessage = this->errorCodeToMessage[errorCode];
-        return errorMessage;
-    }
+    if ( ncysteines < 2 || startPosition >= numQueryAlignments )
+        return INVALID_SEQUENCE;
 
 
     for (size_t i=startPosition; i < numQueryAlignments; i++){
-       double matchScore[3];
+       double match_score[3];
        for (int k=0; k < 3; k++)
-           matchScore[k] = 0;
+           match_score[k] = 0;
 
-       for (int j=0; j < this->numPositions; j++){
+       for (int j=0; j < this->num_positions; j++){
             for (int k=0; k < 3; k++)
-                matchScore[k] += scoreMatItr(j, queryAsIdx[i+j], k);
+                match_score[k] += scoreMatItr(j, encoded_sequence[i+j], k);
        }
 
        for (int k=0; k < 3; k++){
-           if (matchScore[k] > bestScoresItr(k)){
-               bestScoresItr[k] = matchScore[k];
-               bestPositionsItr[k] = i;
+           if (match_score[k] > best_scores[k]){
+               best_scores[k] = match_score[k];
+               best_positions[k] = i;
            }
        }
     }
 
-    errorCode = noError;
-    errorMessage = this->errorCodeToMessage[errorCode];
-    return errorMessage;
+    return VALID_SEQUENCE;
 }

@@ -1,5 +1,5 @@
-/* Contains the parent class for other annotator classes, which provides methods
- * that all annotator tools should expose to their callers.*/
+#ifndef ANNOTATOR_BASE_CLASS_HEADER_H
+#define ANNOTATOR_BASE_CLASS_HEADER_H
 
 #include <vector>
 #include <string>
@@ -29,3 +29,5 @@ class AnnotatorBaseClassCpp {
                                 "fmwk3", "cdr3", "fmwk4"}};
 
 };
+
+#endif

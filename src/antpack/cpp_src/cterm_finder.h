@@ -10,6 +10,10 @@
 #include "numbering_constants.h"
 
 
+#define INVALID_SEQUENCE 0
+#define VALID_SEQUENCE 1
+
+
 
 namespace py = pybind11;
 
@@ -21,20 +25,14 @@ namespace py = pybind11;
 class CTermFinder {
     public:
         CTermFinder(py::array_t<double, py::array::c_style> score_array);
-        std::string find_c_terminals(std::string query_sequence,
-                py::array_t<double, py::array::c_style> bestScores,
-                py::array_t<int32_t, py::array::c_style> bestPositions);
-        // Allowed error codes. These will be mapped to strings which explain in more detail.
-        enum cTermAllowedErrorCodes {noError = 0, invalidSequence = 1};
 
+        int find_c_terminals(std::string query_sequence,
+                std::array<double, 3> &best_scores, std::array<int, 3> &best_positions);
 
     protected:
 
         int num_positions;
         py::array_t<double, py::array::c_style> score_array;
-
-        std::array<std::string, 2> errorCodeToMessage {{"",
-                "Sequence contains invalid characters"}};
 
 };
 

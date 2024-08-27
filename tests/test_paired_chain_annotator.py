@@ -1,4 +1,4 @@
-"""Tests basic functionality for the MultiChainAnnotator class.
+"""Tests basic functionality for the PairedChainAnnotator class.
 Notice that this test relies on the correct functioning of
 SingleChainAnnotator, so if test_single_chain_annotator does
 not pass, this one will not either."""
@@ -11,7 +11,7 @@ from antpack.scoring_tools.scoring_constants import scoring_constants as SCCONST
 
 
 
-class TestMultiChainAnnotator(unittest.TestCase):
+class TestPairedChainAnnotator(unittest.TestCase):
 
 
     def test_error_checking(self):
@@ -44,7 +44,7 @@ class TestMultiChainAnnotator(unittest.TestCase):
         number of random amino acids and add a random number of
         random amino acids at the beginning and end. Compare the
         numbering assigned by SingleChainAnnotator to that assigned
-        by MultiChainAnnotator (this of course assumes that
+        by PairedChainAnnotator (this of course assumes that
         SingleChainAnnotator is functioning correctly)."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
@@ -114,6 +114,10 @@ class TestMultiChainAnnotator(unittest.TestCase):
             mc_heavy, mc_light = m_aligner.analyze_seq(merged_chain)
             _, mchn, hstart, hend = m_aligner.trim_alignment(merged_chain, mc_heavy)
             _, mcln, lstart, lend = m_aligner.trim_alignment(merged_chain, mc_light)
+
+            if mcln != trimmed_lc_align or mchn != trimmed_hc_align:
+                import pdb
+                pdb.set_trace()
 
             self.assertTrue(mcln == trimmed_lc_align)
             self.assertTrue(mchn == trimmed_hc_align)

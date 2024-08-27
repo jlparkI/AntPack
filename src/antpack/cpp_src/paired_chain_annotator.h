@@ -14,6 +14,8 @@
 #include "numbering_constants.h"
 
 
+#define CTERMINAL_STANDARD_OFFSET 9
+
 
 namespace py = pybind11;
 
@@ -25,15 +27,15 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
                 bool multithread = false,
                 std::string consensus_filepath = "");
 
-        std::tuple<std::vector<std::string>, double, std::string,
-            std::string> analyze_seq(std::string);
+        std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
+            std::tuple<std::vector<std::string>, double, std::string, std::string>>
+            analyze_seq(std::string sequence);
 
 
     protected:
 
         std::string scheme;
         bool multithread;
-        std::string project_filepath;
 
         std::unique_ptr<SingleChainAnnotatorCpp> light_chain_analyzer;
         std::unique_ptr<SingleChainAnnotatorCpp> heavy_chain_analyzer;

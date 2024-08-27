@@ -7,6 +7,8 @@
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
 #include "single_chain_annotator.h"
+#include "paired_chain_annotator.h"
+#include "annotator_base_class.h"
 #include "ig_aligner.h"
 #include "cterm_finder.h"
 #include "vj_match_counter.h"
@@ -18,16 +20,23 @@ using namespace std;
 
 PYBIND11_MODULE(antpack_cpp_ext, m){
     m.def("validate_sequence", &validate_sequence);
-    
-    py::class_<SingleChainAnnotatorCpp>(m, "SingleChainAnnotatorCpp")
+
+    py::class_<AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
+        .def(py::init<std::string>())
+        .def("sort_position_codes", &AnnotatorBaseClassCpp::sort_position_codes)
+        .def("build_msa", &AnnotatorBaseClassCpp::build_msa)
+        .def("assign_cdr_labels", &AnnotatorBaseClassCpp::assign_cdr_labels)
+        .def("trim_alignment", &AnnotatorBaseClassCpp::trim_alignment);
+
+    py::class_<SingleChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
         .def(py::init<std::vector<std::string>,
                 std::string, bool, bool, std::string>())
         .def("analyze_seq", &SingleChainAnnotatorCpp::analyze_seq)
-        .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs)
-        .def("sort_position_codes", &SingleChainAnnotatorCpp::sort_position_codes)
-        .def("build_msa", &SingleChainAnnotatorCpp::build_msa)
-        .def("assign_cdr_labels", &SingleChainAnnotatorCpp::assign_cdr_labels)
-        .def("trim_alignment", &SingleChainAnnotatorCpp::trim_alignment);
+        .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs);
+
+    py::class_<PairedChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
+        .def(py::init<std::string, bool, std::string>())
+        .def("analyze_seq", &PairedChainAnnotatorCpp::analyze_seq);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,
