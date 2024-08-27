@@ -2,32 +2,31 @@
 #include "utilities.h"
 
 
+
 CTermFinder::CTermFinder(
-                 py::array_t<double, py::array::c_style> scoreArray
+                 py::array_t<double, py::array::c_style> score_array
 ):
-    scoreArray(scoreArray)
+    score_array(score_array)
 {
-    
-    py::buffer_info info = scoreArray.request();
+    py::buffer_info info = score_array.request();
     // Note that exceptions thrown here are go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
     if (info.shape.size() != 3){
-        throw std::runtime_error(std::string("The scoreArray passed to "
+        throw std::runtime_error(std::string("The score_array passed to "
                 "CTermFinder must be a 3d array"));
     }
     if (info.shape[1] != 20){
-        throw std::runtime_error(std::string("The scoreArray passed to "
+        throw std::runtime_error(std::string("The score_array passed to "
                 "CTermFinder must have shape[1] == 20 (1 per AA)"));
     }
     if (info.shape[2] != 3){
-        throw std::runtime_error(std::string("The scoreArray passed to "
+        throw std::runtime_error(std::string("The score_array passed to "
                 "CTermFinder must have shape[2] == 3 (1 per chain type)"));
     }
 
 
-    numPositions = info.shape[0];
+    this->num_positions = info.shape[0];
 }
-
 
 
 
@@ -45,7 +44,7 @@ std::string CTermFinder::find_c_terminals(std::string query_sequence,
     cTermAllowedErrorCodes errorCode;
     std::string errorMessage;
     size_t numQueryAlignments = query_sequence.length() - this->numPositions;
-    auto scoreMatItr = this->scoreArray.unchecked<3>();
+    auto scoreMatItr = this->score_array.unchecked<3>();
     auto bestScoresItr = bestScores.mutable_unchecked<1>();
     auto bestPositionsItr = bestPositions.mutable_unchecked<1>();
 
