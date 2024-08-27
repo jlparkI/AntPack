@@ -9,6 +9,7 @@
 #include <set>
 #include <array>
 #include "cterm_finder.h"
+#include "annotator_base_class.h"
 #include "single_chain_annotator.h"
 #include "numbering_constants.h"
 
@@ -18,22 +19,14 @@ namespace py = pybind11;
 
 
 
-class PairedChainAnnotatorCpp {
+class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
     public:
         PairedChainAnnotatorCpp(std::string scheme = "imgt",
                 bool multithread = false,
-                std::string project_filepath = "");
+                std::string consensus_filepath = "");
 
         std::tuple<std::vector<std::string>, double, std::string,
             std::string> analyze_seq(std::string);
-
-        std::vector<std::string> sort_position_codes(std::vector<std::string> position_code_list);
-        std::tuple<std::vector<std::string>, std::vector<std::string>> build_msa(std::vector<std::string> sequences,
-            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations);
-        std::tuple<std::string, std::vector<std::string>, int, int> trim_alignment(std::string sequence,
-            std::tuple<std::vector<std::string>, double, std::string, std::string> alignment);
-        std::vector<std::string> assign_cdr_labels(std::tuple<std::vector<std::string>, 
-               double, std::string, std::string> alignment, std::string cdr_scheme = "");
 
 
     protected:

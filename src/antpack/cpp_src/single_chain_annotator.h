@@ -10,6 +10,8 @@
 #include <functional>
 #include <filesystem>
 #include <iostream>
+#include <unordered_map>
+#include "annotator_base_class.h"
 #include "utilities.h"
 #include "consensus_file_utilities.h"
 #include "ig_aligner.h"
@@ -38,35 +40,27 @@ namespace py = pybind11;
 
 
 
-class SingleChainAnnotatorCpp {
+class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
     public:
         SingleChainAnnotatorCpp(std::vector<std::string> chains = {"H", "K", "L"},
                 std::string scheme = "imgt", bool compress_init_gaps = false,
-                bool multithread = false, std::string project_filepath = "");
+                bool multithread = false,
+                std::string consensus_filepath = "");
+
         std::tuple<std::vector<std::string>, double, std::string,
             std::string> analyze_seq(std::string);
         std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> analyze_seqs(std::vector<std::string> sequences);
-
-        std::vector<std::string> sort_position_codes(std::vector<std::string> position_code_list);
-        std::tuple<std::vector<std::string>, std::vector<std::string>> build_msa(std::vector<std::string> sequences,
-            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations);
-        std::tuple<std::string, std::vector<std::string>, int, int> trim_alignment(std::string sequence,
-            std::tuple<std::vector<std::string>, double, std::string, std::string> alignment);
-        std::vector<std::string> assign_cdr_labels(std::tuple<std::vector<std::string>, 
-               double, std::string, std::string> alignment, std::string cdr_scheme = "");
+        std::unordered_map<std::string, std::vector<int>> get_cdr_breakpoints();
 
     protected:
         std::vector<std::string> chains;
         std::string scheme;
         bool compress_init_gaps;
         bool multithread;
-        std::unordered_map<std::string, std::vector<int>> cdr_breakpoints;
 
         std::vector<std::unique_ptr<IGAligner>> scoring_tools;
 
-        std::array<std::string, 7> cdr_region_labels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
-                                "fmwk3", "cdr3", "fmwk4"}};
 
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string, std::vector<std::string>> analyze_test_only(std::string query_sequence,

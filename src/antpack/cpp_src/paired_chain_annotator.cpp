@@ -8,8 +8,9 @@
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
         std::string scheme, bool multithread,
-        std::string project_filepath
+        std::string consensus_filepath
 ):
+    AnnotatorBaseClassCpp(scheme),
     scheme(scheme),
     multithread(multithread),
     project_filepath(project_filepath)
@@ -27,8 +28,7 @@ PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
             scheme, false, multithread, project_filepath);
 
 
-    std::filesystem::path extensionPath = project_filepath;
-    extensionPath /= "consensus_data";
+    std::filesystem::path extensionPath = consensus_filepath;
     
     std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
     std::filesystem::path npyFPath = extensionPath / npyFName;
@@ -75,4 +75,19 @@ PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
     }
 
     this->boundary_finder = std::make_unique<CTermFinder>(score_array);
+}
+
+
+
+// PairedChainAnnotatorCpp function which numbers a list of input sequences.
+// An alignment is returned for each input.
+std::vector<std::tuple<std::vector<std::string>, double, std::string,
+            std::string>> PairedChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences){
+    std::vector<std::tuple<std::vector<std::string>, double, std::string,
+            std::string>> outputResults;
+
+    for (size_t i=0; i < sequences.size(); i++){
+        outputResults.push_back(this->analyze_seq(sequences[i]));
+    }
+    return outputResults;
 }
