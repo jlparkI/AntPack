@@ -4,6 +4,7 @@ so that they are aligned and numbered."""
 import os
 import numpy as np
 from Bio.Align import substitution_matrices
+from ..constants import aho_default_params as aho_dp
 from ..constants import imgt_default_params as imgt_dp
 from ..constants import kabat_default_params as kabat_dp
 from ..constants import martin_default_params as martin_dp
@@ -15,7 +16,7 @@ def build_consensus_files():
     data_path = os.path.join(fdir, "..", "consensus_data")
     cdir = os.getcwd()
 
-    for scheme_name in ["kabat", "martin", "imgt", "ctermfinder"]:
+    for scheme_name in ["kabat", "martin", "imgt", "ctermfinder", "aho"]:
         for chain_name in ["H", "K", "L"]:
             confile = f"{scheme_name.upper()}_CONSENSUS_{chain_name}.txt"
             build_scoring_files(data_path, cdir, confile,
@@ -42,6 +43,8 @@ def build_scoring_files(target_dir, current_dir, consensus_file,
         save_consensus_array(consensus_list, chain_type, martin_dp, "martin")
     elif scheme == "imgt":
         save_consensus_array(consensus_list, chain_type, imgt_dp, "imgt")
+    elif scheme == "aho":
+        save_consensus_array(consensus_list, chain_type, aho_dp, "aho")
     elif scheme == "ctermfinder":
         save_cterm_finder_array(consensus_list, chain_type)
 
@@ -91,7 +94,10 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
 
     if chain_type.endswith("K") or chain_type.endswith("L"):
         conserved_positions = constants.light_conserved_positions
-        special_positions = constants.light_special_positions
+        if scheme == "aho" and chain_type.endswith("K"):
+            special_positions = constants.kappa_special_positions
+        else:
+            special_positions = constants.light_special_positions
         cdrs = constants.light_cdrs
         npositions = constants.NUM_LIGHT
 
