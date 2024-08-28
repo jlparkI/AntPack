@@ -49,6 +49,23 @@ IGAligner::IGAligner(
                 "for the numbering system."));
         }
     }
+    else if (scheme == "aho"){
+        this->highly_conserved_positions = {HIGHLY_CONSERVED_AHO_1, HIGHLY_CONSERVED_AHO_2,
+                                        HIGHLY_CONSERVED_AHO_3, HIGHLY_CONSERVED_AHO_4,
+                                        HIGHLY_CONSERVED_AHO_5, HIGHLY_CONSERVED_AHO_6};
+        if (info.shape[0] != NUM_HEAVY_AHO_POSITIONS && info.shape[0] !=
+                NUM_LIGHT_AHO_POSITIONS){
+            throw std::runtime_error(std::string("The score_array passed to "
+                "IGAligner must have the expected number of positions "
+                "for the numbering system."));
+        }
+        if (consensus.size() != NUM_HEAVY_AHO_POSITIONS && consensus.size() !=
+                NUM_LIGHT_AHO_POSITIONS){
+            throw std::runtime_error(std::string("The consensus sequence passed to "
+                "IGAligner must have the expected number of positions "
+                "for the numbering system."));
+        }
+    }
     else if (scheme == "martin" || scheme == "kabat"){
         if (chain_name == "L" || chain_name == "K"){
             this->highly_conserved_positions = {HIGHLY_CONSERVED_KABAT_LIGHT_1,
@@ -63,7 +80,7 @@ IGAligner::IGAligner(
                     HIGHLY_CONSERVED_KABAT_HEAVY_6};
         }
         else{
-            throw std::runtime_error(std::string("TMartin, Kabat currently "
+            throw std::runtime_error(std::string("Martin, Kabat currently "
                         "support only H, K, L chains."));
         }
         if (info.shape[0] != NUM_HEAVY_MARTIN_KABAT_POSITIONS && info.shape[0] !=
@@ -81,7 +98,7 @@ IGAligner::IGAligner(
     }
     else{
         throw std::runtime_error(std::string("Currently IGAligner only recognizes "
-                    "schemes 'martin', 'kabat', 'imgt'."));
+                    "schemes 'martin', 'kabat', 'imgt', 'aho'."));
     }
 
     num_positions = info.shape[0];

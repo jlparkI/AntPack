@@ -34,6 +34,14 @@ AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme):
                         MARTIN_HEAVY_CDR_BREAKPOINT_2, MARTIN_HEAVY_CDR_BREAKPOINT_3,
                         MARTIN_HEAVY_CDR_BREAKPOINT_4, MARTIN_HEAVY_CDR_BREAKPOINT_5,
                         MARTIN_HEAVY_CDR_BREAKPOINT_6};
+    this->cdr_breakpoints["aho_L"] = {AHO_CDR_BREAKPOINT_1,
+                        AHO_CDR_BREAKPOINT_2, AHO_CDR_BREAKPOINT_3,
+                        AHO_CDR_BREAKPOINT_4, AHO_CDR_BREAKPOINT_5,
+                        AHO_CDR_BREAKPOINT_6};
+    this->cdr_breakpoints["aho_H"] = {AHO_CDR_BREAKPOINT_1,
+                        AHO_CDR_BREAKPOINT_2, AHO_CDR_BREAKPOINT_3,
+                        AHO_CDR_BREAKPOINT_4, AHO_CDR_BREAKPOINT_5,
+                        AHO_CDR_BREAKPOINT_6};
 }
 
 

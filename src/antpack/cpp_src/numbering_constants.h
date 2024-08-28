@@ -30,6 +30,10 @@
 #define NUM_HEAVY_MARTIN_KABAT_POSITIONS 113
 #define NUM_LIGHT_MARTIN_KABAT_POSITIONS 107
 
+// Expected number of positions for Aho.
+#define NUM_HEAVY_AHO_POSITIONS 149
+#define NUM_LIGHT_AHO_POSITIONS 149
+
 
 // These are "magic number" positions in the IMGT framework at
 // which "forwards-backwards" insertion numbering must be applied.
@@ -47,6 +51,14 @@
 #define HIGHLY_CONSERVED_IMGT_4 117
 #define HIGHLY_CONSERVED_IMGT_5 118
 #define HIGHLY_CONSERVED_IMGT_6 120
+
+// Highly conserved positions in the AHO scheme. These are the AHO #s - 1.
+#define HIGHLY_CONSERVED_AHO_1 22
+#define HIGHLY_CONSERVED_AHO_2 42
+#define HIGHLY_CONSERVED_AHO_3 105
+#define HIGHLY_CONSERVED_AHO_4 138
+#define HIGHLY_CONSERVED_AHO_5 139
+#define HIGHLY_CONSERVED_AHO_6 141
 
 
 // Highly conserved positions in the Martin / Kabat schemes for heavy chains.
@@ -75,6 +87,14 @@
 #define IMGT_CDR_BREAKPOINT_4 66
 #define IMGT_CDR_BREAKPOINT_5 105
 #define IMGT_CDR_BREAKPOINT_6 118
+
+// The start and end of CDRs in AHO (ignoring insertions).
+#define AHO_CDR_BREAKPOINT_1 25
+#define AHO_CDR_BREAKPOINT_2 41
+#define AHO_CDR_BREAKPOINT_3 58
+#define AHO_CDR_BREAKPOINT_4 78
+#define AHO_CDR_BREAKPOINT_5 109
+#define AHO_CDR_BREAKPOINT_6 138
 
 
 // The start and end of CDRs in Kabat (ignoring insertions).

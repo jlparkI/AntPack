@@ -5,6 +5,8 @@
 // necessary.
 #define IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
 #define IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
+#define AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
+#define AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
 #define MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
 #define MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
 #define KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
@@ -73,6 +75,14 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
                             compress_init_gaps)
                         );
             }
+            else if (scheme == "aho"){
+                this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
+                            position_consensus, chain, scheme,
+                            AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
+                            AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
+                            compress_init_gaps)
+                        );
+            }
             else if (scheme == "martin"){
                 this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
                             position_consensus, chain, scheme,
@@ -91,7 +101,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
             }
             else{
                 throw std::runtime_error(std::string("Invalid scheme specified. Please use "
-                            "one of 'imgt', 'kabat', 'martin'."));
+                            "one of 'imgt', 'kabat', 'martin', 'aho'."));
             }
         }
     }

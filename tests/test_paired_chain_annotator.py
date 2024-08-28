@@ -115,10 +115,6 @@ class TestPairedChainAnnotator(unittest.TestCase):
             _, mchn, hstart, hend = m_aligner.trim_alignment(merged_chain, mc_heavy)
             _, mcln, lstart, lend = m_aligner.trim_alignment(merged_chain, mc_light)
 
-            if mcln != trimmed_lc_align or mchn != trimmed_hc_align:
-                import pdb
-                pdb.set_trace()
-
             self.assertTrue(mcln == trimmed_lc_align)
             self.assertTrue(mchn == trimmed_hc_align)
             self.assertTrue(merged_chain[lstart:lend] ==
