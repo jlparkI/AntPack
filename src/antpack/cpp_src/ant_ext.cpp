@@ -6,14 +6,14 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>    // Enables automatic type conversion for C++, python containers
 #include <string>
-#include "single_chain_annotator.h"
-#include "paired_chain_annotator.h"
-#include "annotator_base_class.h"
-#include "ig_aligner.h"
-#include "cterm_finder.h"
-#include "vj_match_counter.h"
-#include "responsibility_calcs.h"
-#include "utilities.h"
+#include "annotator_classes/single_chain_annotator.h"
+#include "annotator_classes/paired_chain_annotator.h"
+#include "annotator_classes/annotator_base_class.h"
+#include "annotator_classes/ig_aligner.h"
+#include "annotator_classes/cterm_finder.h"
+#include "utilities/vj_match_counter.h"
+#include "humanness_calcs/responsibility_calcs.h"
+#include "utilities/utilities.h"
 
 namespace py = pybind11;
 using namespace std;

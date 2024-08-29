@@ -10,7 +10,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <unordered_map>
-#include "numbering_constants.h"
+#include "../numbering_constants.h"
 
 int validate_sequence(std::string query_sequence);
 

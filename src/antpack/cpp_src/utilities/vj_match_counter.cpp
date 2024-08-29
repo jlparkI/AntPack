@@ -1,5 +1,4 @@
 #include "vj_match_counter.h"
-#include "utilities.h"
 
 
 VJMatchCounter::VJMatchCounter(

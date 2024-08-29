@@ -12,10 +12,10 @@
 #include <iostream>
 #include <unordered_map>
 #include "annotator_base_class.h"
-#include "utilities.h"
-#include "consensus_file_utilities.h"
+#include "../utilities/utilities.h"
+#include "../utilities/consensus_file_utilities.h"
 #include "ig_aligner.h"
-#include "numbering_constants.h"
+#include "../numbering_constants.h"
 
 #include <iostream>
 

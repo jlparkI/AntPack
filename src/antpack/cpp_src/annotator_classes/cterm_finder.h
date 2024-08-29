@@ -5,9 +5,9 @@
 #include <vector>
 #include <string>
 #include <filesystem>
-#include "consensus_file_utilities.h"
-#include "utilities.h"
-#include "numbering_constants.h"
+#include "../utilities/consensus_file_utilities.h"
+#include "../utilities/utilities.h"
+#include "../numbering_constants.h"
 
 
 #define INVALID_SEQUENCE 0

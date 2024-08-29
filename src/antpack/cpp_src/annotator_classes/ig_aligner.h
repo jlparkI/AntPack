@@ -8,8 +8,8 @@
 #include <tuple>
 #include <set>
 #include <array>
-#include "utilities.h"
-#include "numbering_constants.h"
+#include "../utilities/utilities.h"
+#include "../numbering_constants.h"
 
 #include <iostream>
 

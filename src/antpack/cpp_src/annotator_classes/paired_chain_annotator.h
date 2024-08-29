@@ -11,7 +11,7 @@
 #include "cterm_finder.h"
 #include "annotator_base_class.h"
 #include "single_chain_annotator.h"
-#include "numbering_constants.h"
+#include "../numbering_constants.h"
 
 
 #define CTERMINAL_STANDARD_OFFSET 9

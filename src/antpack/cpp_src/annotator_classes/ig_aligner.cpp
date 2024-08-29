@@ -1,5 +1,4 @@
 #include "ig_aligner.h"
-#include "utilities.h"
 
 
 IGAligner::IGAligner(

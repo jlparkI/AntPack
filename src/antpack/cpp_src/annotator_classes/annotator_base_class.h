@@ -5,8 +5,8 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
-#include "numbering_constants.h"
-#include "utilities.h"
+#include "../numbering_constants.h"
+#include "../utilities/utilities.h"
 
 
 class AnnotatorBaseClassCpp {
