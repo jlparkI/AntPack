@@ -66,61 +66,66 @@ class TestPairedChainAnnotator(unittest.TestCase):
 
         random.seed(0)
 
-        for hc, lc in zip(heavy_chains, light_chains):
-            prefix = [SCCONST.aa_list[random.randint(0,19)]
-                for i in range(random.randint(0,25))]
-            suffix = [SCCONST.aa_list[random.randint(0,19)]
-                for i in range(random.randint(0,25))]
-            joiner1 = [SCCONST.aa_list[random.randint(0,19)]
-                for i in range(random.randint(0,25))]
-            joiner2 = [SCCONST.aa_list[random.randint(0,19)]
-                for i in range(random.randint(0,25))]
+        # Try with both light chain first and heavy chain first.
+        order1, order2 = list(zip(heavy_chains, light_chains)), \
+                list(zip(light_chains, heavy_chains))
 
-            merged_hc = "".join( ["".join(prefix), hc[0], "".join(joiner1) ] )
-            merged_lc = "".join( ["".join(joiner2), lc[0], "".join(suffix) ] )
-            merged_chain = merged_hc + merged_lc
-            if merged_hc.endswith("SSA"):
-                continue
+        for ordering in (order1, order2):
+            for hc, lc in ordering:
+                prefix = [SCCONST.aa_list[random.randint(0,19)]
+                    for i in range(random.randint(0,25))]
+                suffix = [SCCONST.aa_list[random.randint(0,19)]
+                    for i in range(random.randint(0,25))]
+                joiner1 = [SCCONST.aa_list[random.randint(0,19)]
+                    for i in range(random.randint(0,25))]
+                joiner2 = [SCCONST.aa_list[random.randint(0,19)]
+                    for i in range(random.randint(0,25))]
 
-            hc_align = sc_aligner.analyze_seq(merged_hc)
-            lc_align = sc_aligner.analyze_seq(merged_lc)
-            if hc_align[1] < 0.8 or lc_align[1] < 0.8:
-                continue
+                merged_hc = "".join( ["".join(prefix), hc[0], "".join(joiner1) ] )
+                merged_lc = "".join( ["".join(joiner2), lc[0], "".join(suffix) ] )
+                merged_chain = merged_hc + merged_lc
+                if merged_hc.endswith("SSA"):
+                    continue
 
-            for i, lcpos in enumerate(lc_align[0]):
-                if lcpos != "-":
-                    break
-            for j, lcpos in reversed(list(enumerate(lc_align[0]))):
-                if lcpos != "-":
-                    break
+                hc_align = sc_aligner.analyze_seq(merged_hc)
+                lc_align = sc_aligner.analyze_seq(merged_lc)
+                if hc_align[1] < 0.8 or lc_align[1] < 0.8:
+                    continue
 
-            trimmed_lc_seq = merged_lc[i:j+1]
-            trimmed_lc_align = lc_align[0][i:j+1]
-            if not trimmed_lc_align[0] == "1":
-                continue
+                for i, lcpos in enumerate(lc_align[0]):
+                    if lcpos != "-":
+                        break
+                for j, lcpos in reversed(list(enumerate(lc_align[0]))):
+                    if lcpos != "-":
+                        break
 
-            for i, hcpos in enumerate(hc_align[0]):
-                if hcpos != "-":
-                    break
-            for j, hcpos in reversed(list(enumerate(hc_align[0]))):
-                if hcpos != "-":
-                    break
+                trimmed_lc_seq = merged_lc[i:j+1]
+                trimmed_lc_align = lc_align[0][i:j+1]
+                if not trimmed_lc_align[0] == "1":
+                    continue
 
-            trimmed_hc_seq = merged_hc[i:j+1]
-            trimmed_hc_align = hc_align[0][i:j+1]
-            if not trimmed_hc_align[-1] == "128":
-                continue
+                for i, hcpos in enumerate(hc_align[0]):
+                    if hcpos != "-":
+                        break
+                for j, hcpos in reversed(list(enumerate(hc_align[0]))):
+                    if hcpos != "-":
+                        break
 
-            mc_heavy, mc_light = m_aligner.analyze_seq(merged_chain)
-            _, mchn, hstart, hend = m_aligner.trim_alignment(merged_chain, mc_heavy)
-            _, mcln, lstart, lend = m_aligner.trim_alignment(merged_chain, mc_light)
+                trimmed_hc_seq = merged_hc[i:j+1]
+                trimmed_hc_align = hc_align[0][i:j+1]
+                if not trimmed_hc_align[-1] == "128":
+                    continue
 
-            self.assertTrue(mcln == trimmed_lc_align)
-            self.assertTrue(mchn == trimmed_hc_align)
-            self.assertTrue(merged_chain[lstart:lend] ==
-                    trimmed_lc_seq)
-            self.assertTrue(merged_chain[hstart:hend] ==
-                    trimmed_hc_seq)
+                mc_heavy, mc_light = m_aligner.analyze_seq(merged_chain)
+                _, mchn, hstart, hend = m_aligner.trim_alignment(merged_chain, mc_heavy)
+                _, mcln, lstart, lend = m_aligner.trim_alignment(merged_chain, mc_light)
+
+                self.assertTrue(mcln == trimmed_lc_align)
+                self.assertTrue(mchn == trimmed_hc_align)
+                self.assertTrue(merged_chain[lstart:lend] ==
+                        trimmed_lc_seq)
+                self.assertTrue(merged_chain[hstart:hend] ==
+                        trimmed_hc_seq)
 
 
 

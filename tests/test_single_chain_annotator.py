@@ -49,7 +49,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
                     "ENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA")
 
         for multithreading_setting in [False]:
-            for scheme in ["martin", "imgt", "kabat"]:
+            for scheme in ["martin", "imgt", "kabat", "aho"]:
                 aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                             scheme = scheme)
                 results = aligner.analyze_seqs([known_K, known_L, known_H])
@@ -79,18 +79,20 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         with gzip.open("test_data.csv.gz", "rt") as fhandle:
             _ = fhandle.readline()
-            seqs, martin_num, imgt_num, kabat_num = [], [], [], []
+            seqs, martin_num, imgt_num, kabat_num, aho_num = \
+                    [], [], [], [], []
             for line in fhandle:
                 line_elements = line.strip().split(",")
                 seqs.append(line_elements[0])
                 martin_num.append(line_elements[1].split("_"))
                 imgt_num.append(line_elements[2].split("_"))
                 kabat_num.append(line_elements[3].split("_"))
+                aho_num.append(line_elements[4].split("_"))
 
         os.chdir(current_dir)
 
-        numberings = [martin_num, kabat_num, imgt_num]
-        schemes = ["martin", "kabat", "imgt"]
+        numberings = [martin_num, kabat_num, imgt_num, aho_num]
+        schemes = ["martin", "kabat", "imgt", "aho"]
 
         for multithreading_setting in [False]:
             for scheme, numbering in zip(schemes, numberings):

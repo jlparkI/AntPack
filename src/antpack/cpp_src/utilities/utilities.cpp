@@ -165,7 +165,10 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
         std::string scheme, std::vector<std::string> &orderedTranslatedCodes){
     std::vector<float> orderedFloatCodes;
     float arbitraryDivisor = 1000.0;
-    
+    int max_position = 128;
+    if (scheme == "aho")
+        max_position = 149;
+
     if (position_codes.size() == 0)
         return INVALID_SEQUENCE;
 
@@ -214,7 +217,7 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
         catch (...){
             return INVALID_SEQUENCE;
         }
-        if (numericPortion <= 0 || numericPortion > 128)
+        if (numericPortion <= 0 || numericPortion > max_position)
             return INVALID_SEQUENCE;
 
         convertedCode = static_cast<float>(numericPortion);
@@ -259,10 +262,8 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
         
         if (reverseAlphabet.find(nonNumericPortion)!=reverseAlphabet.end())
             ostring += reverseAlphabet.at(nonNumericPortion);
-        else{
-            printf("\n%d\n", nonNumericPortion);
+        else
             return INVALID_SEQUENCE;
-        }
 
         orderedTranslatedCodes.push_back(ostring);
     }
