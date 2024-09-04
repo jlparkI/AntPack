@@ -1,7 +1,6 @@
 """This module contains tools needed to assign the closest VJ germline
 VJ gene (highest percent identity), using amino acid information
-only. Bear in mind that nucleotide assignments are likely more
-reliable, and that tools which offer a probabilistic assigment
+only. Bear in mind that tools which offer a probabilistic assigment
 (e.g. IGOR) may be more informative."""
 import os
 import gzip
@@ -17,20 +16,28 @@ class VJGeneTool:
     used for these assignments is stored and can be retrieved
     if needed."""
 
-    def __init__(self):
-        """Class constructor."""
+    def __init__(self, database = "imgt"):
+        """Class constructor.
+
+        Args:
+            database (str): One of 'imgt', 'ogrdb'. Determines whether
+                the IMGT or OGRDB databases are used for germline gene
+                assignment.
+        """
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
 
         self.retrieved_dates = {}
         self.default_aligner = SingleChainAnnotator()
 
-        self.vj_gene_matchups = self._consensus_db_load(current_dir, project_path)
+        self.vj_gene_matchups = self._consensus_db_load(current_dir, project_path,
+                database)
         self.std_positions = {str(i+1) for i in range(128)}
 
 
 
-    def _consensus_db_load(self, current_dir, project_path):
+    def _consensus_db_load(self, current_dir, project_path,
+            database = "imgt"):
         """Loads the current vj gene databases and returns them
         as a dictionary."""
         vj_genes = {}
@@ -182,48 +189,6 @@ class VJGeneTool:
         return v_gene, j_gene, v_pident, j_pident
 
 
-    def assign_sequence(self, sequence, species = "human"):
-        """Aligns a sequence using SingleChainAnnotator then assigns
-        it to V and J gene names. Use this function if your sequence
-        is not yet numbered and if it is a single chain (to extract
-        multiple chains from a multi-chain sequence, you can use
-        MultiChainAnnotator).
-
-        Args:
-            sequence (str): A sequence containing the usual 20 amino acids, no gaps.
-            species (str): One of 'human', 'mouse'.
-
-        Returns:
-            v_gene (str): The closest V-gene name, as measured by sequence identity.
-                If there is an error in alignment None is returned.
-            j_gene (str): The closest J-gene name, as measured by sequence identity.
-                If there is an error in alignment None is returned.
-            v_pident (float): The number of positions at which the numbered sequence matches
-                the v-gene divided by the total number of non-blank positions in the v-gene.
-                If there is an error in alignment None is returned.
-            j_pident (float): The number of positions at which the numbered sequence matches
-                the j-gene divided by the total number of non-blank positions in the j-gene.
-                If there is an error in alignment None is returned.
-
-        Raises:
-            RuntimeError: A RuntimeError is raised if a sequence containing invalid amino
-                acids is passed or if the alignment suggests the sequence may be
-                problematic.
-        """
-        numbering, p_ident, chain, err = self.default_aligner.analyze_seq(sequence)
-        if p_ident < 0.8 or err != "":
-            return None, None, None, None
-
-        fmt_seq = self._prep_sequence(sequence, numbering)
-
-        v_matcher = self.vj_gene_matchups[species][f"IG{chain}V"]
-        j_matcher = self.vj_gene_matchups[species][f"IG{chain}J"]
-
-        v_gene, v_pident = v_matcher.vjMatch(fmt_seq)
-        j_gene, j_pident = j_matcher.vjMatch(fmt_seq)
-        return v_gene, j_gene, v_pident, j_pident
-
-
     def _prep_sequence(self, sequence, numbering):
         """Extracts the standard IMGT 128 positions from a numbered
         sequence and represents others as blanks.
@@ -256,5 +221,5 @@ class VJGeneTool:
     def retrieve_db_dates(self):
         """Returns the dates when each VJ gene database
         used for this assignment was last updated by downloading
-        from IMGT."""
+        from IMGT or OGRDB."""
         return self.retrieved_dates
