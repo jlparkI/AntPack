@@ -11,7 +11,7 @@
 #include "annotator_classes/annotator_base_class.h"
 #include "annotator_classes/ig_aligner.h"
 #include "annotator_classes/cterm_finder.h"
-#include "utilities/vj_match_counter.h"
+#include "vj_assignment/vj_match_counter.h"
 #include "humanness_calcs/responsibility_calcs.h"
 #include "utilities/utilities.h"
 
@@ -46,11 +46,13 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
         .def("align_test_only", &IGAligner::align_test_only);
 
     py::class_<VJMatchCounter>(m, "VJMatchCounter")
-        .def(py::init<std::vector<std::string>,
-             std::vector<std::string>>() )
-        .def("vjMatch", &VJMatchCounter::vjMatch)
-        .def("findVJSequenceByName", &VJMatchCounter::findVJSequenceByName)
-        .def("getSeqLists", &VJMatchCounter::getSeqLists);
+        .def(py::init<std::map<std::string, std::vector<std::string>>,
+                std::map<std::string, std::vector<std::string>>,
+                py::array_t<int16_t, py::array::c_style>,
+                std::string>() )
+        .def("assign_vj_genes", &VJMatchCounter::assign_vj_genes)
+        .def("get_vj_gene_sequence", &VJMatchCounter::get_vj_gene_sequence)
+        .def("get_seq_lists", &VJMatchCounter::get_seq_lists);
 
     m.def("getProbsCExt", &getProbsCExt, py::call_guard<py::gil_scoped_release>());
     m.def("mask_terminal_deletions", &mask_terminal_deletions, py::call_guard<py::gil_scoped_release>());

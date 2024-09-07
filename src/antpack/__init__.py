@@ -3,7 +3,5 @@
 __version__ = "0.3"
 
 from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator
-from .numbering_tools.consensus_update_tools.generate_score_files import build_consensus_files
-from .utilities.vj_database_writer import update_ogrdb_databases, update_imgt_databases
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool, HumanizationTool, LiabilitySearchTool

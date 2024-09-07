@@ -60,7 +60,7 @@ class IGAligner {
     protected:
         void fill_needle_scoring_table(double *needle_scores, uint8_t *path_trace,
                     int query_seq_len, int row_size, int *encoded_sequence);
-        double core_align_test_only(std::string const &query_sequence,
+        double core_align_test_only(std::string &query_sequence,
                 std::vector<std::string> &final_numbering,
                 allowedErrorCodes &error_code,
                 py::array_t<double> score_matrix,

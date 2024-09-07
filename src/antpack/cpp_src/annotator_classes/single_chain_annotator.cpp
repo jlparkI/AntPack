@@ -122,6 +122,7 @@ std::tuple<std::vector<std::string>, double, std::string,
                         std::string> bestResult{ emptyNumbering,
                             0, "", "Invalid sequence supplied -- nonstandard AAs"};
 
+
     if (!validate_sequence(sequence))
         return bestResult;
 

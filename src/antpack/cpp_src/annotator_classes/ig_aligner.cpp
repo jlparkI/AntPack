@@ -579,7 +579,7 @@ std::tuple<std::vector<std::string>, double, std::string,
 // This alignment function is a test-only version of core_align. It ensures that caller
 // can access the filled-out scoring matrix, which is useful for testing and diagnostics
 // but not really essential for a typical run.
-double IGAligner::core_align_test_only(std::string const &query_sequence,
+double IGAligner::core_align_test_only(std::string &query_sequence,
                 std::vector<std::string> &final_numbering,
                 allowedErrorCodes &error_code,
                 py::array_t<double> score_matrix,

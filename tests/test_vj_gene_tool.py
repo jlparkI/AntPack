@@ -3,7 +3,7 @@ import os
 import copy
 import gzip
 import unittest
-from antpack import VJGeneTool
+from antpack import VJGeneTool, SingleChainAnnotator
 
 class TestVJGeneTool(unittest.TestCase):
 
@@ -14,37 +14,33 @@ class TestVJGeneTool(unittest.TestCase):
         # Pass dummy sequences with errors.
         vj_tool = VJGeneTool()
         with self.assertRaises(RuntimeError):
-            vj_tool.assign_numbered_sequence("AYAYAYA",
-                    ["1", "2", "3"], "H")
+            vj_tool.assign_vj_genes((["1", "2", "3"], 0, "H", ""),
+                    "AYAYAYA", "human", "identity")
         with self.assertRaises(RuntimeError):
-            vj_tool.assign_numbered_sequence("AYAYAYA",
-                ["1", "2", "3", "4", "5", "6", "7"], "Z")
+            vj_tool.assign_vj_genes((["1", "2", "3"], 0, "H", ""),
+                    "AYA", "platypus", "identity")
         with self.assertRaises(RuntimeError):
-            vj_tool.assign_numbered_sequence("BYBYBYY",
-                ["1", "2", "3", "4", "5", "6", "7"], "H")
-
-        results = vj_tool.assign_sequence("AYAYAYA")
-        self.assertTrue(results[0] is None)
-        self.assertTrue(results[1] is None)
+            vj_tool.assign_vj_genes((["1", "2", "3"], 0, "H", ""),
+                    "AYA", "human", "robot")
 
 
     def test_gene_retrieval(self):
         """Make sure that we can retrieve genes and gene families
         using the appropriate methods."""
         vj_tool = VJGeneTool()
-        seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", species="human")
+        seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", "human")
         self.assertTrue(seq == "QVTLKESGP-VLVKPTETLTLTCTVSGFSLS--NARMGVSWIRQPPGKALEWLAHIFSN---DEKSYSTSLK-SRLTISKDTSKSQVVLTMTNMDPVDTATYYCARI---------------------")
 
-        family_seqs, family_names = vj_tool.get_vj_gene_family("IGHV1", species="human")
-        self.assertTrue(len(family_seqs) == len(family_names))
-        self.assertTrue(len(family_seqs) > 45)
-        self.assertTrue(len([f for f in family_names if not f.startswith("IGHV1")])==0)
+        #family_seqs, family_names = vj_tool.get_vj_gene_family("IGHV1", species="human")
+        #self.assertTrue(len(family_seqs) == len(family_names))
+        #self.assertTrue(len(family_seqs) > 45)
+        #self.assertTrue(len([f for f in family_names if not f.startswith("IGHV1")])==0)
 
-        seq = vj_tool.get_vj_gene_sequence("cow", species="human")
-        self.assertTrue(seq is None)
-        family_seqs, family_names = vj_tool.get_vj_gene_family("cow", species="human")
-        self.assertTrue(len(family_seqs) == 0)
-        self.assertTrue(len(family_names) == 0)
+        seq = vj_tool.get_vj_gene_sequence("cow", "human")
+        self.assertTrue(seq == "")
+        #family_seqs, family_names = vj_tool.get_vj_gene_family("cow", species="human")
+        #self.assertTrue(len(family_seqs) == 0)
+        #self.assertTrue(len(family_names) == 0)
 
 
     def test_percent_ident_calc(self):
@@ -61,25 +57,26 @@ class TestVJGeneTool(unittest.TestCase):
             _ = fhandle.readline()
             test_seqs = [line.strip().split(",")[0] for line in fhandle]
 
-        seq_dict = {}
+        germline_seqs, germline_names = vj_tool.get_seq_lists()
 
-        for chain in ['H', 'K', 'L']:
-            for recep in [f"IG{chain}V", f"IG{chain}J"]:
-                seqs, names = vj_tool.vj_gene_matchups["human"][recep].getSeqLists()
-                seq_dict[recep] = {}
-                seq_dict[recep]["seqs"] = seqs
-                seq_dict[recep]["names"] = names
+        sc_annotator = SingleChainAnnotator()
 
         os.chdir(current_dir)
         for seq in test_seqs[:100]:
-            numbering, _, chain, _ = vj_tool.default_aligner.analyze_seq(seq)
-            fmt_seq = vj_tool._prep_sequence(seq, numbering)
+            alignment = sc_annotator.analyze_seq(seq)
+            chain = alignment[2]
+            fmt_seq = prep_sequence(seq, alignment)
 
-            for recep in [f"IG{chain}V", f"IG{chain}J"]:
-                gpred, id_pred = vj_tool.vj_gene_matchups["human"][recep].vjMatch(fmt_seq)
+            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+                    seq, "human", "identity")
+
+            gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
+
+            for recep, gpred, id_pred in zip([f"IG{chain}V", f"IG{chain}J"],
+                    gpreds, gidentities):
 
                 best_pid, matchnum = 0, 0
-                for i, template in enumerate(seq_dict[recep]["seqs"]):
+                for i, template in enumerate(germline_seqs[f"human_{recep}"]):
                     matches, ntot = 0, 0
 
                     for qletter, tletter in zip(fmt_seq, template):
@@ -94,8 +91,7 @@ class TestVJGeneTool(unittest.TestCase):
                         matchnum = i
                         best_pid = copy.deepcopy(true_pid)
 
-                gtrue = seq_dict[recep]["names"][matchnum]
-
+                gtrue = germline_names[f"human_{recep}"][matchnum]
                 self.assertTrue(gtrue == gpred)
                 self.assertTrue(best_pid == id_pred)
 
@@ -104,6 +100,7 @@ class TestVJGeneTool(unittest.TestCase):
         """Checks vj assignments against those done by other
         tools to ensure that they are usually the same."""
         vj_tool = VJGeneTool()
+        sc_annotator = SingleChainAnnotator()
 
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
@@ -118,10 +115,12 @@ class TestVJGeneTool(unittest.TestCase):
             for line in fhandle:
                 seq, vgene, jgene = line.strip().split(",")
                 # Eliminate problematic sequences (e.g. missing cysteine).
-                _, pid, chain, err = vj_tool.default_aligner.analyze_seq(seq)
+                alignment = sc_annotator.analyze_seq(seq)
+                pid, chain, err = alignment[1], alignment[2], alignment[3]
                 if pid < 0.8 or err != "":
                     continue
-                pred_vgene, pred_jgene, _, _ = vj_tool.assign_sequence(seq, species="human")
+                pred_vgene, pred_jgene, _, _ = vj_tool.assign_vj_genes(alignment,
+                        seq, "human", "identity")
 
                 if pred_vgene == vgene:
                     if chain == "H":
@@ -145,6 +144,22 @@ class TestVJGeneTool(unittest.TestCase):
         self.assertTrue((jmatches / ntests) > 0.9)
 
         os.chdir(current_dir)
+
+
+
+
+def prep_sequence(sequence, alignment):
+    """Converts an imgt-formatted sequence into a query for
+    matching up to VJ genes."""
+    numbering = alignment[0]
+    std_positions = {str(i+1) for i in range(128)}
+
+    fmt_seq = ['-' for i in range(128)]
+    for letter, nb_assign in zip(sequence, numbering):
+        if nb_assign in std_positions:
+            fmt_seq[int(nb_assign) - 1] = letter
+
+    return "".join(fmt_seq)
 
 
 

@@ -14,12 +14,11 @@
 
 //Checks a query sequence to ensure it contains only recognized
 //amino acids.
-int validate_sequence(std::string query_sequence){
+int validate_sequence(std::string &query_sequence){
     bool validQuery = true;
 
-    if (query_sequence.length() == 0){
+    if (query_sequence.length() == 0)
         return INVALID_SEQUENCE;
-    }
 
     for (char & c : query_sequence)
     {
@@ -53,15 +52,70 @@ int validate_sequence(std::string query_sequence){
                 break;
 
         }
-        if (!validQuery){
+        if (!validQuery)
             break;
-        }
     }
-    if (!validQuery){
+    if (!validQuery)
         return INVALID_SEQUENCE;
-    }
+
     return VALID_SEQUENCE;
 }
+
+
+
+//Checks a query sequence to ensure it contains only recognized
+//amino acids OR GAPS. Use this in preference to validate_sequence
+//when gaps are allowed / ok.
+int validate_gapped_sequence(std::string &query_sequence){
+    bool validQuery = true;
+
+    if (query_sequence.length() == 0)
+        return INVALID_SEQUENCE;
+
+    for (char & c : query_sequence)
+    {
+        //Switch will provide a (small) speed gain over map
+        //since compiler should convert it to a lookup table
+        switch (c){
+            case 'A':
+            case 'C':
+            case 'D':
+            case 'E':
+            case 'F':
+            case 'G':
+            case 'H':
+            case 'I':
+            case 'K':
+            case 'L':
+            case 'M':
+            case 'N':
+            case 'P':
+            case 'Q':
+            case 'R':
+            case 'S':
+            case 'T':
+            case 'V':
+            case 'W':
+            case 'Y':
+            case 'X':
+            case '-':
+                break;
+            
+            default:
+                validQuery = false;
+                break;
+
+        }
+        if (!validQuery)
+            break;
+    }
+    if (!validQuery)
+        return INVALID_SEQUENCE;
+
+    return VALID_SEQUENCE;
+}
+
+
 
 
 // Converts an input sequence to a numeric representation as an
@@ -70,7 +124,7 @@ int validate_sequence(std::string query_sequence){
 // only ever by C++ functions that DO perform safety checks on
 // input. In particular, caller MUST verify that seqAsArray is
 // the same length as sequence.
-int convert_sequence_to_array(int *queryAsIdx, std::string query_sequence){
+int convert_sequence_to_array(int *queryAsIdx, std::string &query_sequence){
     
     // Translate the query sequence into an integer 0-21 encoding. This
     // is more verbose than using std::map but should be slightly faster
@@ -141,6 +195,8 @@ int convert_sequence_to_array(int *queryAsIdx, std::string query_sequence){
             case '-':
                 queryAsIdx[i] = 20;
                 break;
+            //case 'X':
+            //    queryAsIdx[i] = 21;
 
             default:
                 return INVALID_SEQUENCE;
@@ -150,6 +206,7 @@ int convert_sequence_to_array(int *queryAsIdx, std::string query_sequence){
     }
     return VALID_SEQUENCE;
 }
+
 
 
 
