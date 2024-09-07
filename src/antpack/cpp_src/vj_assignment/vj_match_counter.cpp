@@ -4,7 +4,7 @@
 VJMatchCounter::VJMatchCounter(
                 std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
-                py::array_t<int16_t, py::array::c_style> blosum_matrix,
+                py::array_t<double, py::array::c_style> blosum_matrix,
                 std::string scheme
 ):
     gene_seqs(gene_seqs),
@@ -221,7 +221,7 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
                 std::string &best_gene_name,
                 char gene_type){
 
-    best_identity = 21 * REQUIRED_SEQUENCE_LENGTH;
+    best_identity = 0;
     int start_letter = 0, end_letter = 0;
 
     if (gene_type == 'j'){
@@ -234,72 +234,73 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
     }
     
     auto blosum_itr = this->blosum_matrix.unchecked<2>();
-    int blosum_distance, closest_id = 0;
+    double blosum_score;
+    int closest_id = 0;
 
     for (size_t i=0; i < gene_seqs.size(); i++){
-        blosum_distance = 0;
+        blosum_score = 0;
 
         for (int j=start_letter; j < end_letter; j++){
             switch (gene_seqs[i][j]){
                 case 'A':
-                    blosum_distance += blosum_itr(0,encoded_sequence[j]);
+                    blosum_score += blosum_itr(0,encoded_sequence[j]);
                     break;
                 case 'C':
-                    blosum_distance += blosum_itr(1,encoded_sequence[j]);
+                    blosum_score += blosum_itr(1,encoded_sequence[j]);
                     break;
                 case 'D':
-                    blosum_distance += blosum_itr(2,encoded_sequence[j]);
+                    blosum_score += blosum_itr(2,encoded_sequence[j]);
                     break;
                 case 'E':
-                    blosum_distance += blosum_itr(3,encoded_sequence[j]);
+                    blosum_score += blosum_itr(3,encoded_sequence[j]);
                     break;
                 case 'F':
-                    blosum_distance += blosum_itr(4,encoded_sequence[j]);
+                    blosum_score += blosum_itr(4,encoded_sequence[j]);
                     break;
                 case 'G':
-                    blosum_distance += blosum_itr(5,encoded_sequence[j]);
+                    blosum_score += blosum_itr(5,encoded_sequence[j]);
                     break;
                 case 'H':
-                    blosum_distance += blosum_itr(6,encoded_sequence[j]);
+                    blosum_score += blosum_itr(6,encoded_sequence[j]);
                     break;
                 case 'I':
-                    blosum_distance += blosum_itr(7,encoded_sequence[j]);
+                    blosum_score += blosum_itr(7,encoded_sequence[j]);
                     break;
                 case 'K':
-                    blosum_distance += blosum_itr(8,encoded_sequence[j]);
+                    blosum_score += blosum_itr(8,encoded_sequence[j]);
                     break;
                 case 'L':
-                    blosum_distance += blosum_itr(9,encoded_sequence[j]);
+                    blosum_score += blosum_itr(9,encoded_sequence[j]);
                     break;
                 case 'M':
-                    blosum_distance += blosum_itr(10,encoded_sequence[j]);
+                    blosum_score += blosum_itr(10,encoded_sequence[j]);
                     break;
                 case 'N':
-                    blosum_distance += blosum_itr(11,encoded_sequence[j]);
-                    break;
-                case 'O':
-                    blosum_distance += blosum_itr(12,encoded_sequence[j]);
+                    blosum_score += blosum_itr(11,encoded_sequence[j]);
                     break;
                 case 'P':
-                    blosum_distance += blosum_itr(13,encoded_sequence[j]);
+                    blosum_score += blosum_itr(12,encoded_sequence[j]);
                     break;
                 case 'Q':
-                    blosum_distance += blosum_itr(14,encoded_sequence[j]);
+                    blosum_score += blosum_itr(13,encoded_sequence[j]);
                     break;
                 case 'R':
-                    blosum_distance += blosum_itr(15,encoded_sequence[j]);
+                    blosum_score += blosum_itr(14,encoded_sequence[j]);
                     break;
                 case 'S':
-                    blosum_distance += blosum_itr(16,encoded_sequence[j]);
+                    blosum_score += blosum_itr(15,encoded_sequence[j]);
                     break;
                 case 'T':
-                    blosum_distance += blosum_itr(17,encoded_sequence[j]);
+                    blosum_score += blosum_itr(16,encoded_sequence[j]);
+                    break;
+                case 'V':
+                    blosum_score += blosum_itr(17,encoded_sequence[j]);
                     break;
                 case 'W':
-                    blosum_distance += blosum_itr(18,encoded_sequence[j]);
+                    blosum_score += blosum_itr(18,encoded_sequence[j]);
                     break;
                 case 'Y':
-                    blosum_distance += blosum_itr(19,encoded_sequence[j]);
+                    blosum_score += blosum_itr(19,encoded_sequence[j]);
                     break;
                 case '-':
                     break;
@@ -309,10 +310,9 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
 
             }
         }
-
-        if (blosum_distance < best_identity){
+        if (blosum_score > best_identity){
             closest_id = i;
-            best_identity = blosum_distance;
+            best_identity = blosum_score;
         }
     }
 

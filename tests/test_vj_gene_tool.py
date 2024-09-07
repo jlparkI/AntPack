@@ -119,8 +119,8 @@ class TestVJGeneTool(unittest.TestCase):
                 pid, chain, err = alignment[1], alignment[2], alignment[3]
                 if pid < 0.8 or err != "":
                     continue
-                pred_vgene, pred_jgene, _, _ = vj_tool.assign_vj_genes(alignment,
-                        seq, "human", "identity")
+                pred_vgene, pred_jgene, pidv, pidj = vj_tool.assign_vj_genes(alignment,
+                        seq, "human", "evalue")
 
                 if pred_vgene == vgene:
                     if chain == "H":

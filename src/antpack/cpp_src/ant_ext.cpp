@@ -48,7 +48,7 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
     py::class_<VJMatchCounter>(m, "VJMatchCounter")
         .def(py::init<std::map<std::string, std::vector<std::string>>,
                 std::map<std::string, std::vector<std::string>>,
-                py::array_t<int16_t, py::array::c_style>,
+                py::array_t<double, py::array::c_style>,
                 std::string>() )
         .def("assign_vj_genes", &VJMatchCounter::assign_vj_genes)
         .def("get_vj_gene_sequence", &VJMatchCounter::get_vj_gene_sequence)

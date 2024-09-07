@@ -29,7 +29,7 @@ class VJMatchCounter {
     public:
         VJMatchCounter(std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
-                py::array_t<int16_t, py::array::c_style> blosum_matrix,
+                py::array_t<double, py::array::c_style> blosum_matrix,
                 std::string scheme);
 
         std::tuple<std::string, std::string, double, double> assign_vj_genes(std::tuple<std::vector<std::string>,
@@ -44,7 +44,7 @@ class VJMatchCounter {
     protected:
         std::map<std::string, std::vector<std::string>> gene_seqs;
         std::map<std::string, std::vector<std::string>> gene_names;
-        py::array_t<int16_t, py::array::c_style> blosum_matrix;
+        py::array_t<double, py::array::c_style> blosum_matrix;
         std::string scheme;
 
         std::map<std::string, std::map<std::string, int>> names_to_positions;
