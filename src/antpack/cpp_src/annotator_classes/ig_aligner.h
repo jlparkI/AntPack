@@ -22,9 +22,9 @@ namespace py = pybind11;
 
 // Codes for the pathways that can link a score
 // to the best-scoring parent.
-#define LEFT_TRANSFER 0
-#define DIAGONAL_TRANSFER 1
+#define LEFT_TRANSFER 1
 #define UP_TRANSFER 2
+#define DIAGONAL_TRANSFER 0
 
 // The columns of the score matrix that are accessed for gap penalties.
 #define QUERY_GAP_COLUMN 20
@@ -42,10 +42,6 @@ class IGAligner {
                 double terminalTemplateGapPenalty,
                 double CterminalQueryGapPenalty,
                 bool compress_initial_gaps);
-        std::tuple<std::vector<std::string>, double, std::string,
-                std::string> align_test_only(std::string query_sequence,
-                py::array_t<double> score_matrix,
-                py::array_t<uint8_t> path_trace);
         void align(std::string query_sequence, int *encoded_sequence,
                 std::vector<std::string> &final_numbering,
                 double &percent_identity, std::string &error_message);
@@ -58,13 +54,10 @@ class IGAligner {
 
 
     protected:
-        void fill_needle_scoring_table(double *needle_scores, uint8_t *path_trace,
-                    int query_seq_len, int row_size, int *encoded_sequence);
-        double core_align_test_only(std::string &query_sequence,
-                std::vector<std::string> &final_numbering,
-                allowedErrorCodes &error_code,
-                py::array_t<double> score_matrix,
-                py::array_t<uint8_t> pathTrace);
+        void fill_needle_scoring_table(uint8_t *path_trace,
+                    int query_seq_len, int row_size,
+                    const int *encoded_sequence,
+                    int &numElements);
 
         // Default gap penalties for gaps at the beginning and end of the sequence.
         // template is a weak penalty for placing gaps outside the numbering,
@@ -85,7 +78,7 @@ class IGAligner {
         std::array<std::string, 6> error_code_to_message {{"",
                 "Sequence contains invalid characters",
                 "Fatal runtime error in IGAligner. Unusual. Please report",
-                "> 72 insertions. Suggests a problem with this sequence",
+                "> max allowed insertions -- suggests alignment error or unusual sequence",
                 "Alignment length != length of input sequence. Unusual. Please report.",
                 "Unexpected AA at conserved position."}};
 
@@ -93,7 +86,7 @@ class IGAligner {
         // Alphabet for numbering insertions. Our preference would be to number insertions
         // as _1, _2 etc, but most numbering programs use letters, so we do the same here
         // for consistency and ease of comparison. This does limit the number of possible
-        // insertions BUT if there is ever a case where more than 78 insertions have occurred
+        // insertions BUT if there is ever a case where more than 70 insertions have occurred
         // at some point in the sequence, there is almost certainly an error in the alignment, and
         // that's how we handle this eventuality if it occurs. (Indeed, it is very rare to have
         // more than a few at any given position, so the size of alphabet here is overkill.)

@@ -33,4 +33,4 @@ class SingleChainAnnotator(SingleChainAnnotatorCpp):
         consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                 "consensus_data")
         super().__init__(chains, scheme, compress_init_gaps,
-                False, consensus_path)
+                consensus_path)

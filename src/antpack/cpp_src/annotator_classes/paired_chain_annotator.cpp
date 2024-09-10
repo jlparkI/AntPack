@@ -7,24 +7,22 @@
 
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
-        std::string scheme, bool multithread,
-        std::string consensus_filepath
+        std::string scheme, std::string consensus_filepath
 ):
     AnnotatorBaseClassCpp(scheme),
-    scheme(scheme),
-    multithread(multithread)
+    scheme(scheme)
 {
     std::vector<std::string> chains = {"K", "L"};
     this->light_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>(chains,
-            scheme, false, multithread, consensus_filepath);
+            scheme, false, consensus_filepath);
 
     chains = {"H"};
     this->heavy_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>(chains,
-            scheme, false, multithread, consensus_filepath);
+            scheme, false, consensus_filepath);
 
     chains = {"H", "K", "L"};
     this->analyzer = std::make_unique<SingleChainAnnotatorCpp>(chains,
-            scheme, false, multithread, consensus_filepath);
+            scheme, false, consensus_filepath);
 
 
     std::filesystem::path extensionPath = consensus_filepath;

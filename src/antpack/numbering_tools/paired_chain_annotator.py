@@ -21,4 +21,4 @@ class PairedChainAnnotator(PairedChainAnnotatorCpp):
         """
         consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                 "consensus_data")
-        super().__init__(scheme, False, consensus_path)
+        super().__init__(scheme, consensus_path)

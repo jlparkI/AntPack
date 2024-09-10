@@ -14,7 +14,6 @@
 #include "../numbering_constants.h"
 
 
-#define CTERMINAL_STANDARD_OFFSET 9
 
 
 namespace py = pybind11;
@@ -24,7 +23,6 @@ namespace py = pybind11;
 class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
     public:
         PairedChainAnnotatorCpp(std::string scheme = "imgt",
-                bool multithread = false,
                 std::string consensus_filepath = "");
 
         std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,

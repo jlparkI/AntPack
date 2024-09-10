@@ -5,37 +5,18 @@
 #include <vector>
 #include <string>
 #include <tuple>
-#include <thread>
-#include <future>
-#include <functional>
 #include <filesystem>
-#include <iostream>
 #include <unordered_map>
 #include "annotator_base_class.h"
+#include "cterm_finder.h"
 #include "../utilities/utilities.h"
 #include "../utilities/consensus_file_utilities.h"
 #include "ig_aligner.h"
 #include "../numbering_constants.h"
 
-#include <iostream>
 
 
 namespace py = pybind11;
-
-// We have 22 AAs -- the 20 standard aminos then a gap in query penalty
-// vs gap in template -- thus, 22 expected values.
-#define NUM_AAS 22
-
-// Codes for the pathways that can link a score
-// to the best-scoring parent.
-#define LEFT_TRANSFER 0
-#define DIAGONAL_TRANSFER 1
-#define UP_TRANSFER 2
-
-// The columns of the score matrix that are accessed for gap penalties.
-#define QUERY_GAP_COLUMN 20
-#define TEMPLATE_GAP_COLUMN 21
-
 
 
 
@@ -44,7 +25,6 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
     public:
         SingleChainAnnotatorCpp(std::vector<std::string> chains = {"H", "K", "L"},
                 std::string scheme = "imgt", bool compress_init_gaps = false,
-                bool multithread = false,
                 std::string consensus_filepath = "");
 
         std::tuple<std::vector<std::string>, double, std::string,
@@ -57,10 +37,17 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::vector<std::string> chains;
         std::string scheme;
         bool compress_init_gaps;
-        bool multithread;
 
         std::vector<std::unique_ptr<IGAligner>> scoring_tools;
+        std::unique_ptr<CTermFinder> boundary_finder;
 
+        int align_input_subregion(std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &best_result, double &best_identity,
+                std::string &query_sequence);
+        void pad_left(std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &alignment, std::string &query_sequence);
+        void pad_right(std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &alignment, std::string &query_sequence);
 
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string, std::vector<std::string>> analyze_test_only(std::string query_sequence,

@@ -30,20 +30,19 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
 
     py::class_<SingleChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
         .def(py::init<std::vector<std::string>,
-                std::string, bool, bool, std::string>())
+                std::string, bool, std::string>())
         .def("analyze_seq", &SingleChainAnnotatorCpp::analyze_seq)
         .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs);
 
     py::class_<PairedChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
-        .def(py::init<std::string, bool, std::string>())
+        .def(py::init<std::string, std::string>())
         .def("analyze_seq", &PairedChainAnnotatorCpp::analyze_seq);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,
                 std::vector<std::vector<std::string>>,
                 std::string, std::string,
-                double, double, bool>())
-        .def("align_test_only", &IGAligner::align_test_only);
+                double, double, bool>());
 
     py::class_<VJMatchCounter>(m, "VJMatchCounter")
         .def(py::init<std::map<std::string, std::vector<std::string>>,

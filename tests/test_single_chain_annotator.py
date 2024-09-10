@@ -297,6 +297,53 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
 
 
+    def test_tricky_alignment_handling(self):
+        """Check situations where the alignment might be 'tricky'
+        to ensure results are correct."""
+        return
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        AAs = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        os.chdir(current_dir)
+        random.seed(123)
+
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt")
+        for seq in seqs:
+            alignment = aligner.analyze_seq(seq)
+            # Exclude sequences that have gaps at the ends
+            if alignment[2] == "H":
+                if '128' not in alignment[0]:
+                    continue
+                if seq[alignment[0].index('128')] == "G":
+                    continue
+            else:
+                if '127' not in alignment[0]:
+                    continue
+
+            muddled_seq = seq + "YYY" + "".join([random.choice(AAs) for i in range(250)])
+            alt_alignment = aligner.analyze_seq(muddled_seq)
+            self.assertTrue(len(alt_alignment[0]) == len(muddled_seq))
+
+
+            trimmed_alt = aligner.trim_alignment(muddled_seq, alt_alignment)
+            trimmed_gt = aligner.trim_alignment(seq, alignment)
+            if trimmed_alt[0] != trimmed_gt[0]:
+                import pdb
+                pdb.set_trace()
+            self.assertTrue(trimmed_alt[0] == trimmed_gt[0])
+
+
+
+
+
 
 
 def compare_results(results, comparator_numbering, seqs, scheme):

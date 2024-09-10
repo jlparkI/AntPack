@@ -151,6 +151,8 @@ std::tuple<std::string, std::string,
                 videntity, vgene_name, 'v');
         this->assign_gene_by_evalue(jgenes, jnames, encoded_query.get(),
                 jidentity, jgene_name, 'j');
+        videntity *= sequence.length();
+        jidentity *= sequence.length();
     }
     else{
         throw std::runtime_error(std::string("Unrecognized mode was supplied. "
@@ -170,6 +172,13 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
                 double &best_identity,
                 std::string &best_gene_name,
                 char gene_type){
+    // Sometimes with e-value or identity there is a tie where multiple genes
+    // have the same e-value or percent identity. In this case, we report all
+    // of them. To do so, we temporarily keep track of the best matches so far.
+    // We reserve 10 which is an arbitrary number much larger than the number
+    // of best matches we are likely to see in practice.
+    std::vector<int> best_matches;
+    best_matches.reserve(10);
 
     best_identity = 0;
     int start_letter = 0, end_letter = 0;
@@ -183,12 +192,9 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
         end_letter = 108;
     }
 
-    int matching_positions, nonzero_positions, closest_id = 0;
-    double current_identity = 0;
-
     for (size_t i=0; i < gene_seqs.size(); i++){
-        matching_positions = 0;
-        nonzero_positions = 0;
+        int matching_positions = 0;
+        int nonzero_positions = 0;
 
         for (int j=start_letter; j < end_letter; j++){
             if (gene_seqs[i][j] == '-')
@@ -199,16 +205,29 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
         }
         if (nonzero_positions == 0)
             nonzero_positions = 1;
-        current_identity = (static_cast<double>(matching_positions)) / 
+        double current_identity = (static_cast<double>(matching_positions)) / 
             (static_cast<double>(nonzero_positions));
 
-        if (current_identity > best_identity){
-            closest_id = i;
+        // Since we are comparing doubles here, just check if they are
+        // close (for an arbitrary definition of close, here defined as
+        // numbers within 1e-10).
+        if (current_identity > (best_identity + 1e-10)){
+            best_matches.clear();
+            best_matches.push_back(i);
             best_identity = current_identity;
         }
+        else if (current_identity > (best_identity - 1e-10))
+            best_matches.push_back(i);
     }
-
-    best_gene_name = gene_names[closest_id];
+    // If only one top match was found, we can use that name...
+    if (best_matches.size() == 1)
+        best_gene_name = gene_names[best_matches[0]];
+    // otherwise, use a comma-separated list.
+    else if (best_matches.size() > 1){
+        best_gene_name = gene_names[best_matches[0]];
+        for (size_t i=1; i < best_matches.size(); i++)
+            best_gene_name += "_" + gene_names[best_matches[i]];
+    }
 }
 
 
@@ -220,10 +239,21 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
                 double &best_identity,
                 std::string &best_gene_name,
                 char gene_type){
+    // Sometimes with e-value or identity there is a tie where multiple genes
+    // have the same e-value or percent identity. In this case, we report all
+    // of them. To do so, we temporarily keep track of the best matches so far.
+    // We reserve 10 which is an arbitrary number much larger than the number
+    // of best matches we are likely to see in practice.
+    std::vector<int> best_matches;
+    best_matches.reserve(10);
 
-    best_identity = 0;
+    best_gene_name = "";
+    int64_t db_length = 0, best_score = 0;
+
+    // For a (very slight) speed gain we loop over only
+    // the parts of the numbering that will not contain
+    // any gaps.
     int start_letter = 0, end_letter = 0;
-
     if (gene_type == 'j'){
         start_letter = 105;
         end_letter = REQUIRED_SEQUENCE_LENGTH;
@@ -234,72 +264,90 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
     }
     
     auto blosum_itr = this->blosum_matrix.unchecked<2>();
-    double blosum_score;
-    int closest_id = 0;
 
     for (size_t i=0; i < gene_seqs.size(); i++){
-        blosum_score = 0;
+        int64_t blosum_score = 0;
 
         for (int j=start_letter; j < end_letter; j++){
             switch (gene_seqs[i][j]){
                 case 'A':
+                    db_length += 1;
                     blosum_score += blosum_itr(0,encoded_sequence[j]);
                     break;
                 case 'C':
+                    db_length += 1;
                     blosum_score += blosum_itr(1,encoded_sequence[j]);
                     break;
                 case 'D':
+                    db_length += 1;
                     blosum_score += blosum_itr(2,encoded_sequence[j]);
                     break;
                 case 'E':
+                    db_length += 1;
                     blosum_score += blosum_itr(3,encoded_sequence[j]);
                     break;
                 case 'F':
+                    db_length += 1;
                     blosum_score += blosum_itr(4,encoded_sequence[j]);
                     break;
                 case 'G':
+                    db_length += 1;
                     blosum_score += blosum_itr(5,encoded_sequence[j]);
                     break;
                 case 'H':
+                    db_length += 1;
                     blosum_score += blosum_itr(6,encoded_sequence[j]);
                     break;
                 case 'I':
+                    db_length += 1;
                     blosum_score += blosum_itr(7,encoded_sequence[j]);
                     break;
                 case 'K':
+                    db_length += 1;
                     blosum_score += blosum_itr(8,encoded_sequence[j]);
                     break;
                 case 'L':
+                    db_length += 1;
                     blosum_score += blosum_itr(9,encoded_sequence[j]);
                     break;
                 case 'M':
+                    db_length += 1;
                     blosum_score += blosum_itr(10,encoded_sequence[j]);
                     break;
                 case 'N':
+                    db_length += 1;
                     blosum_score += blosum_itr(11,encoded_sequence[j]);
                     break;
                 case 'P':
+                    db_length += 1;
                     blosum_score += blosum_itr(12,encoded_sequence[j]);
                     break;
                 case 'Q':
+                    db_length += 1;
                     blosum_score += blosum_itr(13,encoded_sequence[j]);
                     break;
                 case 'R':
+                    db_length += 1;
                     blosum_score += blosum_itr(14,encoded_sequence[j]);
                     break;
                 case 'S':
+                    db_length += 1;
                     blosum_score += blosum_itr(15,encoded_sequence[j]);
                     break;
                 case 'T':
+                    db_length += 1;
                     blosum_score += blosum_itr(16,encoded_sequence[j]);
                     break;
                 case 'V':
+                    db_length += 1;
                     blosum_score += blosum_itr(17,encoded_sequence[j]);
                     break;
                 case 'W':
+                    db_length += 1;
                     blosum_score += blosum_itr(18,encoded_sequence[j]);
                     break;
                 case 'Y':
+                    db_length += 1;
                     blosum_score += blosum_itr(19,encoded_sequence[j]);
                     break;
                 case '-':
@@ -310,13 +358,29 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
 
             }
         }
-        if (blosum_score > best_identity){
-            closest_id = i;
-            best_identity = blosum_score;
+
+        if (blosum_score > best_score){
+            best_matches.clear();
+            best_matches.push_back(i);
+            best_score = blosum_score;
         }
+        else if (blosum_score == best_score)
+            best_matches.push_back(i);
     }
 
-    best_gene_name = gene_names[closest_id];
+    // If only one top match was found, we can use that name...
+    if (best_matches.size() == 1)
+        best_gene_name = gene_names[best_matches[0]];
+    // otherwise, use a comma-separated list.
+    else if (best_matches.size() > 1){
+        best_gene_name = gene_names[best_matches[0]];
+        for (size_t i=1; i < best_matches.size(); i++)
+            best_gene_name += "_" + gene_names[best_matches[i]];
+    }
+
+    best_identity = best_score;
+    best_identity = (double)db_length * std::pow(2, -best_identity);
+
     return VALID_SEQUENCE;
 }
 

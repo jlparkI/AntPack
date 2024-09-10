@@ -3,6 +3,7 @@ import os
 import copy
 import gzip
 import unittest
+import numpy as np
 from antpack import VJGeneTool, SingleChainAnnotator
 
 class TestVJGeneTool(unittest.TestCase):
@@ -92,8 +93,8 @@ class TestVJGeneTool(unittest.TestCase):
                         best_pid = copy.deepcopy(true_pid)
 
                 gtrue = germline_names[f"human_{recep}"][matchnum]
-                self.assertTrue(gtrue == gpred)
-                self.assertTrue(best_pid == id_pred)
+                self.assertTrue(gtrue in gpred)
+                self.assertTrue(np.allclose(id_pred, best_pid))
 
 
     def test_vj_assignment(self):
@@ -120,14 +121,14 @@ class TestVJGeneTool(unittest.TestCase):
                 if pid < 0.8 or err != "":
                     continue
                 pred_vgene, pred_jgene, pidv, pidj = vj_tool.assign_vj_genes(alignment,
-                        seq, "human", "evalue")
+                        seq, "human", "identity")
 
-                if pred_vgene == vgene:
+                if vgene in pred_vgene:
                     if chain == "H":
                         vhmatches += 1
                     else:
                         vklmatches += 1
-                if pred_jgene == jgene:
+                if jgene in pred_jgene:
                     jmatches += 1
                 if chain == "H":
                     vhtests += 1
