@@ -212,3 +212,41 @@ std::vector<std::string> AnnotatorBaseClassCpp::assign_cdr_labels(std::tuple<std
 
     return cdr_labeling;
 }
+
+
+
+// Pads input numbering on the left to make it the same length as the
+// input sequence. Only used when realigning to fix rare alignment errors.
+void AnnotatorBaseClassCpp::pad_left(std::tuple<std::vector<std::string>, double,
+            std::string, std::string> &alignment,
+        std::string &query_sequence){
+
+    std::vector<std::string> &numbering = std::get<0>(alignment);
+
+    int num_gaps = (query_sequence.length() - numbering.size());
+    if (num_gaps <= 0)
+        return;
+
+    std::vector<std::string> updated_numbering(num_gaps, "-");
+
+    for (size_t i=0; i < numbering.size(); i++)
+        updated_numbering.push_back(numbering[i]);
+
+    std::get<0>(alignment) = updated_numbering;
+}
+
+
+// Pads input numbering on the right to make it the same length as the
+// input sequence. Only used when realigning to fix rare alignment errors.
+void AnnotatorBaseClassCpp::pad_right(std::tuple<std::vector<std::string>, double,
+            std::string, std::string> &alignment,
+        std::string &query_sequence){
+
+    std::vector<std::string> &numbering = std::get<0>(alignment);
+    int num_gaps = (query_sequence.length() - numbering.size());
+    if (num_gaps <= 0)
+        return;
+
+    for (int i=0; i < num_gaps; i++)
+        numbering.push_back("-");
+}

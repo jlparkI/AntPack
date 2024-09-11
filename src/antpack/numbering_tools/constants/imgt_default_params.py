@@ -30,8 +30,8 @@ heavy_special_positions = {10:[-1,-12], 33:[-1.2,-1.2], 61:[-1.2,-1.2],
         73:[-1,-11], 111:[-1.2,-1.2]}
 
 light_special_positions = {10:[-1,-12],
-        33:[-1.2,-1.2], 61:[-1.2,-1.2], 73:[-1,-11], 81:[-1.2,-25],
-        82:[-1.2,-25], 111:[-1.2,-1.2]}
+        33:[-1.2,-1.2], 61:[-1.2,-1.2], 73:[-1,-11], 81:[-1.,-25],
+        82:[-1.,-25], 111:[-1.2,-1.2]}
 
 #IMGT-defined CDRs. We have a specially defined gap penalty for each to ensure they are filled
 #in the correct order. For IMGT, light and heavy cdrs have the same definition.

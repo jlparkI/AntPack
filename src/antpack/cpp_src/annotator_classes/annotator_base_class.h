@@ -28,6 +28,11 @@ class AnnotatorBaseClassCpp {
         const std::array<std::string, 7> cdr_region_labels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
                                 "fmwk3", "cdr3", "fmwk4"}};
 
+        void pad_left(std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &alignment, std::string &query_sequence);
+        void pad_right(std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &alignment, std::string &query_sequence);
+
 };
 
 #endif

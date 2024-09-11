@@ -17,6 +17,10 @@
 #define CTERMINAL_OFFSET_ALIGNMENT_SHIFT 11
 
 
+// Special error code for cases where a rare but specific type
+// of alignment error may have occurred.
+#define POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT 2
+
 
 
 SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
@@ -162,8 +166,6 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
 
 
 
-
-
 // SingleChainAnnotatorCpp function which numbers a single input sequence.
 std::tuple<std::vector<std::string>, double, std::string,
             std::string> SingleChainAnnotatorCpp::analyze_seq(std::string sequence){
@@ -178,104 +180,79 @@ std::tuple<std::vector<std::string>, double, std::string,
     if (!validate_sequence(sequence))
         return best_result;
 
-    if (!this->align_input_subregion(best_result, best_identity,
-                sequence))
+    int err_code = this->align_input_subregion(best_result, best_identity,
+                sequence);
+    if (err_code !=  POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT)
         return best_result;
-
 
     // It can (rarely) happen that we have a chain (usually light) where the expected FGxG
     // motif in the J-gene is altered AND there is significant additional sequence beyond
     // the end of the J-gene, e.g. in a paired chain AND this results in an alignment
     // error. In the event this unusual combination of circumstances occurs, it
     // usually manifests in the form of an unusually long CDR that exceeds the maximum
-    // number of allowed insertion codes. In such cases we 1) find regions that likely
-    // represent the c-terminus of a variable region, 2) use the first such to split up
-    // the input into regions, 3) align each region and 4) keep the one with the best pid. This
-    // is significantly more expensive than a simple alignment but since this issue
-    // is so rare it has an insignificant effect on average numbering time.
-    if (std::get<3>(best_result).substr(0, 2) == "> "){
-        printf("\nBOING BOING!!\n");
-        // Using 3 here and throughout since cterm finder looks for a cterminal corresponding
-        // to any of the three possible chains, even if our aligner is looking for one only.
-        std::array<double, 3> mscores;
-        std::array<int, 3> mpositions;
-        int cterm_err_code = this->boundary_finder->find_c_terminals(sequence, mscores,
+    // number of allowed insertion codes.
+
+    // If this may have occurred, check for the location of likely j-genes,
+    // use them to break up the long sequence and align the part that most likely
+    // contains the viable variable region.
+
+    // Using 3 here and throughout since cterm finder looks for a cterminal corresponding
+    // to any of the three possible chains, even if our aligner is looking for one or two
+    // only. Consequently, when analyzing the results, we have to be careful to check that
+    // we only use results corresponding to chains selected for this analyzer.
+    std::array<double, 3> mscores;
+    std::array<int, 3> mpositions;
+    err_code = this->boundary_finder->find_c_terminals(sequence, mscores,
                 mpositions);
-        // Usually cterm finder error results from invalid characters in the input
-        // sequence. If this happens for some horribly unlikely alternative reason,
-        // abort and return the existing alignment with the existing error code.
-        if (cterm_err_code != 1)
-            return best_result;
-        else if (mscores[0] == 0 && mscores[1] == 0 && mscores[2] == 0)
-            return best_result;
+    // Usually cterm finder error results from invalid characters in the input
+    // sequence or a sequence that does not have at least two cysteines.
+    // If some very unusual problem has occurred, simply return the existing
+    // problematic alignment rather than trying to fix an alignment for
+    // a sequence that has some serious issues.
+    if (err_code != 1)
+        return best_result;
+    else if (mscores[0] == 0 && mscores[1] == 0 && mscores[2] == 0)
+        return best_result;
 
-        // Find the FIRST likely c-terminal region in the input sequence.
-        int first_cterm_position = 100000;
-
-        for (int i=0; i < 3; i++){
-            if (first_cterm_position > mpositions[i])
-                first_cterm_position = mpositions[i];
-        }
-        // Add an offset from the beginning of the likely c-terminal region.
-        first_cterm_position += CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
-        if (first_cterm_position > (int)sequence.length())
-            first_cterm_position = sequence.length();
-
-        std::string sequence_extract;
-        double second_identity = -1;
-        std::vector<std::string> second_numbering; 
-        std::tuple<std::vector<std::string>, double, std::string,
-                        std::string> second_result{ second_numbering,
-                            0, "", ""};
-
-        if (first_cterm_position > 85 && (sequence.length() - first_cterm_position) > 85){
-            sequence_extract = sequence.substr(0, first_cterm_position);
-            if (!this->align_input_subregion(best_result, best_identity,
-                    sequence_extract))
-                return best_result;
-
-            // Shift the cterm position back by a couple in case it is off by one or two.
-            first_cterm_position -= 2;
-            sequence_extract = sequence.substr(first_cterm_position,
-                    sequence.length() - first_cterm_position);
-            if (!this->align_input_subregion(second_result, second_identity,
-                    sequence_extract))
-                return best_result;
-
-            if (second_identity > best_identity){
-                this->pad_left(second_result, sequence);
-                return second_result;
-            }
-            else
-                this->pad_right(best_result, sequence);
-        }
-
-        else if (first_cterm_position > 85){
-            sequence_extract = sequence.substr(0, first_cterm_position);
-            int err_code = this->align_input_subregion(best_result, best_identity,
-                    sequence_extract);
-
-            if (err_code != 1)
-                return best_result;
-            this->pad_right(best_result, sequence);
-        }
-
-        else if ((sequence.length() - first_cterm_position) > 85){
-            // Shift the cterm position back by a couple in case it is off by one or two.
-            first_cterm_position -= 2;
-            if (first_cterm_position < 0)
-                first_cterm_position = 0;
-            sequence_extract = sequence.substr(first_cterm_position,
-                    sequence.length() - first_cterm_position);
-            int err_code = this->align_input_subregion(best_result, best_identity,
-                    sequence_extract);
-
-            if (err_code != 1)
-                return best_result;
-            this->pad_left(best_result, sequence);
+    int min_starting_position = 0;
+    for (size_t i=0; i < std::get<0>(best_result).size(); i++){
+        if (std::get<0>(best_result)[i] != "-"){
+            min_starting_position = i;
+            break;
         }
     }
-    
+
+    // The ordering H, K, L for cterm finder results is set in the
+    // SingleChainAnnotator class constructor.
+    int best_cterm_position = 100000;
+    for (size_t i=0; i < this->chains.size(); i++){
+        if (this->chains[i] == "H"){
+            if (mpositions[0] < best_cterm_position &&
+                    (mpositions[0] > min_starting_position + 40))
+                best_cterm_position = mpositions[0];
+        }
+        else if (this->chains[i] == "K"){
+            if (mpositions[1] < best_cterm_position &&
+                    (mpositions[1] > min_starting_position + 40))
+                best_cterm_position = mpositions[1];
+        }
+        else if (this->chains[i] == "L"){
+            if (mpositions[2] < best_cterm_position &&
+                    (mpositions[2] > min_starting_position + 40))
+                best_cterm_position = mpositions[2];
+        }
+    }
+    if (best_cterm_position == 100000)
+        return best_result;
+
+    // Add an offset from the beginning of the likely c-terminal region.
+    best_cterm_position += CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
+
+    std::string sequence_extract = sequence.substr(0, best_cterm_position);
+    err_code = this->align_input_subregion(best_result, best_identity,
+                sequence_extract);
+    this->pad_right(best_result, sequence);
+
     return best_result;
 }
 
@@ -285,6 +262,7 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
                 std::string, std::string> &best_result, double &best_identity,
                 std::string &query_sequence){
     auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
+    bool fwgxg_error = false;
 
     if (!convert_sequence_to_array(queryAsIdx.get(), query_sequence))
         return INVALID_SEQUENCE;
@@ -299,8 +277,6 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
         this->scoring_tools[i]->align(query_sequence,
                     queryAsIdx.get(), finalNumbering, percent_identity,
                     errorMessage);
-        if (errorMessage.substr(0, 2) == "> ")
-            printf("\nOREOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         if (percent_identity > best_identity){
             std::get<0>(best_result) = finalNumbering;
             std::get<1>(best_result) = percent_identity;
@@ -308,47 +284,15 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
             std::get<3>(best_result) = errorMessage;
             best_identity = percent_identity;
         }
+        if (errorMessage.substr(0,2) == "> ")
+            fwgxg_error = true;
     }
+    if (fwgxg_error && best_identity < 0.75)
+        return POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT;
     return VALID_SEQUENCE;
 }
 
 
-
-// Pads input numbering on the left to make it the same length as the
-// input sequence. Only used when realigning to fix rare alignment errors.
-void SingleChainAnnotatorCpp::pad_left(std::tuple<std::vector<std::string>, double,
-            std::string, std::string> &alignment,
-        std::string &query_sequence){
-
-    std::vector<std::string> &numbering = std::get<0>(alignment);
-
-    int num_gaps = (query_sequence.length() - numbering.size());
-    if (num_gaps <= 0)
-        return;
-
-    std::vector<std::string> updated_numbering(num_gaps, "-");
-
-    for (size_t i=0; i < numbering.size(); i++)
-        updated_numbering.push_back(numbering[i]);
-
-    std::get<0>(alignment) = updated_numbering;
-}
-
-
-// Pads input numbering on the right to make it the same length as the
-// input sequence. Only used when realigning to fix rare alignment errors.
-void SingleChainAnnotatorCpp::pad_right(std::tuple<std::vector<std::string>, double,
-            std::string, std::string> &alignment,
-        std::string &query_sequence){
-
-    std::vector<std::string> &numbering = std::get<0>(alignment);
-    int num_gaps = (query_sequence.length() - numbering.size());
-    if (num_gaps <= 0)
-        return;
-
-    for (int i=0; i < num_gaps; i++)
-        numbering.push_back("-");
-}
 
 
 

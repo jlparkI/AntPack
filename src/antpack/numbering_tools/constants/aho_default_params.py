@@ -27,23 +27,23 @@ light_conserved_positions = {23:"C", 43:"W", 106:"C", 139:"F", 140:"G", 142:"G"}
 #the query gap column, the second is the template gap column. Aho unlike other
 #schemes has a separate special positions dictionary for kappa.
 heavy_special_positions = {8:[-1,-12], 27:[-3.7,-12], 28:[-1.0,-12],
-        36:[-1.0,-1.0], 63:[-1.0,-1.0],
+        36:[-1.1,-1.1], 63:[-1.1,-1.1],
         74:[-10.,-12.], 75:[-10.,-12.],
         85:[-1.5,-12.], 86:[-1.,-12.],
-        87:[-8., -12.], 123:[-1.0,-1.0]}
+        87:[-8., -12.], 123:[-1.1,-1.1]}
 
 light_special_positions = {8:[-1,-12], 27:[-3.8,-12.],
         28:[-0.2,-12.], 29:[-3.9,-12.],
-        36:[-1.0,-1.0], 63:[-1.0,-1.0],
+        36:[-1.1,-1.1], 63:[-1.1,-1.1],
         74:[-10.,-12.], 75:[-10.,-12.],
-        85:[-1.5,-12.], 86:[-1.,-12.],
-        87:[-8., -12.], 123:[-1.0,-1.0]}
+        85:[-1.5,-12.], 86:[-1.1,-12.],
+        87:[-8., -12.], 123:[-1.1,-1.1]}
 
 kappa_special_positions = {8:[-1,-12], 27:[-0.9,-12.], 28:[-0.2,-12.],
-        36:[-1.0,-1.0], 63:[-1.0,-1.0],
+        36:[-1.1,-1.1], 63:[-1.1,-1.1],
         74:[-10.,-12.], 75:[-10.,-12.],
         85:[-1.5,-12.], 86:[-1.,-12.],
-        87:[-8., -12.], 123:[-1.0,-1.0]}
+        87:[-8., -12.], 123:[-1.05,-1.05]}
 
 #Aho-defined CDRs. We have a specially defined gap penalty for each to ensure they are filled
 #in the correct order. For Aho, light and heavy cdrs have the same definition. Notice that

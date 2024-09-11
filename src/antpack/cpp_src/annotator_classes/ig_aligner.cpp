@@ -260,7 +260,7 @@ void IGAligner::align(std::string query_sequence,
             if (init_numbering[i] == 0)
                 continue;
 
-            // For IMGT, set a maximum of 70 expected insertions anywhere
+            // For IMGT, set a maximum of 70 expected insertions anywhere.
             if (init_numbering[i] > this->alphabet.size() || init_numbering[i] > 70){
                     error_code = tooManyInsertions;
                     error_message = this->error_code_to_message[error_code];

@@ -116,6 +116,11 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 lnumbering.append(numbering)
                 lseqs.append(seq)
 
+        observed_positions = set()
+        for n in hnumbering:
+            for pos in n[0]:
+                observed_positions.add(pos)
+
         hpositions, hmsa = aligner.build_msa(hseqs, hnumbering)
         lpositions, lmsa = aligner.build_msa(lseqs, lnumbering)
 
@@ -282,7 +287,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         num_err = 0
 
-        for scheme in ["martin", "imgt", "kabat"]:
+        for scheme in ["martin", "imgt", "kabat", "aho"]:
             aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme=scheme)
             for seq in seqs:
                 numbering = aligner.analyze_seq(seq)[0]
@@ -300,7 +305,6 @@ class TestSingleChainAnnotator(unittest.TestCase):
     def test_tricky_alignment_handling(self):
         """Check situations where the alignment might be 'tricky'
         to ensure results are correct."""
-        return
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -319,6 +323,10 @@ class TestSingleChainAnnotator(unittest.TestCase):
         for seq in seqs:
             alignment = aligner.analyze_seq(seq)
             # Exclude sequences that have gaps at the ends
+            if alignment[-1].startswith('Unexpected AA'):
+                continue
+            if '120' not in alignment[0]:
+                continue
             if alignment[2] == "H":
                 if '128' not in alignment[0]:
                     continue
@@ -328,7 +336,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 if '127' not in alignment[0]:
                     continue
 
-            muddled_seq = seq + "YYY" + "".join([random.choice(AAs) for i in range(250)])
+            muddled_seq = seq + "YYYGGGGGSSSS" + "".join([random.choice(AAs) for i in range(250)])
             alt_alignment = aligner.analyze_seq(muddled_seq)
             self.assertTrue(len(alt_alignment[0]) == len(muddled_seq))
 

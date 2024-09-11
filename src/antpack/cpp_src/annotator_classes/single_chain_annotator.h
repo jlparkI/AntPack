@@ -44,10 +44,6 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         int align_input_subregion(std::tuple<std::vector<std::string>, double,
                 std::string, std::string> &best_result, double &best_identity,
                 std::string &query_sequence);
-        void pad_left(std::tuple<std::vector<std::string>, double,
-                std::string, std::string> &alignment, std::string &query_sequence);
-        void pad_right(std::tuple<std::vector<std::string>, double,
-                std::string, std::string> &alignment, std::string &query_sequence);
 
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string, std::vector<std::string>> analyze_test_only(std::string query_sequence,
