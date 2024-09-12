@@ -302,9 +302,9 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
 
 
-    def test_tricky_alignment_handling(self):
-        """Check situations where the alignment might be 'tricky'
-        to ensure results are correct."""
+    def test_extended_length_handling(self):
+        """Check situations where the sequence is much longer than
+        a typical variable chain."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -343,9 +343,6 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
             trimmed_alt = aligner.trim_alignment(muddled_seq, alt_alignment)
             trimmed_gt = aligner.trim_alignment(seq, alignment)
-            if trimmed_alt[0] != trimmed_gt[0]:
-                import pdb
-                pdb.set_trace()
             self.assertTrue(trimmed_alt[0] == trimmed_gt[0])
 
 

@@ -1,2 +1,3 @@
 from .single_chain_annotator import SingleChainAnnotator
 from .paired_chain_annotator import PairedChainAnnotator
+from .chain_annotator import ChainAnnotator

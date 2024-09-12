@@ -8,6 +8,7 @@
 #include <string>
 #include "annotator_classes/single_chain_annotator.h"
 #include "annotator_classes/paired_chain_annotator.h"
+#include "annotator_classes/chain_annotator.h"
 #include "annotator_classes/annotator_base_class.h"
 #include "annotator_classes/ig_aligner.h"
 #include "annotator_classes/cterm_finder.h"
@@ -22,7 +23,7 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
     m.def("validate_sequence", &validate_sequence);
 
     py::class_<AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
-        .def(py::init<std::string>())
+        .def(py::init<std::string, std::string>())
         .def("sort_position_codes", &AnnotatorBaseClassCpp::sort_position_codes)
         .def("build_msa", &AnnotatorBaseClassCpp::build_msa)
         .def("assign_cdr_labels", &AnnotatorBaseClassCpp::assign_cdr_labels)
@@ -33,10 +34,15 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
                 std::string, bool, std::string>())
         .def("analyze_seq", &SingleChainAnnotatorCpp::analyze_seq)
         .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs);
+        //.def("_test_needle_scoring", &SingleChainAnnotatorCpp::_test_needle_scoring);
 
     py::class_<PairedChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
         .def(py::init<std::string, std::string>())
         .def("analyze_seq", &PairedChainAnnotatorCpp::analyze_seq);
+
+    py::class_<ChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "ChainAnnotatorCpp")
+        .def(py::init<std::string, std::string>())
+        .def("analyze_seq", &ChainAnnotatorCpp::analyze_seq);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,

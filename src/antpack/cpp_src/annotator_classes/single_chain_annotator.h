@@ -5,12 +5,9 @@
 #include <vector>
 #include <string>
 #include <tuple>
-#include <filesystem>
 #include <unordered_map>
 #include "annotator_base_class.h"
-#include "cterm_finder.h"
 #include "../utilities/utilities.h"
-#include "../utilities/consensus_file_utilities.h"
 #include "ig_aligner.h"
 #include "../numbering_constants.h"
 
@@ -33,13 +30,18 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
             std::string>> analyze_seqs(std::vector<std::string> sequences);
         std::unordered_map<std::string, std::vector<int>> get_cdr_breakpoints();
 
+        void _test_needle_scoring(std::string query_sequence,
+                    py::array_t<double> scoreMatrix,
+                    py::array_t<uint8_t> pathTraceMat,
+                    std::string chain);
+        
+
     protected:
         std::vector<std::string> chains;
         std::string scheme;
         bool compress_init_gaps;
 
         std::vector<std::unique_ptr<IGAligner>> scoring_tools;
-        std::unique_ptr<CTermFinder> boundary_finder;
 
         int align_input_subregion(std::tuple<std::vector<std::string>, double,
                 std::string, std::string> &best_result, double &best_identity,

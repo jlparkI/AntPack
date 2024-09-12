@@ -31,15 +31,11 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
 
 
     protected:
-
         std::string scheme;
-        bool multithread;
 
         std::unique_ptr<SingleChainAnnotatorCpp> light_chain_analyzer;
         std::unique_ptr<SingleChainAnnotatorCpp> heavy_chain_analyzer;
         std::unique_ptr<SingleChainAnnotatorCpp> analyzer;
-
-        std::unique_ptr<CTermFinder> boundary_finder;
 };
 
 #endif

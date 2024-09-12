@@ -38,6 +38,7 @@ def main():
                 "src/antpack/cpp_src/ant_ext.cpp",
                 "src/antpack/cpp_src/annotator_classes/ig_aligner.cpp",
                 "src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp",
+                "src/antpack/cpp_src/annotator_classes/chain_annotator.cpp",
                 "src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp",
                 "src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp",
                 "src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp",
@@ -53,8 +54,8 @@ def main():
             ],
             language="c++",
             extra_compile_args=["-fvisibility=hidden",
-                "-O3", "-std=c++17"],
-                #"-std=c++17", "-ggdb", "-O0"],
+                #"-O3", "-std=c++17"],
+                "-std=c++17", "-ggdb", "-O0"],
             extra_link_args=cpp_extra_link_args,
         )
     ]

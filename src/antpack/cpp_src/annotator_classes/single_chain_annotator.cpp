@@ -13,10 +13,6 @@
 #define KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
 
 
-// Offset on identified c-terminals if performing a realignment.
-#define CTERMINAL_OFFSET_ALIGNMENT_SHIFT 11
-
-
 // Special error code for cases where a rare but specific type
 // of alignment error may have occurred.
 #define POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT 2
@@ -28,7 +24,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
                 std::string scheme, bool compress_init_gaps,
                 std::string consensus_filepath
 ):
-    AnnotatorBaseClassCpp(scheme),
+    AnnotatorBaseClassCpp(scheme, consensus_filepath),
     chains(chains),
     scheme(scheme),
     compress_init_gaps(compress_init_gaps)
@@ -112,56 +108,6 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
             }
         }
     }
-
-
-    std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
-    cnpy::NpyArray raw_score_arr;
-    try{
-        raw_score_arr = cnpy::npy_load(npyFPath.string());
-    }
-    catch (...){
-        throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-    }
-
-    std::vector<std::string> boundary_chains = {"H", "K", "L"};
-    int shape0 = raw_score_arr.shape[0], shape1 = raw_score_arr.shape[1];
-    if (shape1 != 20){
-        throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-    }
-    py::array_t<double, py::array::c_style> score_array({shape0, shape1, 3});
-    auto scoreMatItr = score_array.mutable_unchecked<3>();
-
-    for (size_t i=0; i < boundary_chains.size(); i++){
-        std::string npyFName = "CTERMFINDER_CONSENSUS_" + boundary_chains[i] + ".npy";
-        std::filesystem::path npyFPath = extensionPath / npyFName;
-
-        try{
-            raw_score_arr = cnpy::npy_load(npyFPath.string());
-        }
-        catch (...){
-            throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-        }
-        int ld_shape0 = raw_score_arr.shape[0], ld_shape1 = raw_score_arr.shape[1];
-        if (raw_score_arr.word_size != 8 || ld_shape0 != shape0 || ld_shape1 != shape1)
-            throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-
-        double *raw_score_ptr = raw_score_arr.data<double>();
-
-        for (int j=0; j < shape0; j++){
-            for (int k=0; k < shape1; k++){
-                scoreMatItr(j,k,i) = *raw_score_ptr;
-                raw_score_ptr++;
-            }
-        }
-    }
-
-    this->boundary_finder = std::make_unique<CTermFinder>(score_array);
-
 }
 
 
@@ -192,69 +138,47 @@ std::tuple<std::vector<std::string>, double, std::string,
     // usually manifests in the form of an unusually long CDR that exceeds the maximum
     // number of allowed insertion codes.
 
-    // If this may have occurred, check for the location of likely j-genes,
-    // use them to break up the long sequence and align the part that most likely
-    // contains the viable variable region.
+    // If this may have occurred, subdivide the sequence into regions just as a generic
+    // ChainAnnotator would, align each region and return the one with the highest
+    // percent identity. This will work well unless the user has accidentally supplied
+    // a paired chain, in which case they should have used either PairedChainAnnotator
+    // or ChainAnnotator -- this tool is called SingleChainAnnotator because it extracts
+    // a single chain (even if multiple are present).
+    std::vector<std::pair<size_t,size_t>> subregions;
+    this->split_sequence_into_subregions(subregions, sequence);
 
-    // Using 3 here and throughout since cterm finder looks for a cterminal corresponding
-    // to any of the three possible chains, even if our aligner is looking for one or two
-    // only. Consequently, when analyzing the results, we have to be careful to check that
-    // we only use results corresponding to chains selected for this analyzer.
-    std::array<double, 3> mscores;
-    std::array<int, 3> mpositions;
-    err_code = this->boundary_finder->find_c_terminals(sequence, mscores,
-                mpositions);
-    // Usually cterm finder error results from invalid characters in the input
-    // sequence or a sequence that does not have at least two cysteines.
-    // If some very unusual problem has occurred, simply return the existing
-    // problematic alignment rather than trying to fix an alignment for
-    // a sequence that has some serious issues.
-    if (err_code != 1)
-        return best_result;
-    else if (mscores[0] == 0 && mscores[1] == 0 && mscores[2] == 0)
-        return best_result;
+    // Now align all the identified segments and return the best match.
+    best_identity = -1;
 
-    int min_starting_position = 0;
-    for (size_t i=0; i < std::get<0>(best_result).size(); i++){
-        if (std::get<0>(best_result)[i] != "-"){
-            min_starting_position = i;
-            break;
-        }
+    for (auto &subregion : subregions){
+        double percent_identity = -1;
+        std::string subsequence = sequence.substr(subregion.first,
+                subregion.second - subregion.first);
+        std::tuple<std::vector<std::string>, double, std::string, std::string> result;
+        std::vector<std::string> output_numbering(subregion.first, "-");
+
+        err_code = this->align_input_subregion(result, percent_identity,
+                subsequence);
+        if (percent_identity < best_identity || err_code != VALID_SEQUENCE)
+            continue;
+
+        best_identity = percent_identity;
+
+        for (auto &token : std::get<0>(result))
+            output_numbering.push_back(token);
+
+
+        for (size_t i=subregion.second; i < sequence.length(); i++)
+            output_numbering.push_back("-");
+
+        std::get<0>(result) = std::move(output_numbering);
+        best_result = std::move(result);
     }
-
-    // The ordering H, K, L for cterm finder results is set in the
-    // SingleChainAnnotator class constructor.
-    int best_cterm_position = 100000;
-    for (size_t i=0; i < this->chains.size(); i++){
-        if (this->chains[i] == "H"){
-            if (mpositions[0] < best_cterm_position &&
-                    (mpositions[0] > min_starting_position + 40))
-                best_cterm_position = mpositions[0];
-        }
-        else if (this->chains[i] == "K"){
-            if (mpositions[1] < best_cterm_position &&
-                    (mpositions[1] > min_starting_position + 40))
-                best_cterm_position = mpositions[1];
-        }
-        else if (this->chains[i] == "L"){
-            if (mpositions[2] < best_cterm_position &&
-                    (mpositions[2] > min_starting_position + 40))
-                best_cterm_position = mpositions[2];
-        }
-    }
-    if (best_cterm_position == 100000)
-        return best_result;
-
-    // Add an offset from the beginning of the likely c-terminal region.
-    best_cterm_position += CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
-
-    std::string sequence_extract = sequence.substr(0, best_cterm_position);
-    err_code = this->align_input_subregion(best_result, best_identity,
-                sequence_extract);
-    this->pad_right(best_result, sequence);
 
     return best_result;
 }
+
+
 
 
 // Aligns the input sequence, which may be either the full sequence or a subregion of it.
@@ -287,7 +211,7 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
         if (errorMessage.substr(0,2) == "> ")
             fwgxg_error = true;
     }
-    if (fwgxg_error && best_identity < 0.75)
+    if (fwgxg_error && best_identity < 0.8)
         return POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT;
     return VALID_SEQUENCE;
 }
@@ -307,4 +231,21 @@ std::vector<std::tuple<std::vector<std::string>, double, std::string,
         outputResults.push_back(this->analyze_seq(sequences[i]));
     }
     return outputResults;
+}
+
+
+
+// Testing function only; used to check how the needle scoring table is being filled.
+void SingleChainAnnotatorCpp::_test_needle_scoring(std::string query_sequence,
+                    py::array_t<double> scoreMatrix,
+                    py::array_t<uint8_t> pathTraceMat,
+                    std::string chain){
+    for (size_t i=0; i < this->scoring_tools.size(); i++){
+        if (this->scoring_tools[i]->get_chain_name() == chain){
+            this->scoring_tools[i]->_test_fill_needle_scoring_table(query_sequence,
+                    scoreMatrix, pathTraceMat);
+            return;
+        }
+    }
+
 }

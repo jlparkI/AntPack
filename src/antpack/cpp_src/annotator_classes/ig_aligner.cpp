@@ -410,7 +410,7 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
     // to ensure that insertions in the template only are highly tolerated
     // at the beginning of the sequence.
     needle_scores[0] = 0;
-    path_trace[0] = 0;
+    path_trace[0] = LEFT_TRANSFER;
     for (int i=0; i < query_seq_len; i++){
         needle_scores[i+1] = needle_scores[i] + this->terminalTemplateGapPenalty;
         path_trace[i+1] = LEFT_TRANSFER;
@@ -534,8 +534,175 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
     // And, finally, the last column of the last row.
     score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] + scoreItr(this->num_positions-1,
             encoded_sequence[query_seq_len-1]);
-    score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + scoreItr(this->num_positions-1,
-            TEMPLATE_GAP_COLUMN);
+    score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + this->terminalTemplateGapPenalty;
+    score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + this->CterminalQueryGapPenalty;
+
+    best_score = score_updates[DIAGONAL_TRANSFER];
+    best_pos = DIAGONAL_TRANSFER;
+    if (score_updates[LEFT_TRANSFER] > best_score){
+        best_pos = LEFT_TRANSFER;
+        best_score = score_updates[LEFT_TRANSFER];
+    }
+    if (score_updates[UP_TRANSFER] > best_score){
+        best_pos = UP_TRANSFER;
+        best_score = score_updates[UP_TRANSFER];
+    }
+    needle_scores[grid_pos] = best_score;
+    path_trace[grid_pos] = best_pos;
+}
+
+
+
+// This version of fill_needle_scoring_table is for internal use and
+// testing only.
+void IGAligner::_test_fill_needle_scoring_table(std::string query_sequence,
+                    py::array_t<double> scoreMatrix,
+                    py::array_t<uint8_t> pathTraceMat){
+
+    int query_seq_len = query_sequence.length();
+    int row_size = query_sequence.length() + 1;
+
+    auto buffer_info = scoreMatrix.request();
+    double *needle_scores = static_cast<double*>(buffer_info.ptr);
+    auto ptrace_buffer_info = pathTraceMat.request();
+    uint8_t *path_trace = static_cast<uint8_t*>(ptrace_buffer_info.ptr);
+
+    double score_updates[3], best_score;
+    int grid_pos, diagNeighbor, upperNeighbor, best_pos;
+    auto scoreItr = this->score_array.unchecked<2>();
+
+    // Fill in the first row of the tables. We use a default score here
+    // to ensure that insertions in the template only are highly tolerated
+    // at the beginning of the sequence.
+    needle_scores[0] = 0;
+    path_trace[0] = LEFT_TRANSFER;
+    for (int i=0; i < query_seq_len; i++){
+        needle_scores[i+1] = needle_scores[i] + this->terminalTemplateGapPenalty;
+        path_trace[i+1] = LEFT_TRANSFER;
+    }
+
+    auto encoded_sequence = std::make_unique<int[]>( query_sequence.length() );
+    if (!convert_sequence_to_array(encoded_sequence.get(), query_sequence))
+        return;
+
+
+
+    // This first loop goes up to the last row only (the last row)
+    // is handled separately since it requires special logic).
+    // Handling the last row separately is about 10 - 15% faster than
+    // using if else statements to determine when the last row is
+    // reached inside this loop.
+    for (int i=1; i < this->num_positions; i++){
+
+        grid_pos = i * row_size;
+        diagNeighbor = (i - 1) * row_size;
+        upperNeighbor = diagNeighbor + 1;
+        // The first column assigns a modified penalty for gaps so that n-terminal
+        // deletions if encountered are accepted.
+        needle_scores[grid_pos] = needle_scores[diagNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
+        path_trace[grid_pos] = UP_TRANSFER;
+        grid_pos++;
+
+        for (int j=0; j < (query_seq_len - 1); j++){
+            score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] + scoreItr(i-1,encoded_sequence[j]);
+            score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
+
+            // This is mildly naughty -- we don't consider the possibility
+            // of a tie, which could lead to a branched alignment. Realistically,
+            // ties are going to be rare and low-impact in this situation because
+            // of the way the positions are scored. For now we are defaulting to
+            // "match" if there is a tie.
+            best_score = score_updates[DIAGONAL_TRANSFER];
+            best_pos = DIAGONAL_TRANSFER;
+            if (score_updates[LEFT_TRANSFER] > best_score){
+                best_pos = LEFT_TRANSFER;
+                best_score = score_updates[LEFT_TRANSFER];
+            }
+            if (score_updates[UP_TRANSFER] > best_score){
+                best_pos = UP_TRANSFER;
+                best_score = score_updates[UP_TRANSFER];
+            }
+            needle_scores[grid_pos] = best_score;
+            path_trace[grid_pos] = best_pos;
+
+            grid_pos++;
+            diagNeighbor++;
+            upperNeighbor++;
+        }
+
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] + scoreItr(i-1,
+                encoded_sequence[query_seq_len - 1]);
+        score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + scoreItr(i-1,TEMPLATE_GAP_COLUMN);
+        // We use a default score for the last column, so that c-terminal
+        // deletions if encountered are well-tolerated. We exclude however
+        // highly conserved positions, for which a large gap penalty should
+        // always be assigned.
+        if (std::binary_search(this->highly_conserved_positions.begin(),
+                    this->highly_conserved_positions.end(), i))
+            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + scoreItr(i-1,QUERY_GAP_COLUMN);
+        else
+            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + this->CterminalQueryGapPenalty;
+
+        best_score = score_updates[DIAGONAL_TRANSFER];
+        best_pos = DIAGONAL_TRANSFER;
+        if (score_updates[LEFT_TRANSFER] > best_score){
+            best_pos = LEFT_TRANSFER;
+            best_score = score_updates[LEFT_TRANSFER];
+        }
+        if (score_updates[UP_TRANSFER] > best_score){
+            best_pos = UP_TRANSFER;
+            best_score = score_updates[UP_TRANSFER];
+        }
+        needle_scores[grid_pos] = best_score;
+        path_trace[grid_pos] = best_pos;
+    }
+
+
+
+    // Now handle the last row.
+    grid_pos = (this->num_positions) * row_size;
+    diagNeighbor = (this->num_positions - 1) * row_size;
+    upperNeighbor = diagNeighbor + 1;
+    // The first column assigns a low penalty for gaps so that n-terminal
+    // deletions if encountered are accepted, UNLESS we are at a highly
+    // conserved position.
+    needle_scores[grid_pos] = needle_scores[diagNeighbor] + scoreItr(this->num_positions-1,
+            QUERY_GAP_COLUMN);
+    path_trace[grid_pos] = UP_TRANSFER;
+    grid_pos++;
+
+    for (int j=0; j < (query_seq_len - 1); j++){
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] + scoreItr(this->num_positions-1,
+                encoded_sequence[j]);
+        score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + this->terminalTemplateGapPenalty;
+        score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + scoreItr(this->num_positions-1,
+                QUERY_GAP_COLUMN);
+
+        best_score = score_updates[DIAGONAL_TRANSFER];
+        best_pos = DIAGONAL_TRANSFER;
+        if (score_updates[LEFT_TRANSFER] > best_score){
+            best_pos = LEFT_TRANSFER;
+            best_score = score_updates[LEFT_TRANSFER];
+        }
+        if (score_updates[UP_TRANSFER] > best_score){
+            best_pos = UP_TRANSFER;
+            best_score = score_updates[UP_TRANSFER];
+        }
+        needle_scores[grid_pos] = best_score;
+        path_trace[grid_pos] = best_pos;
+
+        grid_pos++;
+        diagNeighbor++;
+        upperNeighbor++;
+    }
+
+
+
+    // And, finally, the last column of the last row.
+    score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] + scoreItr(this->num_positions-1,
+            encoded_sequence[query_seq_len-1]);
+    score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + this->terminalTemplateGapPenalty;
     score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + this->CterminalQueryGapPenalty;
 
     best_score = score_updates[DIAGONAL_TRANSFER];

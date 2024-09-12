@@ -4,7 +4,8 @@
 
 
 
-AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme):
+AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme,
+        std::string consensus_filepath):
     scheme(scheme)
 {
 
@@ -42,6 +43,57 @@ AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme):
                         AHO_CDR_BREAKPOINT_2, AHO_CDR_BREAKPOINT_3,
                         AHO_CDR_BREAKPOINT_4, AHO_CDR_BREAKPOINT_5,
                         AHO_CDR_BREAKPOINT_6};
+
+
+    std::filesystem::path extensionPath = consensus_filepath;
+    std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
+    std::filesystem::path npyFPath = extensionPath / npyFName;
+    cnpy::NpyArray raw_score_arr;
+
+    try{
+        raw_score_arr = cnpy::npy_load(npyFPath.string());
+    }
+    catch (...){
+        throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+    }
+
+    std::vector<std::string> boundary_chains = {"H", "K", "L"};
+    int shape0 = raw_score_arr.shape[0], shape1 = raw_score_arr.shape[1];
+    if (shape1 != 20){
+        throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+    }
+    py::array_t<double, py::array::c_style> score_array({shape0, shape1, 3});
+    auto scoreMatItr = score_array.mutable_unchecked<3>();
+
+    for (size_t i=0; i < boundary_chains.size(); i++){
+        std::string npyFName = "CTERMFINDER_CONSENSUS_" + boundary_chains[i] + ".npy";
+        std::filesystem::path npyFPath = extensionPath / npyFName;
+
+        try{
+            raw_score_arr = cnpy::npy_load(npyFPath.string());
+        }
+        catch (...){
+            throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+        }
+        int ld_shape0 = raw_score_arr.shape[0], ld_shape1 = raw_score_arr.shape[1];
+        if (raw_score_arr.word_size != 8 || ld_shape0 != shape0 || ld_shape1 != shape1)
+            throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+
+        double *raw_score_ptr = raw_score_arr.data<double>();
+
+        for (int j=0; j < shape0; j++){
+            for (int k=0; k < shape1; k++){
+                scoreMatItr(j,k,i) = *raw_score_ptr;
+                raw_score_ptr++;
+            }
+        }
+    }
+
+    this->boundary_finder = std::make_unique<CTermFinder>(score_array);
 }
 
 
@@ -215,38 +267,143 @@ std::vector<std::string> AnnotatorBaseClassCpp::assign_cdr_labels(std::tuple<std
 
 
 
-// Pads input numbering on the left to make it the same length as the
-// input sequence. Only used when realigning to fix rare alignment errors.
-void AnnotatorBaseClassCpp::pad_left(std::tuple<std::vector<std::string>, double,
-            std::string, std::string> &alignment,
-        std::string &query_sequence){
+// Finds regions of an input sequence by looking for likely J-gene regions and cysteines.
+void AnnotatorBaseClassCpp::split_sequence_into_subregions(std::vector<std::pair<size_t,size_t>>
+        &subregions, std::string &sequence, size_t minimum_region_size){
 
-    std::vector<std::string> &numbering = std::get<0>(alignment);
+    subregions.clear();
+    subregions.push_back(std::pair<size_t,size_t>{0, sequence.length()});
 
-    int num_gaps = (query_sequence.length() - numbering.size());
-    if (num_gaps <= 0)
-        return;
+    // We subdivide the input sequence by looking for the most likely J-gene
+    // location, then using this to split the sequence in two, then subdividing each
+    // half etc. Continue to do this until we have a set of segments each of which
+    // does not contain any likely J-genes.
+    bool all_subregions_found = false;
 
-    std::vector<std::string> updated_numbering(num_gaps, "-");
+    while (!all_subregions_found){
+        bool found_more_regions = false;
+        size_t num_subregions = subregions.size();
+        std::vector<std::pair<size_t, size_t>> new_subregions;
+        new_subregions.clear();
 
-    for (size_t i=0; i < numbering.size(); i++)
-        updated_numbering.push_back(numbering[i]);
-
-    std::get<0>(alignment) = updated_numbering;
+        for (size_t i=0; i < num_subregions; i++){
+            size_t split_point = 0;
+            bool can_divide = this->split_subregion(subregions[i], split_point,
+                    sequence, minimum_region_size);
+            if (can_divide){
+                std::pair<int, int> new_subregion = {split_point, subregions[i].second};
+                subregions[i].second = split_point;
+                new_subregions.push_back(new_subregion);
+                found_more_regions = true;
+            }
+        }
+        for (auto &subregion : new_subregions)
+            subregions.push_back(subregion);
+        if (!found_more_regions){
+            all_subregions_found = true;
+            break;
+        }
+    }
 }
 
 
-// Pads input numbering on the right to make it the same length as the
-// input sequence. Only used when realigning to fix rare alignment errors.
-void AnnotatorBaseClassCpp::pad_right(std::tuple<std::vector<std::string>, double,
-            std::string, std::string> &alignment,
-        std::string &query_sequence){
+// Takes an input subregion and decides whether it can be
+// split into two subregions. If not, returns false. Otherwise,
+// split point is updated to be the best dividing point found.
+bool AnnotatorBaseClassCpp::split_subregion(const std::pair<size_t, size_t> &init_subregion,
+                size_t &split_point, const std::string &sequence,
+                size_t minimum_region_size){
+    // Using 3 here and throughout since there are three possible chains.
+    std::array<double, 3> mscores;
+    std::array<int, 3> mpositions;
 
-    std::vector<std::string> &numbering = std::get<0>(alignment);
-    int num_gaps = (query_sequence.length() - numbering.size());
-    if (num_gaps <= 0)
-        return;
+    std::string subsequence = sequence.substr(init_subregion.first,
+            (init_subregion.second - init_subregion.first));
 
-    for (int i=0; i < num_gaps; i++)
-        numbering.push_back("-");
+    if (subsequence.length() < minimum_region_size)
+        return false;
+
+    // Find likely c-terminal regions in the input sequence.
+    int err_code = this->boundary_finder->find_c_terminals(subsequence, mscores,
+            mpositions);
+
+    if (err_code != 1)
+        return false;
+    if (mscores[0] == 0 && mscores[1] == 0 && mscores[2] == 0)
+        return false;
+
+    double mscore = -1e9;
+    size_t best_split = 0;
+    size_t best_id = 0;
+
+    for (size_t i=0; i < 3; i++){
+        if (mscores[i] > mscore){
+            mscore = mscores[i];
+            best_split = (size_t)mpositions[i];
+            best_id = i;
+        }
+    }
+
+    // If the best score is still very low, abort.
+    if (mscore < MINIMUM_TOLERABLE_CTERMINAL_SCORE)
+        return false;
+
+    split_point = best_split + CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
+
+    // If currently selected split is a failure, try the other suggested
+    // split points just in case.
+
+    if (split_point < minimum_region_size ||
+            (subsequence.length() - split_point) < minimum_region_size){
+        mscore = -1e9;
+        best_split = 0;
+        for (size_t i=0; i < 3; i++){
+            if (mscores[i] > mscore && i != best_id){
+                mscore = mscores[i];
+                best_split = mpositions[i];
+            }
+        }
+
+        // If it's STILL a failure BECAUSE it's too close to the end
+        // of the sequence, try excluding the end of the sequence.
+        // Need to have a high score threshold for this however
+        // to avoid picking up on false positives.
+
+        split_point = best_split + CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
+
+        if (split_point > (subsequence.length() - CTERMINAL_OFFSET_ALIGNMENT_SHIFT - 5)
+                && subsequence.length() > minimum_region_size){
+            std::string inner_subsequence = sequence.substr(init_subregion.first,
+                    (init_subregion.second - init_subregion.first - CTERMINAL_OFFSET_ALIGNMENT_SHIFT));
+            if (inner_subsequence.length() < minimum_region_size)
+                return false;
+    
+            err_code = this->boundary_finder->find_c_terminals(inner_subsequence, mscores,
+                        mpositions);
+            if (err_code != 1)
+                return false;
+            if (mscores[0] == 0 && mscores[1] == 0 && mscores[2] == 0)
+                return false;
+
+            mscore = -1e9;
+            best_split = 0;
+            for (size_t i=0; i < 3; i++){
+                if (mscores[i] > mscore && i != best_id){
+                    mscore = mscores[i];
+                    best_split = mpositions[i];
+                }
+            }
+            split_point = best_split + CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
+            if (mscore < 120)
+                return false;
+        }
+    }
+    if ((subsequence.length() - split_point) < minimum_region_size ||
+                    split_point < minimum_region_size){
+        return false;
+    }
+
+    split_point += init_subregion.first;
+
+    return true;
 }

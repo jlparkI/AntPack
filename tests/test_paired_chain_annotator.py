@@ -89,7 +89,10 @@ class TestPairedChainAnnotator(unittest.TestCase):
 
                 hc_align = sc_aligner.analyze_seq(merged_hc)
                 lc_align = sc_aligner.analyze_seq(merged_lc)
-                if hc_align[1] < 0.8 or lc_align[1] < 0.8:
+                if hc_align[1] < 0.7 or lc_align[1] < 0.7:
+                    continue
+
+                if hc_align[-1] != "" or lc_align[-1] != "":
                     continue
 
                 for i, lcpos in enumerate(lc_align[0]):
@@ -117,6 +120,15 @@ class TestPairedChainAnnotator(unittest.TestCase):
                     continue
 
                 mc_heavy, mc_light = m_aligner.analyze_seq(merged_chain)
+                if len(mc_heavy[0]) != len(merged_chain):
+                    import pdb
+                    pdb.set_trace()
+                if len(mc_light[0]) != len(merged_chain):
+                    import pdb
+                    pdb.set_trace()
+                self.assertTrue(len(mc_heavy[0]) == len(merged_chain))
+                self.assertTrue(len(mc_light[0]) == len(merged_chain))
+
                 _, mchn, hstart, hend = m_aligner.trim_alignment(merged_chain, mc_heavy)
                 _, mcln, lstart, lend = m_aligner.trim_alignment(merged_chain, mc_light)
 

@@ -47,6 +47,10 @@ class IGAligner {
                 double &percent_identity, std::string &error_message);
         std::string get_chain_name();
 
+        void _test_fill_needle_scoring_table(std::string query_sequence,
+                    py::array_t<double> scoreMatrix,
+                    py::array_t<uint8_t> pathTraceMat);
+
         // Allowed error codes. These will be mapped to strings which explain in more detail.
         enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
             tooManyInsertions  = 3, alignmentWrongLength = 4,
