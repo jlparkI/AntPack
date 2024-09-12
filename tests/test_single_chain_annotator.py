@@ -346,7 +346,37 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
 
 
+    def test_x_handling(self):
+        """Check situations where one or more letters has
+        been replaced with X."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
 
+        AAs = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        os.chdir(current_dir)
+        random.seed(123)
+
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt")
+        for seq in seqs:
+            pre_x_alignment = aligner.analyze_seq(seq)
+            if pre_x_alignment[-1] != "":
+                continue
+            if '1' not in pre_x_alignment[0] or '73' not in pre_x_alignment:
+                continue
+
+            xposition = random.randint(0, len(seq) - 1)
+            seq_list = list(seq)
+            seq_list[xposition] = "X"
+            alignment = aligner.analyze_seq("".join(seq_list))
+
+            self.assertTrue(alignment[0] == pre_x_alignment[0])
 
 
 
