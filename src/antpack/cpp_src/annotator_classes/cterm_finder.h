@@ -27,7 +27,7 @@ class CTermFinder {
     public:
         CTermFinder(std::string consensus_filepath);
 
-        int find_c_terminals(std::string query_sequence,
+        int find_c_terminals(std::string &query_sequence,
                 std::array<double, 3> &best_scores, std::array<int, 3> &best_positions);
 
     protected:

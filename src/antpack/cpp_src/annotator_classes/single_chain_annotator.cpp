@@ -95,7 +95,7 @@ std::tuple<std::vector<std::string>, double, std::string,
                             0, "", "Invalid sequence supplied -- nonstandard AAs"};
 
 
-    if (!validate_sequence(sequence))
+    if (!validate_x_sequence(sequence))
         return best_result;
 
     int err_code = this->align_input_subregion(best_result, best_identity,
@@ -160,7 +160,7 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
     auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
     bool fwgxg_error = false;
 
-    if (!convert_sequence_to_array(queryAsIdx.get(), query_sequence))
+    if (!convert_x_sequence_to_array(queryAsIdx.get(), query_sequence))
         return INVALID_SEQUENCE;
 
     for (size_t i=0; i < this->scoring_tools.size(); i++){

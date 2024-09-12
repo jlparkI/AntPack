@@ -17,10 +17,6 @@
 
 
 
-// We have 22 AAs -- the 20 standard aminos then a gap in query penalty
-// vs gap in template -- thus, 22 expected values.
-#define NUM_AAS 22
-
 // Codes for the pathways that can link a score
 // to the best-scoring parent.
 #define LEFT_TRANSFER 1
@@ -28,8 +24,8 @@
 #define DIAGONAL_TRANSFER 0
 
 // The columns of the score matrix that are accessed for gap penalties.
-#define QUERY_GAP_COLUMN 20
-#define TEMPLATE_GAP_COLUMN 21
+#define QUERY_GAP_COLUMN 21
+#define TEMPLATE_GAP_COLUMN 22
 
 
 namespace nb = nanobind;

@@ -20,7 +20,7 @@ CTermFinder::CTermFinder(std::string consensus_filepath){
     this->score_arr_shape[0] = raw_score_arr.shape[0];
     this->score_arr_shape[1] = raw_score_arr.shape[1];
     this->score_arr_shape[2] = boundary_chains.size();
-    if (this->score_arr_shape[1] != 20){
+    if (this->score_arr_shape[1] != 21){
         throw std::runtime_error(std::string("The consensus file / library installation "
                             "has an issue."));
     }
@@ -67,7 +67,7 @@ CTermFinder::CTermFinder(std::string consensus_filepath){
 
 // Does a fast (relative to typical alignments) search for templates
 // which indicate the c-terminal of a kappa, lambda or heavy chain.
-int CTermFinder::find_c_terminals(std::string query_sequence,
+int CTermFinder::find_c_terminals(std::string &query_sequence,
         std::array<double, 3> &best_scores, std::array<int, 3> &best_positions){
 
     std::string errorMessage;
@@ -84,7 +84,7 @@ int CTermFinder::find_c_terminals(std::string query_sequence,
 
     auto encoded_sequence = std::make_unique<int[]>( query_sequence.length() );
 
-    if (!convert_sequence_to_array(encoded_sequence.get(), query_sequence))
+    if (!convert_x_sequence_to_array(encoded_sequence.get(), query_sequence))
         return INVALID_SEQUENCE;
 
 

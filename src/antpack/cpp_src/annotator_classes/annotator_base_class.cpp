@@ -352,7 +352,7 @@ bool AnnotatorBaseClassCpp::split_subregion(const std::pair<size_t, size_t> &ini
                 }
             }
             split_point = best_split + CTERMINAL_OFFSET_ALIGNMENT_SHIFT;
-            if (mscore < 120)
+            if (mscore < 130)
                 return false;
         }
     }

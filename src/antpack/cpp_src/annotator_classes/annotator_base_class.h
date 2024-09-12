@@ -40,7 +40,7 @@ class AnnotatorBaseClassCpp {
         void split_sequence_into_subregions(std::vector<std::pair<size_t,size_t>>
                     &subregions, std::string &sequence,
                     size_t minimum_region_size = MINIMUM_SEGMENT_LENGTH,
-                    size_t maximum_iterations = 1);
+                    size_t maximum_iterations = 2);
 
     protected:
         std::string scheme;

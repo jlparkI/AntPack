@@ -130,7 +130,7 @@ std::tuple<std::string, std::string,
     }
     else if (mode == "evalue"){
         auto encoded_query = std::make_unique<int[]>( REQUIRED_SEQUENCE_LENGTH );
-        int err_code = convert_sequence_to_array(encoded_query.get(), prepped_sequence);
+        int err_code = convert_x_sequence_to_array(encoded_query.get(), prepped_sequence);
 
         if (err_code != 1){
             throw std::runtime_error(std::string("The input sequence contains invalid "
