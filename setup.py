@@ -54,8 +54,8 @@ def main():
             ],
             language="c++",
             extra_compile_args=["-fvisibility=hidden",
-                #"-O3", "-std=c++17"],
-                "-std=c++17", "-ggdb", "-O0"],
+                "-O3", "-std=c++17"],
+                #"-std=c++17", "-ggdb", "-O0"],
             extra_link_args=cpp_extra_link_args,
         )
     ]

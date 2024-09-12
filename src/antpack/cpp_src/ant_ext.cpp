@@ -8,7 +8,6 @@
 #include <string>
 #include "annotator_classes/single_chain_annotator.h"
 #include "annotator_classes/paired_chain_annotator.h"
-#include "annotator_classes/chain_annotator.h"
 #include "annotator_classes/annotator_base_class.h"
 #include "annotator_classes/ig_aligner.h"
 #include "annotator_classes/cterm_finder.h"
@@ -39,10 +38,6 @@ PYBIND11_MODULE(antpack_cpp_ext, m){
     py::class_<PairedChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
         .def(py::init<std::string, std::string>())
         .def("analyze_seq", &PairedChainAnnotatorCpp::analyze_seq);
-
-    py::class_<ChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "ChainAnnotatorCpp")
-        .def(py::init<std::string, std::string>())
-        .def("analyze_seq", &ChainAnnotatorCpp::analyze_seq);
 
     py::class_<IGAligner>(m, "IGAligner")
         .def(py::init<py::array_t<double>,

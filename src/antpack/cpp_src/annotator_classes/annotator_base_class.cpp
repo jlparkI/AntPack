@@ -269,7 +269,8 @@ std::vector<std::string> AnnotatorBaseClassCpp::assign_cdr_labels(std::tuple<std
 
 // Finds regions of an input sequence by looking for likely J-gene regions and cysteines.
 void AnnotatorBaseClassCpp::split_sequence_into_subregions(std::vector<std::pair<size_t,size_t>>
-        &subregions, std::string &sequence, size_t minimum_region_size){
+        &subregions, std::string &sequence, size_t minimum_region_size,
+        size_t maximum_iterations){
 
     subregions.clear();
     subregions.push_back(std::pair<size_t,size_t>{0, sequence.length()});
@@ -277,8 +278,9 @@ void AnnotatorBaseClassCpp::split_sequence_into_subregions(std::vector<std::pair
     // We subdivide the input sequence by looking for the most likely J-gene
     // location, then using this to split the sequence in two, then subdividing each
     // half etc. Continue to do this until we have a set of segments each of which
-    // does not contain any likely J-genes.
+    // does not contain any likely J-genes or max iterations is exceeded.
     bool all_subregions_found = false;
+    size_t niter = 0;
 
     while (!all_subregions_found){
         bool found_more_regions = false;
@@ -303,6 +305,9 @@ void AnnotatorBaseClassCpp::split_sequence_into_subregions(std::vector<std::pair
             all_subregions_found = true;
             break;
         }
+        niter += 1;
+        if (niter >= maximum_iterations)
+            break;
     }
 }
 
