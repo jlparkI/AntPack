@@ -3,28 +3,31 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <pybind11/numpy.h>
+#include "nanobind/nanobind.h"
+#include <nanobind/ndarray.h>
 
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 
-void getProbsCExt(py::array_t<uint8_t, py::array::c_style> x, 
-        py::array_t<double, py::array::c_style> mu,
-        py::array_t<double, py::array::c_style> resp,
-        py::ssize_t n_threads);
+void getProbsCExt(nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> x, 
+        nb::ndarray<double, nb::shape<-1,-1,-1>, nb::device::cpu, nb::c_contig> mu,
+        nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> resp,
+        size_t n_threads);
 void *getProbsCExt_worker(uint8_t *x, double *resp,
             double *mu, int startRow, int endRow,
             int nClusters, int seqLen, int muDim2,
             int ndatapoints);    
 
 
-void mask_terminal_deletions(py::array_t<uint8_t, py::array::c_style> x);
+void mask_terminal_deletions(nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu,
+        nb::c_contig> x);
 
 
-void getProbsCExt_masked(py::array_t<uint8_t, py::array::c_style> x, 
-        py::array_t<double, py::array::c_style> mu,
-        py::array_t<double, py::array::c_style> resp,
+void getProbsCExt_masked(nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu,
+                nb::c_contig> x, 
+        nb::ndarray<double, nb::shape<-1,-1,-1>, nb::device::cpu, nb::c_contig> mu,
+        nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> resp,
         int n_threads);
 void *getProbsCExt_masked_worker(uint8_t *x, double *resp,
         double *mu, int startRow, int endRow,

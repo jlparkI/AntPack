@@ -120,12 +120,6 @@ class TestPairedChainAnnotator(unittest.TestCase):
                     continue
 
                 mc_heavy, mc_light = m_aligner.analyze_seq(merged_chain)
-                if len(mc_heavy[0]) != len(merged_chain):
-                    import pdb
-                    pdb.set_trace()
-                if len(mc_light[0]) != len(merged_chain):
-                    import pdb
-                    pdb.set_trace()
                 self.assertTrue(len(mc_heavy[0]) == len(merged_chain))
                 self.assertTrue(len(mc_light[0]) == len(merged_chain))
 

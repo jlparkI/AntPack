@@ -2,7 +2,7 @@
 heavy and light chains from an input sequence that is presumed to contain
 a single variable heavy and a single variable light chain."""
 import os
-from antpack_cpp_ext import PairedChainAnnotatorCpp
+from antpack.antpack_cpp_ext import PairedChainAnnotatorCpp
 
 
 

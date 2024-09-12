@@ -5,7 +5,7 @@ only. Bear in mind that tools which offer a probabilistic assigment
 import os
 import numpy as np
 from ..utilities.vj_utilities import load_vj_gene_consensus_db
-from antpack_cpp_ext import VJMatchCounter
+from antpack.antpack_cpp_ext import VJMatchCounter
 
 
 

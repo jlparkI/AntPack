@@ -1,18 +1,20 @@
 #ifndef VJ_MATCH_COUNTER_HEADER_H
 #define VJ_MATCH_COUNTER_HEADER_H
 
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 #include <vector>
 #include <string>
 #include <tuple>
 #include <map>
+#include <unordered_set>
 #include <iostream>
+#include <memory>
 #include "../utilities/utilities.h"
 #include "../utilities/numbering_utilities.h"
 
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 // The input sequence must have this length in order to be
 // considered. Caller should already have extracted the IMGT
@@ -27,9 +29,10 @@ namespace py = pybind11;
 
 class VJMatchCounter {
     public:
-        VJMatchCounter(std::map<std::string, std::vector<std::string>> gene_names,
+        VJMatchCounter(
+                std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
-                py::array_t<double, py::array::c_style> blosum_matrix,
+                nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix,
                 std::string scheme);
 
         std::tuple<std::string, std::string, double, double> assign_vj_genes(std::tuple<std::vector<std::string>,
@@ -44,7 +47,7 @@ class VJMatchCounter {
     protected:
         std::map<std::string, std::vector<std::string>> gene_seqs;
         std::map<std::string, std::vector<std::string>> gene_names;
-        py::array_t<double, py::array::c_style> blosum_matrix;
+        nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix;
         std::string scheme;
 
         std::map<std::string, std::map<std::string, int>> names_to_positions;

@@ -1,20 +1,21 @@
 #ifndef IG_ALIGNERS_HEADER_H
 #define IG_ALIGNERS_HEADER_H
 
-#include <pybind11/numpy.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <filesystem>
 #include <tuple>
 #include <set>
 #include <array>
+#include <memory>
+#include "../utilities/consensus_file_utilities.h"
 #include "../utilities/utilities.h"
 #include "../numbering_constants.h"
 
-#include <iostream>
 
-
-namespace py = pybind11;
 
 // We have 22 AAs -- the 20 standard aminos then a gap in query penalty
 // vs gap in template -- thus, 22 expected values.
@@ -31,13 +32,12 @@ namespace py = pybind11;
 #define TEMPLATE_GAP_COLUMN 21
 
 
-
+namespace nb = nanobind;
 
 
 class IGAligner {
     public:
-        IGAligner(py::array_t<double, py::array::c_style> scoreArray,
-                std::vector<std::vector<std::string>> consensus,
+        IGAligner(std::string consensus_filepath,
                 std::string chainName, std::string scheme,
                 double terminalTemplateGapPenalty,
                 double CterminalQueryGapPenalty,
@@ -48,8 +48,8 @@ class IGAligner {
         std::string get_chain_name();
 
         void _test_fill_needle_scoring_table(std::string query_sequence,
-                    py::array_t<double> scoreMatrix,
-                    py::array_t<uint8_t> pathTraceMat);
+                    nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> scoreMatrix,
+                    nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> pathTraceMat);
 
         // Allowed error codes. These will be mapped to strings which explain in more detail.
         enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
@@ -58,24 +58,21 @@ class IGAligner {
 
 
     protected:
-        void fill_needle_scoring_table(uint8_t *path_trace,
-                    int query_seq_len, int row_size,
-                    const int *encoded_sequence,
-                    int &numElements);
-
         // Default gap penalties for gaps at the beginning and end of the sequence.
         // template is a weak penalty for placing gaps outside the numbering,
         // while query is a weak penalty for placing gaps in the numbering
         // (i.e. skipping numbers).
 
-        int num_positions;
-        int num_restricted_positions;
-        py::array_t<double, py::array::c_style> score_array;
         const std::string chain_name;
         std::string scheme;
         double terminalTemplateGapPenalty;
         double CterminalQueryGapPenalty;
         bool compress_initial_gaps;
+
+        std::unique_ptr<double[]> score_array;
+        size_t score_arr_shape[2];
+        int num_positions;
+        int num_restricted_positions;
 
         std::vector<std::set<char>> consensus_map;
         std::vector<int> highly_conserved_positions;
@@ -103,6 +100,12 @@ class IGAligner {
                                     "EEE", "FFF", "GGG", "HHH", "III", "JJJ", "KKK", "LLL",
                                     "MMM", "NNN", "OOO", "PPP", "QQQ", "RRR", "SSS", "TTT",
                                     "UUU", "VVV", "WWW", "XXX", "YYY", "ZZZ"};
+        
+        void fill_needle_scoring_table(uint8_t *path_trace,
+                    int query_seq_len, int row_size,
+                    const int *encoded_sequence,
+                    int &numElements);
+
 };
 
 #endif

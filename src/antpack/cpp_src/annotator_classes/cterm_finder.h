@@ -1,7 +1,8 @@
 #ifndef C_TERMINAL_FINDER_HEADER_H
 #define C_TERMINAL_FINDER_HEADER_H
 
-#include <pybind11/numpy.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/nanobind.h>
 #include <vector>
 #include <string>
 #include <filesystem>
@@ -15,7 +16,7 @@
 
 
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 
 
@@ -24,15 +25,15 @@ namespace py = pybind11;
 
 class CTermFinder {
     public:
-        CTermFinder(py::array_t<double, py::array::c_style> score_array);
+        CTermFinder(std::string consensus_filepath);
 
         int find_c_terminals(std::string query_sequence,
                 std::array<double, 3> &best_scores, std::array<int, 3> &best_positions);
 
     protected:
-
+        std::unique_ptr<double[]> score_array;
+        size_t score_arr_shape[3];
         int num_positions;
-        py::array_t<double, py::array::c_style> score_array;
 
 };
 

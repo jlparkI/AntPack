@@ -4,7 +4,7 @@
 VJMatchCounter::VJMatchCounter(
                 std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
-                py::array_t<double, py::array::c_style> blosum_matrix,
+                nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix,
                 std::string scheme
 ):
     gene_seqs(gene_seqs),
@@ -15,16 +15,6 @@ VJMatchCounter::VJMatchCounter(
     
     // Note that exceptions thrown here go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
-    py::buffer_info blosum_info = blosum_matrix.request();
-    if (blosum_info.shape.size() != 2){
-        throw std::runtime_error(std::string("Error with package installation; "
-                    "incorrect BLOSUM matrix supplied."));
-    }
-    if (blosum_info.shape[0] != 22 || blosum_info.shape[1] != 22){
-        throw std::runtime_error(std::string("Error with package installation; "
-                    "incorrect BLOSUM matrix supplied."));
-    }
-
     for ( const auto &gene_seq_element : gene_seqs ) {
         std::map<std::string, std::vector<std::string>>::iterator gene_name_element =
             gene_names.find(gene_seq_element.first);
@@ -263,8 +253,6 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
         end_letter = 108;
     }
     
-    auto blosum_itr = this->blosum_matrix.unchecked<2>();
-
     for (size_t i=0; i < gene_seqs.size(); i++){
         int64_t blosum_score = 0;
 
@@ -272,83 +260,83 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
             switch (gene_seqs[i][j]){
                 case 'A':
                     db_length += 1;
-                    blosum_score += blosum_itr(0,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(0,encoded_sequence[j]);
                     break;
                 case 'C':
                     db_length += 1;
-                    blosum_score += blosum_itr(1,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(1,encoded_sequence[j]);
                     break;
                 case 'D':
                     db_length += 1;
-                    blosum_score += blosum_itr(2,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(2,encoded_sequence[j]);
                     break;
                 case 'E':
                     db_length += 1;
-                    blosum_score += blosum_itr(3,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(3,encoded_sequence[j]);
                     break;
                 case 'F':
                     db_length += 1;
-                    blosum_score += blosum_itr(4,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(4,encoded_sequence[j]);
                     break;
                 case 'G':
                     db_length += 1;
-                    blosum_score += blosum_itr(5,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(5,encoded_sequence[j]);
                     break;
                 case 'H':
                     db_length += 1;
-                    blosum_score += blosum_itr(6,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(6,encoded_sequence[j]);
                     break;
                 case 'I':
                     db_length += 1;
-                    blosum_score += blosum_itr(7,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(7,encoded_sequence[j]);
                     break;
                 case 'K':
                     db_length += 1;
-                    blosum_score += blosum_itr(8,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(8,encoded_sequence[j]);
                     break;
                 case 'L':
                     db_length += 1;
-                    blosum_score += blosum_itr(9,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(9,encoded_sequence[j]);
                     break;
                 case 'M':
                     db_length += 1;
-                    blosum_score += blosum_itr(10,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(10,encoded_sequence[j]);
                     break;
                 case 'N':
                     db_length += 1;
-                    blosum_score += blosum_itr(11,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(11,encoded_sequence[j]);
                     break;
                 case 'P':
                     db_length += 1;
-                    blosum_score += blosum_itr(12,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(12,encoded_sequence[j]);
                     break;
                 case 'Q':
                     db_length += 1;
-                    blosum_score += blosum_itr(13,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(13,encoded_sequence[j]);
                     break;
                 case 'R':
                     db_length += 1;
-                    blosum_score += blosum_itr(14,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(14,encoded_sequence[j]);
                     break;
                 case 'S':
                     db_length += 1;
-                    blosum_score += blosum_itr(15,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(15,encoded_sequence[j]);
                     break;
                 case 'T':
                     db_length += 1;
-                    blosum_score += blosum_itr(16,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(16,encoded_sequence[j]);
                     break;
                 case 'V':
                     db_length += 1;
-                    blosum_score += blosum_itr(17,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(17,encoded_sequence[j]);
                     break;
                 case 'W':
                     db_length += 1;
-                    blosum_score += blosum_itr(18,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(18,encoded_sequence[j]);
                     break;
                 case 'Y':
                     db_length += 1;
-                    blosum_score += blosum_itr(19,encoded_sequence[j]);
+                    blosum_score += blosum_matrix(19,encoded_sequence[j]);
                     break;
                 case '-':
                     break;

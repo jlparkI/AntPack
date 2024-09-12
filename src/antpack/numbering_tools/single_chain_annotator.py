@@ -2,7 +2,7 @@
 to parse single chains (either heavy or light) or a sequence which likely contains
 a heavy or light chain."""
 import os
-from antpack_cpp_ext import SingleChainAnnotatorCpp
+from antpack.antpack_cpp_ext import SingleChainAnnotatorCpp
 
 
 

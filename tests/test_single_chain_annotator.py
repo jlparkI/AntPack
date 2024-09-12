@@ -4,7 +4,6 @@ import re
 import random
 import gzip
 import copy
-import random
 import unittest
 from antpack import SingleChainAnnotator
 

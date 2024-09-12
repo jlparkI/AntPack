@@ -1,7 +1,6 @@
 #ifndef PAIRED_CHAIN_ANNOTATOR_HEADER_H
 #define PAIRED_CHAIN_ANNOTATOR_HEADER_H
 
-#include <pybind11/numpy.h>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -15,8 +14,6 @@
 
 
 
-
-namespace py = pybind11;
 
 
 

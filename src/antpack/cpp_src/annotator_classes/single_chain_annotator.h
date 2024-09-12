@@ -1,7 +1,7 @@
 #ifndef SINGLE_CHAIN_ANNOTATOR_HEADER_H
 #define SINGLE_CHAIN_ANNOTATOR_HEADER_H
 
-#include <pybind11/numpy.h>
+#include <nanobind/ndarray.h>
 #include <vector>
 #include <string>
 #include <tuple>
@@ -13,7 +13,7 @@
 
 
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 
 
@@ -31,8 +31,8 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::unordered_map<std::string, std::vector<int>> get_cdr_breakpoints();
 
         void _test_needle_scoring(std::string query_sequence,
-                    py::array_t<double> scoreMatrix,
-                    py::array_t<uint8_t> pathTraceMat,
+                    nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> scoreMatrix,
+                    nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> pathTraceMat,
                     std::string chain);
         
 
@@ -46,11 +46,6 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         int align_input_subregion(std::tuple<std::vector<std::string>, double,
                 std::string, std::string> &best_result, double &best_identity,
                 std::string &query_sequence);
-
-        std::tuple<std::vector<std::string>, double, std::string,
-                std::string, std::vector<std::string>> analyze_test_only(std::string query_sequence,
-                bool retrieve_cdr_labeling, py::array_t<double> scoreMatrix,
-                py::array_t<uint8_t> pathTrace);
 
 };
 

@@ -33,70 +33,42 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
     // PyBind as long as this constructor is used within the wrapper.
     if (chains.size() < 1 || chains.size() > 3){
         throw std::runtime_error(std::string("There must be at least one chain specified, "
-                    "and fewer than 3."));
+                    "and no more than 3."));
     }
 
-    std::filesystem::path extensionPath = consensus_filepath;
-    std::string uppercaseScheme = scheme;
-    for (auto & c: uppercaseScheme) c = toupper(c);
 
     for (auto & chain : this->chains){
         if (chain != "H" && chain != "K" && chain != "L")
             throw std::runtime_error(std::string("Valid chains must be one of 'H', 'K', 'L'."));
         else{
-            std::string npyFName = uppercaseScheme + "_CONSENSUS_" + chain + ".npy";
-            std::string consFName = uppercaseScheme + "_CONSENSUS_" + chain + ".txt";
-            std::filesystem::path npyFPath = extensionPath / npyFName;
-            std::filesystem::path consFPath = extensionPath / consFName;
-
-            std::vector<std::vector<std::string>> position_consensus;
-            int errCode = read_consensus_file(consFPath, position_consensus);
-            if (errCode != 1){
-                throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-            }
-
-            cnpy::NpyArray raw_score_arr = cnpy::npy_load(npyFPath.string());
-            double *raw_score_ptr = raw_score_arr.data<double>();
-            if (raw_score_arr.word_size != 8){
-                throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-            }
-
-            py::array_t<double, py::array::c_style> scoreArr({raw_score_arr.shape[0],
-                    raw_score_arr.shape[1]});
-            double *scorePtr = static_cast<double*>(scoreArr.request().ptr);
-
-            for (size_t k=0; k < raw_score_arr.shape[0] * raw_score_arr.shape[1]; k++)
-                scorePtr[k] = raw_score_ptr[k];
 
             if (scheme == "imgt"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            position_consensus, chain, scheme,
+                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                            chain, scheme,
                             IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)
                         );
             }
             else if (scheme == "aho"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            position_consensus, chain, scheme,
+                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                            chain, scheme,
                             AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)
                         );
             }
             else if (scheme == "martin"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            position_consensus, chain, scheme,
+                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                            chain, scheme,
                             MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)
                         );
             }
             else if (scheme == "kabat"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(scoreArr,
-                            position_consensus, chain, scheme,
+                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                            chain, scheme,
                             KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
                             compress_init_gaps)
@@ -237,8 +209,8 @@ std::vector<std::tuple<std::vector<std::string>, double, std::string,
 
 // Testing function only; used to check how the needle scoring table is being filled.
 void SingleChainAnnotatorCpp::_test_needle_scoring(std::string query_sequence,
-                    py::array_t<double> scoreMatrix,
-                    py::array_t<uint8_t> pathTraceMat,
+                    nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> scoreMatrix,
+                    nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> pathTraceMat,
                     std::string chain){
     for (size_t i=0; i < this->scoring_tools.size(); i++){
         if (this->scoring_tools[i]->get_chain_name() == chain){

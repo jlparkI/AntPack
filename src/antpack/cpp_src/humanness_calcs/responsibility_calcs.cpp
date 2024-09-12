@@ -73,10 +73,10 @@
  *
  * All operations are in place, nothing is returned.
  */
-void getProbsCExt(py::array_t<uint8_t, py::array::c_style> x, 
-        py::array_t<double, py::array::c_style> mu,
-        py::array_t<double, py::array::c_style> resp,
-        py::ssize_t n_threads){
+void getProbsCExt(nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> x, 
+        nb::ndarray<double, nb::shape<-1,-1,-1>, nb::device::cpu, nb::c_contig> mu,
+        nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> resp,
+        size_t n_threads){
 
     if (n_threads > mu.shape(0))
         n_threads = mu.shape(0);
@@ -189,7 +189,8 @@ void *getProbsCExt_worker(uint8_t *x, double *resp,
  *
  * All operations are in place, nothing is returned.
  */
-void mask_terminal_deletions(py::array_t<uint8_t, py::array::c_style> x){
+void mask_terminal_deletions(nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu,
+        nb::c_contig> x){
     int nDatapoints = x.shape(0);
     int nCols = x.shape(1);
     uint8_t *xref = (uint8_t*) x.data();
@@ -241,9 +242,10 @@ void mask_terminal_deletions(py::array_t<uint8_t, py::array::c_style> x){
  *
  * All operations are in place, nothing is returned.
  */
-void getProbsCExt_masked(py::array_t<uint8_t, py::array::c_style> x, 
-        py::array_t<double, py::array::c_style> mu,
-        py::array_t<double, py::array::c_style> resp,
+void getProbsCExt_masked(nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu,
+                nb::c_contig> x, 
+        nb::ndarray<double, nb::shape<-1,-1,-1>, nb::device::cpu, nb::c_contig> mu,
+        nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> resp,
         int n_threads){
     if (n_threads > x.shape(0))
         n_threads = x.shape(0);

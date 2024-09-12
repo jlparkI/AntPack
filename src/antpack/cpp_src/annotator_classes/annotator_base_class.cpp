@@ -45,55 +45,8 @@ AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme,
                         AHO_CDR_BREAKPOINT_6};
 
 
-    std::filesystem::path extensionPath = consensus_filepath;
-    std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
-    cnpy::NpyArray raw_score_arr;
 
-    try{
-        raw_score_arr = cnpy::npy_load(npyFPath.string());
-    }
-    catch (...){
-        throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-    }
-
-    std::vector<std::string> boundary_chains = {"H", "K", "L"};
-    int shape0 = raw_score_arr.shape[0], shape1 = raw_score_arr.shape[1];
-    if (shape1 != 20){
-        throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-    }
-    py::array_t<double, py::array::c_style> score_array({shape0, shape1, 3});
-    auto scoreMatItr = score_array.mutable_unchecked<3>();
-
-    for (size_t i=0; i < boundary_chains.size(); i++){
-        std::string npyFName = "CTERMFINDER_CONSENSUS_" + boundary_chains[i] + ".npy";
-        std::filesystem::path npyFPath = extensionPath / npyFName;
-
-        try{
-            raw_score_arr = cnpy::npy_load(npyFPath.string());
-        }
-        catch (...){
-            throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-        }
-        int ld_shape0 = raw_score_arr.shape[0], ld_shape1 = raw_score_arr.shape[1];
-        if (raw_score_arr.word_size != 8 || ld_shape0 != shape0 || ld_shape1 != shape1)
-            throw std::runtime_error(std::string("The consensus file / library installation "
-                            "has an issue."));
-
-        double *raw_score_ptr = raw_score_arr.data<double>();
-
-        for (int j=0; j < shape0; j++){
-            for (int k=0; k < shape1; k++){
-                scoreMatItr(j,k,i) = *raw_score_ptr;
-                raw_score_ptr++;
-            }
-        }
-    }
-
-    this->boundary_finder = std::make_unique<CTermFinder>(score_array);
+    this->boundary_finder = std::make_unique<CTermFinder>(consensus_filepath);
 }
 
 

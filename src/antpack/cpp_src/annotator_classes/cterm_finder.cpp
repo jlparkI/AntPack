@@ -2,29 +2,60 @@
 
 
 
-CTermFinder::CTermFinder(
-                 py::array_t<double, py::array::c_style> score_array
-):
-    score_array(score_array)
-{
-    py::buffer_info info = score_array.request();
-    // Note that exceptions thrown here are go back to Python via
-    // PyBind as long as this constructor is used within the wrapper.
-    if (info.shape.size() != 3){
-        throw std::runtime_error(std::string("The score_array passed to "
-                "CTermFinder must be a 3d array"));
+CTermFinder::CTermFinder(std::string consensus_filepath){
+    std::filesystem::path extensionPath = consensus_filepath;
+    std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
+    std::filesystem::path npyFPath = extensionPath / npyFName;
+    cnpy::NpyArray raw_score_arr;
+
+    try{
+        raw_score_arr = cnpy::npy_load(npyFPath.string());
     }
-    if (info.shape[1] != 20){
-        throw std::runtime_error(std::string("The score_array passed to "
-                "CTermFinder must have shape[1] == 20 (1 per AA)"));
-    }
-    if (info.shape[2] != 3){
-        throw std::runtime_error(std::string("The score_array passed to "
-                "CTermFinder must have shape[2] == 3 (1 per chain type)"));
+    catch (...){
+        throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
     }
 
+    std::vector<std::string> boundary_chains = {"H", "K", "L"};
+    this->score_arr_shape[0] = raw_score_arr.shape[0];
+    this->score_arr_shape[1] = raw_score_arr.shape[1];
+    this->score_arr_shape[2] = boundary_chains.size();
+    if (this->score_arr_shape[1] != 20){
+        throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+    }
+    this->score_array = std::make_unique<double[]>( this->score_arr_shape[0] *
+           this->score_arr_shape[1] * this->score_arr_shape[2] );
 
-    this->num_positions = info.shape[0];
+    for (size_t i=0; i < boundary_chains.size(); i++){
+        std::string npyFName = "CTERMFINDER_CONSENSUS_" + boundary_chains[i] + ".npy";
+        std::filesystem::path npyFPath = extensionPath / npyFName;
+
+        try{
+            raw_score_arr = cnpy::npy_load(npyFPath.string());
+        }
+        catch (...){
+            throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+        }
+        int ld_shape0 = raw_score_arr.shape[0], ld_shape1 = raw_score_arr.shape[1];
+        if (raw_score_arr.word_size != 8 || ld_shape0 != this->score_arr_shape[0] ||
+                ld_shape1 != this->score_arr_shape[1]){
+            throw std::runtime_error(std::string("The consensus file / library installation "
+                            "has an issue."));
+        }
+
+        double *raw_score_ptr = raw_score_arr.data<double>();
+
+        for (int j=0; j < this->score_arr_shape[0]; j++){
+            for (int k=0; k < this->score_arr_shape[1]; k++){
+                score_array[j*this->score_arr_shape[1]*this->score_arr_shape[2] +
+                    k*this->score_arr_shape[2] + i] = *raw_score_ptr;
+                raw_score_ptr++;
+            }
+        }
+    }
+    this->num_positions = this->score_arr_shape[0];
 }
 
 
@@ -41,7 +72,6 @@ int CTermFinder::find_c_terminals(std::string query_sequence,
 
     std::string errorMessage;
     size_t numQueryAlignments = query_sequence.length() - this->num_positions;
-    auto scoreMatItr = this->score_array.unchecked<3>();
 
     for (int k=0; k < 3; k++){
         best_scores[k] = 0;
@@ -82,12 +112,17 @@ int CTermFinder::find_c_terminals(std::string query_sequence,
 
     for (size_t i=startPosition; i < numQueryAlignments; i++){
        double match_score[3];
+       size_t score_arr_row = 0;
+
        for (int k=0; k < 3; k++)
            match_score[k] = 0;
 
        for (int j=0; j < this->num_positions; j++){
-            for (int k=0; k < 3; k++)
-                match_score[k] += scoreMatItr(j, encoded_sequence[i+j], k);
+            for (int k=0; k < 3; k++){
+                size_t position = score_arr_row + encoded_sequence[i+j] * this->score_arr_shape[2] + k;
+                match_score[k] += this->score_array[position];
+            }
+            score_arr_row += (this->score_arr_shape[1] * this->score_arr_shape[2]);
        }
 
        for (int k=0; k < 3; k++){
