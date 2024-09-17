@@ -2,7 +2,6 @@
 */
 #include "utilities.h"
 
-
 // Codes for sequence validation.
 #define VALID_SEQUENCE 1
 #define INVALID_SEQUENCE 0
@@ -428,7 +427,6 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
         }
         else
             return INVALID_SEQUENCE;
-
         orderedFloatCodes.push_back(convertedCode);
     }
 
@@ -513,8 +511,21 @@ int build_msa_utility(std::vector<std::string> &sequences,
     for (size_t i=0; i < sequences.size(); i++){
         std::string alignedSeq(positionCodes.size(), '-');
 
+        // The only situations where the annotation could be a different
+        // length from the sequence are if the user made changes to an
+        // annotation OR there was an alignment error (which is reported as
+        // an error code). We could skip the sequence, but this creates more
+        // problems than it solves -- same for throwing an exception. For now,
+        // we report a blank alignment if this has occurred.
+        if (std::get<0>(annotations[i]).size() != sequences[i].length()){
+            alignedSeqs.push_back(alignedSeq);
+            continue;
+        }
+
         for (size_t j=0; j < sequences[i].length(); j++){
             std::string posCode = std::get<0>(annotations[i])[j];
+            if (posCode == "-")
+                continue;
             if (codeToLocation.find(posCode) == codeToLocation.end())
                 throw std::runtime_error(std::string("Invalid position codes were supplied."));
             

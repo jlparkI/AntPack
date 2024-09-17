@@ -1,6 +1,5 @@
 """Simple tools for reading biological data files. This avoids
 any need to use Biopython or other similar libraries as dependencies."""
-import itertools
 import gzip
 
 
@@ -9,20 +8,35 @@ def read_fasta(filepath):
     one sequence at a time. Can take either gzipped or non-
     gzipped files as input. Assumes utf-8 encoding."""
     if filepath.endswith(".gz"):
-        with gzip.open(filepath, "rt", encoding="utf-8") as fhandle:
-            for header, line_group in itertools.groupby(fhandle,
-                    lambda x: x.startswith(">")):
-                if header:
-                    seq_info = line_group.next()[1:]
-                else:
-                    sequence = ''.join(line.strip() for line in line_group)
-                    yield seq_info, sequence
+        fhandle = gzip.open(filepath, "rt", encoding="utf-8")
     else:
-        with open(filepath, "r", encoding="utf-8") as fhandle:
-            for header, line_group in itertools.groupby(fhandle,
-                    lambda x: x.startswith(">")):
-                if header:
-                    seq_info = line_group.next()[1:]
-                else:
-                    sequence = ''.join(line.strip() for line in line_group)
-                    yield seq_info, sequence
+        fhandle = open(filepath, "r", encoding="utf-8")
+
+    sequence, seqinfo = [], ""
+
+    for line in fhandle:
+        if line.startswith(">"):
+            if len(sequence) > 0 and len(seqinfo) > 0:
+                yield seqinfo, "".join(sequence)
+                sequence, seqinfo = [], line[1:].strip()
+
+            elif len(sequence) == 0 and len(seqinfo) == 0:
+                seqinfo = line[1:].strip()
+
+            else:
+                raise RuntimeError("Incorrect fasta file formatting or missing "
+                        f"sequence id / name; please check input file {filepath}.")
+
+        elif len(line.strip()) == 0:
+            continue
+
+        else:
+            sequence.append(line.strip())
+
+    if len(sequence) > 0 and len(seqinfo) > 0:
+        yield seqinfo, "".join(sequence)
+    elif len(sequence) != 0 or len(seqinfo) != 0:
+        raise RuntimeError("Incorrect fasta file formatting or missing "
+                f"sequence id / name; please check input file {filepath}.")
+
+    fhandle.close()

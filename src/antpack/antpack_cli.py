@@ -17,7 +17,13 @@ class ReconfigParser(argparse.ArgumentParser):
 def gen_arg_parser():
     """Build the command line arg parser."""
     parser = ReconfigParser(description="Run AntPack from the command line "
-            "to number and provide VJ assignments for input AA sequences.")
+            "to number and provide VJ assignments for input AA sequences. "
+            "This command line tool first reads all input sequences into memory, "
+            "which is fine for small datasets but may be undesirable for "
+            "large ones. If you need to work with a larger dataset or do "
+            "a more customized or extensive analysis, use the Python API "
+            "instead. Otherwise, the required and optional arguments for this "
+            "tool are described below.")
     parser.add_argument("input", nargs = 1, help=
             "Input filepath. Must be in fasta format.")
     parser.add_argument("output", nargs = 1, help=
@@ -26,28 +32,32 @@ def gen_arg_parser():
             "created, one output file with '_heavy' appended to the output "
             "path for heavy chains (if any) and one with '_light' appended "
             "to the output path for light chains (if any).")
+    parser.add_argument("scheme", nargs = 1, help=
+            "The numbering scheme. One of aho, imgt, kabat or martin.")
     parser.add_argument("--csv", action="store_true", help=
             "The output is normally fasta format. If this flag is supplied, "
-            "both output files are in csv format. If you want to assign "
-            "vj genes you must use csv format.")
+            "both output files are written in csv format instead.")
     parser.add_argument("--paired", action="store_true", help=
             "AntPack will normally assume there is one variable region "
             "per input sequence and try to extract it. If this "
             "flag is supplied, it will instead assume each input "
-            "sequence contains a heavy chain and a light chain.")
+            "sequence contains a heavy chain and a light chain and "
+            "try to extract both.")
     parser.add_argument("--vj", nargs=2, help=
-            "AntPack will not by default assign VJ genes. If this "
-            "flag is supplied, however, it will find the closest "
+            "If this flag is supplied, AntPack will find the closest "
             "VJ genes for the specified species and write these "
             "into the output. There are two arguments. The first is "
             "the species which must be either human or mouse. The "
-            "second is the mode which must be identity or evalue."
-            "This flag is only accepted for csv output.")
+            "second is the mode which must be identity or evalue. "
+            "This flag is only accepted for csv output.",
+            metavar=("species", "mode"))
     parser.add_argument("--chains", nargs=1, help=
             "AntPack will normally look for an H, K or L chain in each "
             "input sequence. If desired, you can instead restrict it to "
             "search for a comma-separated list of specific chains (e.g. H or "
-            "K,L) by using this argument.")
+            "K,L) by using this argument. If you supply the argument "
+            "--paired this argument is ignored.",
+            metavar=("chains"))
     return parser
 
 
@@ -62,10 +72,10 @@ def process_fasta_online(cli_args, chains):
     sequences in the input file is large. For a large
     file, it is strongly recommended to use the Python
     API instead."""
-    seqrecs = list(read_fasta(cli_args.input))
+    seqrecs = list(read_fasta(cli_args.input[0]))
     seqs = [seqrec[1] for seqrec in seqrecs]
     seqinfo = [seqrec[0] for seqrec in seqrecs]
-    vj_tool = VJGeneTool(scheme = cli_args.scheme)
+    vj_tool = VJGeneTool(scheme = cli_args.scheme[0])
 
     output_dict = {
         k:{"annotations":[], "seqs":[],
@@ -75,7 +85,7 @@ def process_fasta_online(cli_args, chains):
         }
 
     if cli_args.paired:
-        sc_tool = PairedChainAnnotator(cli_args.scheme)
+        sc_tool = PairedChainAnnotator(cli_args.scheme[0])
         seq_annotations = [sc_tool.analyze_seq(s) for s in seqs]
         for i, chain in enumerate(["heavy", "light"]):
             output_dict[chain]["annotations"] = [s[i] for s in seq_annotations]
@@ -87,21 +97,23 @@ def process_fasta_online(cli_args, chains):
         del seq_annotations
 
     else:
-        sc_tool = SingleChainAnnotator(chains, cli_args.scheme)
+        sc_tool = SingleChainAnnotator(chains, cli_args.scheme[0])
         annotations = sc_tool.analyze_seqs(seqs)
 
         for i, (seq, annot) in enumerate(zip(seqs, annotations)):
             if annot[2] in ("K", "L"):
-                output_dict["light"]["annotation"].append(annot)
+                output_dict["light"]["annotations"].append(annot)
                 output_dict["light"]["seqs"].append(seq)
                 output_dict["light"]["seqinfo"].append(seqinfo[i])
             else:
-                output_dict["heavy"]["annotation"].append(annot)
+                output_dict["heavy"]["annotations"].append(annot)
                 output_dict["heavy"]["seqs"].append(seq)
                 output_dict["heavy"]["seqinfo"].append(seqinfo[i])
 
         for chain in ["heavy", "light"]:
-            if len(output_dict["seqs"]) > 0:
+            if len(output_dict[chain]["seqs"]) > 0:
+                import pdb
+                pdb.set_trace()
                 output_dict["msa"] = sc_tool.build_msa(output_dict[chain]["seqs"],
                         output_dict[chain]["annotations"])
 
@@ -119,7 +131,7 @@ def process_fasta_online(cli_args, chains):
         for chain, cdict in output_dict.items():
             if cdict["msa"] is None:
                 continue
-            with open(cli_args.output + f"_{chain}.csv", "w+",
+            with open(cli_args.output[0] + f"_{chain}.csv", "w+",
                     encoding="utf-8") as fhandle:
                 if cli_args.vj is not None:
                     _ = fhandle.write("Sequence_info,vj_species,vj_mode,v_gene,"
@@ -129,7 +141,7 @@ def process_fasta_online(cli_args, chains):
             _ = fhandle.write(",".join(cdict["msa"][0]))
             _ = fhandle.write(",error_message\n")
 
-            if cli_args.vj is None:
+            if not cli_args.vj:
                 for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
                             cdict["msa"][1])):
                     _ = fhandle.write(",".join([seq_id] + list(msa_row)))
@@ -148,8 +160,10 @@ def process_fasta_online(cli_args, chains):
         for chain, cdict in output_dict.items():
             if cdict["msa"] is None:
                 continue
-            with open(cli_args.output + f"_{chain}.csv", "w+",
+            with open(cli_args.output[0] + f"_{chain}.csv", "w+",
                     encoding="utf-8") as fhandle:
+                import pdb
+                pdb.set_trace()
                 for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
                             cdict["msa"][1])):
                     _ = fhandle.write(f">{seq_id}\n")
@@ -167,10 +181,10 @@ def run_cli_interface():
         sys.exit(1)
 
     args = parser.parse_args()
-    if args.chains is not None:
+    if args.chains:
         chains = args.chains.split(",")
     else:
-        args.chains = ['H', 'K', 'L']
+        chains = ['H', 'K', 'L']
 
     if args.vj is not None and not args.csv:
         raise RuntimeError("vj is not accepted as an argument unless "
