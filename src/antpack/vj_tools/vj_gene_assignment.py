@@ -27,6 +27,8 @@ class VJGeneTool(VJMatchCounter):
                 Determines the numbering scheme that will be used
                 when assigning vj genes based on alignments.
         """
+        if database not in ("imgt", "ogrdb"):
+            raise RuntimeError("Invalid database supplied.")
         project_path = os.path.abspath(os.path.dirname(__file__))
         db_path = os.path.join(project_path, "consensus_data")
         vj_names, vj_seqs, retrieved_dates = load_vj_gene_consensus_db(os.getcwd(),
@@ -35,7 +37,6 @@ class VJGeneTool(VJMatchCounter):
         blosum_matrix = np.load(os.path.join(project_path, "..",
             "numbering_tools", "consensus_data",
             "blosum_matrix.npy")).astype(np.float64)
-
         self.retrieved_dates = retrieved_dates
         ig_aligner_consensus_path = os.path.join(project_path, "..", "numbering_tools",
                 "consensus_data")

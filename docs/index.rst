@@ -7,8 +7,17 @@ modeling / ML for antibodies, using amino acid sequences
 .. toctree::
   :maxdepth: 1
    
-  Installation <installation>
-  
+  Installation and licensing <installation>
+
+
+Using AntPack from Python vs from the command line
+====================================================
+
+.. toctree::
+  :maxdepth: 1
+
+   AntPack command line and Python APIs <api_background>
+
 
 Antibody Numbering
 =====================

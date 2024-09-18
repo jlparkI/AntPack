@@ -14,7 +14,7 @@ of relatively lower variability).
 Confusingly, there are a number of different numbering schemes for antibodies.
 These are mostly very similar, but they tend to differ in how positions in / 
 close to CDRs are assigned and in how CDRs are defined. The most popular
-schemes include IMGT and Kabat. AntPack currently supports IMGT, Martin ("modern 
+schemes include IMGT and Kabat. AntPack currently supports Aho, IMGT, Martin ("modern 
 Chothia") and Kabat. For some background on how these
 schemes differ and why you might prefer one or the other, we suggest reading
 `this paper <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6198058/>`_.
@@ -34,9 +34,8 @@ than ANARCI or AbNum but is not open source and is still relatively slow.
 
 In initial testing on about 1600 chains from PDB (see the links at the
 github repo for more), AntPack is > 50x faster than ANARCI and > 25x faster
-than AbRSA, taking 0.5 seconds to align the same number of sequences that
-take > 35 seconds on ANARCI. If you know what chain type you're dealing with
-(e.g. heavy or light), it's > 100x faster than ANARCI.
+than AbRSA, taking < 0.4 seconds to align the same number of sequences that
+take > 35 seconds on ANARCI.
 
 ``SingleChainAnnotator`` and ``PairedChainAnnotator`` contain functionality
 for numbering sequences that likely contain a single chain (heavy or light) or

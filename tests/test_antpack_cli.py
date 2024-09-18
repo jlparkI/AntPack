@@ -22,7 +22,6 @@ class TestAntPackCLI(unittest.TestCase):
         """Take test heavy and light chains and pair them,
         then use the CLI to do basic analysis written to a
         csv file."""
-        return
         merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = get_paired_seqs()
 
         heavy_code_map = create_manual_mapping(heavy_pc_annotations, pc_aligner)
@@ -75,7 +74,6 @@ class TestAntPackCLI(unittest.TestCase):
         """Take test heavy and light chains and pair them,
         then use the CLI to do basic analysis written to a
         csv file with human VJ gene assignment."""
-        return
         merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = get_paired_seqs()
         vj_tool = VJGeneTool(database="imgt", scheme="imgt")
 

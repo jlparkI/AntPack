@@ -4,33 +4,45 @@ Assigning V and J genes
 AntPack can find the most similar V and J genes by looking
 for the V and J amino acid sequences from a species of
 interest that have the highest percent identity. Note that
-in general this is not as reliable as using nucleotide
-sequences, and that there are some other tools (e.g. IGOR)
-that can generate a probability for each possible
-recombination scenario. For a detailed analysis, especially
-for repertoire data, these tools may be better. If you
-just want to get the most similar V and J genes to your amino
-acid sequence, AntPack should work fine.
+there are some other tools that can generate a
+probability for each possible recombination scenario. For
+a detailed analysis, especially for repertoire data, these
+tools may be better. If you just want to get the most similar
+V and J genes to your amino acid sequence, AntPack works fine.
 
 To do this, use the VJGeneTool. The tool can tell you the
 name of the most similar V and J genes for an input sequence.
-You can either provide numbering (if you've already numbered
-the sequence) or ask VJGeneTool to number it for you. You
-can also retrieve the sequences of the assigned V and J
-genes or the amino acid sequences of all genes in the same
-V or J family (e.g. IGHV1).
+It can determine similarity using either percent identity or
+e-value (using the assigned numbering as the alignment).
+You'll need to number the sequence first which could be done
+with another tool (but is most easily done using AntPack).
+You can next if desired retrieve the sequence of the assigned
+vj genes.
 
-Finally, note that AntPack uses its own internal database, which
-is periodically updated based on the IMGT VQuest DB. Some
+Many tools try to assign a *single* V-gene and J-gene. In general
+this is not necessarily correct -- it is not uncommon to find
+situations where more than one V-gene and J-gene have the same
+percent identity or very similar e-values. In these cases, AntPack
+returns a list of the v-genes and j-genes that achieved the same
+(or essentially equivalent) score, delimited or separated by the
+character "_".
+
+AntPack can also use either the "imgt" database or the "ogrdb"
+database. In general we prefer "imgt". "ogrdb" assigns different
+names to sequences with the same amino acid sequence, so in some
+cases there is more than one name for the same gene; when this
+happens, these are all reported separated by spaces, i.e.
+"gene1 gene2". Still, the OGRDB database is available if useful
+for your particular project. Where IMGT is concerned, note that some
 sequences found in IMGT VQuest are excluded (pseudogenes,
 partial sequences, sequences that do not have 'F' in the functionality
 section etc.), so not all V and J genes in the IMGT db are in
 AntPack. You can find out when AntPack's db was last updated
 using the VJGeneTool (see below).
 
-Also see the example for an example of how to use these capabilities.
+Also see the example, which illustrates how to use these capabilities.
 
 .. autoclass:: antpack.VJGeneTool
    :special-members: __init__
-   :members: get_vj_gene_sequence, get_vj_gene_family, assign_numbered_sequence, assign_sequence, retrieve_db_dates
+   :members: get_vj_gene_sequence, assign_vj_genes, retrieve_db_dates
 

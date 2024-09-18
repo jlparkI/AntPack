@@ -21,7 +21,8 @@ def load_vj_gene_consensus_db(current_dir, database_path, database = "imgt"):
         for db_file in db_files:
             species = db_file.split("_")[0]
             receptor = db_file.split("_")[2]
-            retrieved_dates[species] = {}
+            if species not in retrieved_dates:
+                retrieved_dates[species] = {}
 
             retrieved_dates[species][receptor] = db_file.split(".fa.gz")[0].split("_")[-1]
 
