@@ -49,7 +49,6 @@ class TestVJGeneTool(unittest.TestCase):
         """Double checks the percent identity calculation
         done by the cpp extension using a simple stupid
         Python version, just to make sure it's correct."""
-        return
         vj_tool = VJGeneTool()
 
         project_path = os.path.abspath(os.path.dirname(__file__))
@@ -102,7 +101,6 @@ class TestVJGeneTool(unittest.TestCase):
     def test_vj_assignment(self):
         """Checks vj assignments against those done by other
         tools to ensure that they are usually the same."""
-        return
         vj_tool = VJGeneTool()
         sc_annotator = SingleChainAnnotator()
 
