@@ -63,16 +63,18 @@ VJMatchCounter::VJMatchCounter(
 
     // Set up three imgt scheme aligners for internal use (useful for various
     // tasks).
-    std::vector<std::string> default_chains = {"H", "K", "L"};
-
-    for (auto & chain : default_chains){
-        this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
-                            chain, "imgt",
-                            IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
-                            IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-                            false)
-                        );
-    }
+    this->h_aligner = std::make_unique<IGAligner>(consensus_filepath,
+            "H", "imgt", IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
+            IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
+            false);
+    this->k_aligner = std::make_unique<IGAligner>(consensus_filepath,
+            "K", "imgt", IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
+            IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
+            false);
+    this->l_aligner = std::make_unique<IGAligner>(consensus_filepath,
+            "L", "imgt", IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
+            IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
+            false);
 }
 
 
@@ -94,6 +96,10 @@ std::tuple<std::string, std::string,
     }
 
     if (sequence.length() != std::get<0>(alignment).size()){
+        return std::tuple<std::string, std::string,
+                double, double>{"", "", 0, 0};
+    }
+    if (!validate_x_sequence(sequence)){
         return std::tuple<std::string, std::string,
                 double, double>{"", "", 0, 0};
     }
@@ -126,8 +132,11 @@ std::tuple<std::string, std::string,
     // If the scheme is not IMGT, we can convert the numbering to IMGT temporarily for
     // this purpose.
     std::string prepped_sequence(REQUIRED_SEQUENCE_LENGTH, '-');
-    this->prep_sequence(prepped_sequence, sequence,
-            std::get<0>(alignment));
+    int err_code = this->prep_sequence(prepped_sequence, sequence, alignment);
+    if (err_code != VALID_SEQUENCE){
+        return std::tuple<std::string, std::string,
+                double, double>{"", "", 0, 0};
+    }
 
     if (vgenes.size() != vnames.size() || jgenes.size() != jnames.size()){
         throw std::runtime_error(std::string("There was an error in the construction of the "
@@ -145,7 +154,7 @@ std::tuple<std::string, std::string,
     }
     else if (mode == "evalue"){
         auto encoded_query = std::make_unique<int[]>( REQUIRED_SEQUENCE_LENGTH );
-        int err_code = convert_x_sequence_to_array(encoded_query.get(), prepped_sequence);
+        err_code = convert_x_sequence_to_array(encoded_query.get(), prepped_sequence);
 
         if (err_code != 1){
             throw std::runtime_error(std::string("The input sequence contains invalid "
@@ -392,23 +401,74 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
 
 
 
-void VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &sequence,
-        std::vector<std::string> &numbering){
+int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &sequence,
+        std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment){
     if (this->scheme == "imgt"){
+        std::vector<std::string> &numbering = std::get<0>(alignment);
         for (size_t i=0; i < sequence.length(); i++){
             if (this->essential_imgt_map.find(numbering[i]) !=
                     this->essential_imgt_map.end())
-                prepped_sequence[std::stoi(numbering[i]) - 1] = sequence[i];
+                prepped_sequence.at(std::stoi(numbering[i]) - 1) = sequence[i];
         }
     }
     else{
-        std::vector<std::string> prepped_numbering;
-        for (size_t i=0; i < sequence.length(); i++){
-            if (this->essential_imgt_map.find(prepped_numbering[i]) !=
+        // If the scheme is not IMGT, we have several options. We can convert numbering
+        // to IMGT, and indeed some programs (ANARCI) rely heavily on interconversion
+        // between schemes, although this involves some heuristics so for now we are
+        // avoiding this. Alternatively we can realign the trimmed sequence. This is
+        // actually quite fast because 1) we trim the sequence and 2) we only need to
+        // do one chain alignment (we already know the chain type). So for now we
+        // are doing this (although it is not perfect either). The third option is
+        // to do alignments of VJ genes against the original sequence without
+        // using numbering, and while some tools use this this is slow, so we are
+        // not doing that here.
+        std::vector<std::string> trimmed_numbering;
+        std::vector<char> trimmed_seq_vector;
+        int exstart, exend;
+
+        // The only circumstance that could cause trim_alignment_utility to return
+        // an error is already checked for by caller.
+        int err_code = trim_alignment_utility(sequence, alignment, trimmed_numbering,
+                exstart, exend, trimmed_seq_vector);
+        std::string trimmed_seq(trimmed_seq_vector.begin(), trimmed_seq_vector.end()); 
+
+        auto queryAsIdx = std::make_unique<int[]>( trimmed_seq.length() );
+        std::vector<std::string> imgt_numbering;
+        std::string errorMessage = "";
+        double percent_identity = -1;
+        imgt_numbering.reserve(trimmed_seq.length() * 2);
+
+        if (!convert_x_sequence_to_array(queryAsIdx.get(), trimmed_seq))
+            return INVALID_SEQUENCE;
+
+        // Now that the alignment is trimmed, we can renumber the trimmed sequence.
+        // Caller already checks that chain is one of H, K, L so no need to recheck
+        // here. The order H = 0, K = 1, L = 2 is set in the class constructor.
+        if (std::get<2>(alignment) == "H"){
+            this->h_aligner->align(trimmed_seq,
+                    queryAsIdx.get(), imgt_numbering, percent_identity,
+                    errorMessage);
+        }
+        else if (std::get<2>(alignment) == "K"){
+            this->k_aligner->align(trimmed_seq,
+                    queryAsIdx.get(), imgt_numbering, percent_identity,
+                    errorMessage);
+        }
+        else if (std::get<2>(alignment) == "L"){
+            this->l_aligner->align(trimmed_seq,
+                    queryAsIdx.get(), imgt_numbering, percent_identity,
+                    errorMessage);
+        }
+        if (imgt_numbering.size() != trimmed_seq.length())
+            return INVALID_SEQUENCE;
+
+        for (size_t i=0; i < trimmed_seq.length(); i++){
+            if (this->essential_imgt_map.find(imgt_numbering[i]) !=
                     this->essential_imgt_map.end())
-                prepped_sequence[std::stoi(prepped_numbering[i]) - 1] = sequence[i];
+                prepped_sequence.at(std::stoi(imgt_numbering[i]) - 1) = sequence[i];
         }
     }
+    return VALID_SEQUENCE;
 }
 
 

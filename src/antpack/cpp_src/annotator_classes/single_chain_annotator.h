@@ -41,7 +41,7 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::string scheme;
         bool compress_init_gaps;
 
-        std::vector<std::unique_ptr<IGAligner>> scoring_tools;
+        std::vector<IGAligner> scoring_tools;
 
         int align_input_subregion(std::tuple<std::vector<std::string>, double,
                 std::string, std::string> &best_result, double &best_identity,

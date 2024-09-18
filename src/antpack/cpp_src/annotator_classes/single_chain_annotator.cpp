@@ -32,7 +32,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
         else{
 
             if (scheme == "imgt"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                this->scoring_tools.push_back(IGAligner(consensus_filepath,
                             chain, scheme,
                             IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
@@ -40,7 +40,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
                         );
             }
             else if (scheme == "aho"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                this->scoring_tools.push_back(IGAligner(consensus_filepath,
                             chain, scheme,
                             AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
@@ -48,7 +48,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
                         );
             }
             else if (scheme == "martin"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                this->scoring_tools.push_back(IGAligner(consensus_filepath,
                             chain, scheme,
                             MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
@@ -56,7 +56,7 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
                         );
             }
             else if (scheme == "kabat"){
-                this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                this->scoring_tools.push_back(IGAligner(consensus_filepath,
                             chain, scheme,
                             KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                             KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
@@ -153,19 +153,19 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
         return INVALID_SEQUENCE;
 
     for (size_t i=0; i < this->scoring_tools.size(); i++){
-        std::vector<std::string> finalNumbering;
+        std::vector<std::string> final_numbering;
         std::string errorMessage = "";
         double percent_identity = -1;
 
-        finalNumbering.reserve(query_sequence.length() * 2);
+        final_numbering.reserve(query_sequence.length() * 2);
 
-        this->scoring_tools[i]->align(query_sequence,
-                    queryAsIdx.get(), finalNumbering, percent_identity,
+        this->scoring_tools[i].align(query_sequence,
+                    queryAsIdx.get(), final_numbering, percent_identity,
                     errorMessage);
         if (percent_identity > best_identity){
-            std::get<0>(best_result) = finalNumbering;
+            std::get<0>(best_result) = final_numbering;
             std::get<1>(best_result) = percent_identity;
-            std::get<2>(best_result) = this->scoring_tools[i]->get_chain_name();
+            std::get<2>(best_result) = this->scoring_tools[i].get_chain_name();
             std::get<3>(best_result) = errorMessage;
             best_identity = percent_identity;
         }
@@ -202,8 +202,8 @@ void SingleChainAnnotatorCpp::_test_needle_scoring(std::string query_sequence,
                     nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> pathTraceMat,
                     std::string chain){
     for (size_t i=0; i < this->scoring_tools.size(); i++){
-        if (this->scoring_tools[i]->get_chain_name() == chain){
-            this->scoring_tools[i]->_test_fill_needle_scoring_table(query_sequence,
+        if (this->scoring_tools[i].get_chain_name() == chain){
+            this->scoring_tools[i]._test_fill_needle_scoring_table(query_sequence,
                     scoreMatrix, pathTraceMat);
             return;
         }

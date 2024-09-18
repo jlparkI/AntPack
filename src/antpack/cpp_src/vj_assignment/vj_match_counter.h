@@ -8,7 +8,6 @@
 #include <tuple>
 #include <map>
 #include <unordered_set>
-#include <iostream>
 #include <memory>
 #include "../annotator_classes/ig_aligner.h"
 #include "../utilities/utilities.h"
@@ -51,9 +50,12 @@ class VJMatchCounter {
         nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix;
         std::string scheme;
 
-        std::vector<std::unique_ptr<IGAligner>> scoring_tools;
         std::map<std::string, std::map<std::string, int>> names_to_positions;
         std::unordered_set<std::string> essential_imgt_map;
+
+        std::unique_ptr<IGAligner> h_aligner;
+        std::unique_ptr<IGAligner> k_aligner;
+        std::unique_ptr<IGAligner> l_aligner;
 
         void assign_gene_by_identity(std::vector<std::string> &gene_seqs,
                 std::vector<std::string> &gene_names,
@@ -69,8 +71,8 @@ class VJMatchCounter {
                 std::string &best_gene_name,
                 char gene_type);
 
-        void prep_sequence(std::string &prepped_sequence, std::string &sequence,
-                std::vector<std::string> &numbering);
+        int prep_sequence(std::string &prepped_sequence, std::string &sequence,
+                std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment);
 
 };
 
