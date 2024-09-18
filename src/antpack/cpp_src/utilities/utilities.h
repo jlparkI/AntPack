@@ -18,6 +18,7 @@ int validate_gapped_sequence(std::string &query_sequence);
 
 int convert_sequence_to_array(int *queryAsIdx, std::string &query_sequence);
 int convert_x_sequence_to_array(int *queryAsIdx, std::string &query_sequence);
+int convert_gapped_x_sequence_to_array(int *queryAsIdx, std::string &query_sequence);
 
 int sort_position_codes_utility(std::vector<std::string> &position_codes,
         std::string scheme, std::vector<std::string> &ordered_translated_codes);

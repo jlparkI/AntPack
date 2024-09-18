@@ -4,6 +4,7 @@ import copy
 import gzip
 import unittest
 import numpy as np
+import blosum as bl
 from antpack import VJGeneTool, SingleChainAnnotator
 
 class TestVJGeneTool(unittest.TestCase):
@@ -48,7 +49,7 @@ class TestVJGeneTool(unittest.TestCase):
     def test_percent_ident_calc(self):
         """Double checks the percent identity calculation
         done by the cpp extension using a simple stupid
-        Python version, just to make sure it's correct."""
+        Python version."""
         vj_tool = VJGeneTool()
 
         project_path = os.path.abspath(os.path.dirname(__file__))
@@ -93,6 +94,66 @@ class TestVJGeneTool(unittest.TestCase):
                         matchnum = i
                         best_pid = copy.deepcopy(true_pid)
 
+                gtrue = germline_names[f"human_{recep}"][matchnum]
+                self.assertTrue(gtrue in gpred)
+                self.assertTrue(np.allclose(id_pred, best_pid))
+
+
+
+    def test_evalue_calc(self):
+        """Double checks the evalue calculation
+        done by the cpp extension using a
+        simple stupid Python version."""
+        vj_tool = VJGeneTool()
+
+        blosum_matrix = bl.BLOSUM(62)
+
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            test_seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        germline_seqs, germline_names = vj_tool.get_seq_lists()
+
+        sc_annotator = SingleChainAnnotator()
+
+        os.chdir(current_dir)
+        for seq in test_seqs[:100]:
+            alignment = sc_annotator.analyze_seq(seq)
+            chain = alignment[2]
+            fmt_seq = prep_sequence(seq, alignment)
+
+            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+                    seq, "human", "evalue")
+
+            gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
+
+            for recep, gpred, id_pred in zip([f"IG{chain}V", f"IG{chain}J"],
+                    gpreds, gidentities):
+
+                best_pid, matchnum = -1e10, 0
+                for i, template in enumerate(germline_seqs[f"human_{recep}"]):
+                    score, dblen = 0, 0
+
+                    for qletter, tletter in zip(fmt_seq, template):
+                        if tletter == "-":
+                            continue
+                        dblen += 1
+                        if qletter == "-":
+                            continue
+
+                        score += blosum_matrix[qletter][tletter]
+
+
+                    if score > best_pid:
+                        matchnum = i
+                        best_pid = copy.deepcopy(score)
+
+                best_pid = float(dblen) * 2**(-float(best_pid))
+                best_pid *= len(seq)
                 gtrue = germline_names[f"human_{recep}"][matchnum]
                 self.assertTrue(gtrue in gpred)
                 self.assertTrue(np.allclose(id_pred, best_pid))
@@ -158,9 +219,6 @@ class TestVJGeneTool(unittest.TestCase):
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
 
-        vhmatches, vklmatches, vhtests, vkltests = 0, 0, 0, 0
-        jmatches, ntests = 0, 0
-
         for alternate_scheme in ["aho", "kabat", "aho"]:
             alternate_tool = VJGeneTool(scheme=alternate_scheme)
             alternate_aligner = SingleChainAnnotator(scheme=alternate_scheme)
@@ -168,15 +226,15 @@ class TestVJGeneTool(unittest.TestCase):
             with gzip.open("vj_gene_testing.csv.gz", "rt") as fhandle:
                 _ = fhandle.readline()
 
-                for i, line in enumerate(fhandle):
-                    seq, vgene, jgene = line.strip().split(",")
+                for line in fhandle:
+                    seq, _, _ = line.strip().split(",")
                     annotation1 = imgt_aligner.analyze_seq(seq)
                     annotation2 = alternate_aligner.analyze_seq(seq)
 
                     pred_vgene1, pred_jgene1, pidv1, pidj1 = imgt_tool.assign_vj_genes(annotation1,
                             seq, "human", "identity")
-                    pred_vgene2, pred_jgene2, pidv2, pidj2 = alternate_tool.assign_vj_genes(annotation2,
-                            seq, "human", "identity")
+                    pred_vgene2, pred_jgene2, pidv2, pidj2 = alternate_tool.assign_vj_genes(
+                            annotation2, seq, "human", "identity")
 
                     self.assertTrue(pred_vgene1==pred_vgene2)
                     self.assertTrue(pred_jgene1==pred_jgene2)
