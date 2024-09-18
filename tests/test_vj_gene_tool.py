@@ -14,15 +14,24 @@ class TestVJGeneTool(unittest.TestCase):
         as such, and that deliberately invalid inputs are recognized."""
         # Pass dummy sequences with errors.
         vj_tool = VJGeneTool()
+        vgene, jgene, vident, jident = vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "H", ""),
+                "AYAYAYA", "human", "identity")
+        self.assertTrue(vident==0)
+        self.assertTrue(jident==0)
+        self.assertTrue(vgene=="")
+        self.assertTrue(jgene=="")
+
         with self.assertRaises(RuntimeError):
-            vj_tool.assign_vj_genes((["1", "2", "3"], 0, "H", ""),
-                    "AYAYAYA", "human", "identity")
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "H", ""),
+                "AYA", "platypus", "identity")
+
         with self.assertRaises(RuntimeError):
-            vj_tool.assign_vj_genes((["1", "2", "3"], 0, "H", ""),
-                    "AYA", "platypus", "identity")
-        with self.assertRaises(RuntimeError):
-            vj_tool.assign_vj_genes((["1", "2", "3"], 0, "H", ""),
-                    "AYA", "human", "robot")
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "H", ""),
+                "AYA", "human", "robot")
+
 
 
     def test_gene_retrieval(self):

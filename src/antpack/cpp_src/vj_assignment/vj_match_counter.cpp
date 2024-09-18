@@ -75,12 +75,13 @@ std::tuple<std::string, std::string,
 
     if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&
             std::get<2>(alignment) != "L"){
-        throw std::runtime_error(std::string("Chain must be one of 'H', 'K', 'L'."));
+        return std::tuple<std::string, std::string,
+                double, double>{"", "", 0, 0};
     }
 
     if (sequence.length() != std::get<0>(alignment).size()){
-        throw std::runtime_error(std::string("Numbering and sequence must have the "
-                    "same length."));
+        return std::tuple<std::string, std::string,
+                double, double>{"", "", 0, 0};
     }
 
     // Notice that for now we assume immunoglobulin (not TCR).

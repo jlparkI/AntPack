@@ -19,24 +19,19 @@ def gen_arg_parser():
     parser = ReconfigParser(description="Run AntPack from the command line "
             "to number and provide VJ assignments for input AA sequences. "
             "This command line tool first reads all input sequences into memory, "
-            "which is fine for small datasets but may be undesirable for "
-            "large ones. If you need to work with a larger dataset or do "
-            "a more customized or extensive analysis, use the Python API "
-            "instead. Otherwise, the required and optional arguments for this "
-            "tool are described below.")
+            "and writes them to a csv in a format that makes them easy to review "
+            "and compare (appropriate for small-moderate datasets). If you need to work "
+            "with a larger dataset or do a more customized or extensive analysis, "
+            "use the Python API instead.")
     parser.add_argument("input", nargs = 1, help=
             "Input filepath. Must be in fasta format.")
     parser.add_argument("output", nargs = 1, help=
-            "Output filepath. No file extension is needed since "
-            "an appropriate extension is added. Two output files are "
-            "created, one output file with '_heavy' appended to the output "
-            "path for heavy chains (if any) and one with '_light' appended "
+            "Output filepath. Two output files are created, one output "
+            "file with '_heavy.csv' appended to the output path for "
+            "heavy chains (if any) and one with '_light.csv' appended "
             "to the output path for light chains (if any).")
     parser.add_argument("scheme", nargs = 1, help=
             "The numbering scheme. One of aho, imgt, kabat or martin.")
-    parser.add_argument("--csv", action="store_true", help=
-            "The output is normally fasta format. If this flag is supplied, "
-            "both output files are written in csv format instead.")
     parser.add_argument("--paired", action="store_true", help=
             "AntPack will normally assume there is one variable region "
             "per input sequence and try to extract it. If this "
@@ -48,8 +43,7 @@ def gen_arg_parser():
             "VJ genes for the specified species and write these "
             "into the output. There are two arguments. The first is "
             "the species which must be either human or mouse. The "
-            "second is the mode which must be identity or evalue. "
-            "This flag is only accepted for csv output.",
+            "second is the mode which must be identity or evalue. ",
             metavar=("species", "mode"))
     parser.add_argument("--chains", nargs=1, help=
             "AntPack will normally look for an H, K or L chain in each "
@@ -112,63 +106,46 @@ def process_fasta_online(cli_args, chains):
 
         for chain in ["heavy", "light"]:
             if len(output_dict[chain]["seqs"]) > 0:
-                import pdb
-                pdb.set_trace()
-                output_dict["msa"] = sc_tool.build_msa(output_dict[chain]["seqs"],
+                output_dict[chain]["msa"] = sc_tool.build_msa(output_dict[chain]["seqs"],
                         output_dict[chain]["annotations"])
 
     if cli_args.vj is not None:
         for chain in ["heavy", "light"]:
             for seq, annot in zip(output_dict[chain]["seqs"], output_dict[chain]["annotations"]):
-                v_gene, j_gene, v_ident, j_ident = vj_tool.assign_vj_genes(seq, annot,
+                v_gene, j_gene, v_ident, j_ident = vj_tool.assign_vj_genes(annot, seq,
                         cli_args.vj[0], cli_args.vj[1])
                 output_dict[chain]["v_genes"].append(v_gene)
                 output_dict[chain]["j_genes"].append(j_gene)
                 output_dict[chain]["v_scores"].append(v_ident)
                 output_dict[chain]["j_scores"].append(j_ident)
 
-    if cli_args.csv:
-        for chain, cdict in output_dict.items():
-            if cdict["msa"] is None:
-                continue
-            with open(cli_args.output[0] + f"_{chain}.csv", "w+",
-                    encoding="utf-8") as fhandle:
-                if cli_args.vj is not None:
-                    _ = fhandle.write("Sequence_info,vj_species,vj_mode,v_gene,"
-                            "v_score,j_gene,j_score,")
-                else:
-                    _ = fhandle.write("Sequence_info,")
-            _ = fhandle.write(",".join(cdict["msa"][0]))
-            _ = fhandle.write(",error_message\n")
+    for chain, cdict in output_dict.items():
+        if cdict["msa"] is None:
+            continue
+        with open(cli_args.output[0] + f"_{chain}.csv", "w+",
+                encoding="utf-8") as fhandle:
+            if cli_args.vj is not None:
+                _ = fhandle.write("Sequence_info,vj_species,vj_mode,v_gene,"
+                        "v_score,j_gene,j_score,")
+            else:
+                _ = fhandle.write("Sequence_info,")
+            _ = fhandle.write(f"{','.join(cdict['msa'][0])},error_message\n")
 
             if not cli_args.vj:
                 for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
-                            cdict["msa"][1])):
+                        cdict["msa"][1])):
                     _ = fhandle.write(",".join([seq_id] + list(msa_row)))
-                    _ = fhandle.write(f",{cdict['annotations'][i]}\n")
+                    _ = fhandle.write(f",{cdict['annotations'][i][3]}\n")
 
             else:
                 for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
-                            cdict["msa"][1])):
+                        cdict["msa"][1])):
                     _ = fhandle.write(seq_id + ",")
                     _ = fhandle.write(",".join([cli_args.vj[0], cli_args.vj[1],
-                        cdict["v_genes"][i], str(cdict["v_scores"][i]), cdict["j_genes"][i],
-                        str(cdict["j_scores"][i]) ]))
-                    _ = fhandle.write(",".join([seq_id] + list(msa_row)))
-                    _ = fhandle.write(f",{cdict['annotations'][i]}\n")
-    else:
-        for chain, cdict in output_dict.items():
-            if cdict["msa"] is None:
-                continue
-            with open(cli_args.output[0] + f"_{chain}.csv", "w+",
-                    encoding="utf-8") as fhandle:
-                import pdb
-                pdb.set_trace()
-                for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
-                            cdict["msa"][1])):
-                    _ = fhandle.write(f">{seq_id}\n")
-                    _ = fhandle.write(f"{msa_row}\n")
-
+                        cdict["v_genes"][i], str(cdict["v_scores"][i]),
+                        cdict["j_genes"][i], str(cdict["j_scores"][i]) ] +
+                        list(msa_row) ))
+                    _ = fhandle.write(f",{cdict['annotations'][i][3]}\n")
 
 
 
@@ -185,10 +162,5 @@ def run_cli_interface():
         chains = args.chains.split(",")
     else:
         chains = ['H', 'K', 'L']
-
-    if args.vj is not None and not args.csv:
-        raise RuntimeError("vj is not accepted as an argument unless "
-                "csv is also specified, since the vj gene assignment(s) "
-                "cannot be added into the fasta output.")
 
     process_fasta_online(args, chains)

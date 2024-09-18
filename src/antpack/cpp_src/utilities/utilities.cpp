@@ -482,7 +482,7 @@ int build_msa_utility(std::vector<std::string> &sequences,
         if (std::get<2>(annotation) == "H"){
             if (chainType > 0 && chainType != MSA_HEAVY_CHAIN_ONLY){
                 throw std::runtime_error(std::string("An MSA can only be built "
-                            "from one chain type."));
+                            "from either heavy chains or light chains."));
             }
             else
                 chainType = MSA_HEAVY_CHAIN_ONLY;
@@ -490,7 +490,7 @@ int build_msa_utility(std::vector<std::string> &sequences,
         else if (std::get<2>(annotation) == "K" || std::get<2>(annotation) == "L"){
             if (chainType > 0 && chainType != MSA_LIGHT_CHAIN_ONLY){
                 throw std::runtime_error(std::string("An MSA can only be built "
-                            "from one chain type."));
+                            "from either heavy chains or light chains."));
             }
             else
                 chainType = MSA_LIGHT_CHAIN_ONLY;
