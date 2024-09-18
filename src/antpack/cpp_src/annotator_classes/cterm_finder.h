@@ -4,6 +4,7 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/nanobind.h>
 #include <vector>
+#include <array>
 #include <string>
 #include <filesystem>
 #include "../utilities/consensus_file_utilities.h"
