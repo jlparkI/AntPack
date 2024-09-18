@@ -38,6 +38,47 @@ class TestPairedChainAnnotator(unittest.TestCase):
 
 
 
+    def test_analyze_seqs(self):
+        """Test that analyze_seqs returns the same
+        results as analyze_seq applied to the list.
+        (analyze_seqs calls analyze_seq, so highly
+        unlikely it does anything different...but just
+        in case)."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+        os.chdir(current_dir)
+
+        sc_aligner = SingleChainAnnotator(scheme="imgt")
+        pc_aligner = PairedChainAnnotator(scheme="imgt")
+
+        alignments = [sc_aligner.analyze_seq(seq) for seq in seqs]
+
+        heavy_chains = [(seq, a) for a, seq in zip(alignments, seqs)
+                if a[2] == "H"]
+        light_chains = [(seq, a) for a, seq in zip(alignments, seqs)
+                if a[2] != "H"]
+
+        # Join the sequences with a very arbitrary linker.
+        merged_seqs = [l[0] + "YYYSSSGGG" + h[0] for
+                h, l in zip(heavy_chains, light_chains)]
+
+        heavy_test, light_test = pc_aligner.analyze_seqs(merged_seqs)
+        self.assertTrue(len(heavy_test)==len(merged_seqs))
+        self.assertTrue(len(light_test)==len(merged_seqs))
+
+        for i, seq in enumerate(merged_seqs):
+            h, l = pc_aligner.analyze_seq(seq)
+            self.assertTrue(h==heavy_test[i])
+            self.assertTrue(l==light_test[i])
+
+
+
+
+
     def test_sequence_extraction(self):
         """Take test heavy and light chains and number them using
         SingleChainAnnotator. Next, join pairs of chains with a random

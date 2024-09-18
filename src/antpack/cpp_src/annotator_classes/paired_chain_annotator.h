@@ -25,6 +25,9 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
             std::tuple<std::vector<std::string>, double, std::string, std::string>>
             analyze_seq(std::string sequence);
+        std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
+            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
+            analyze_seqs(std::vector<std::string> sequences);
 
 
     protected:

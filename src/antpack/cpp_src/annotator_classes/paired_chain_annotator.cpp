@@ -100,7 +100,7 @@ std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>
                 "sequence may not be a paired chain sequence"};
         std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
             std::tuple<std::vector<std::string>, double, std::string, std::string>> output_result =
-            {vecres, vecres};//{heavy_result, light_result};
+            {vecres, vecres};
         return output_result;
     }
 
@@ -164,4 +164,24 @@ std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>
         output_result = {second_result, init_results};
 
     return output_result;
+}
+
+
+// PairedChainAnnotatorCpp function which numbers a list of input sequences.
+std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
+           std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
+             PairedChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences){
+    std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
+           std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
+               output_results;
+
+    std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
+            std::tuple<std::vector<std::string>, double, std::string, std::string>> seq_result;
+
+    for (size_t i=0; i < sequences.size(); i++){
+        seq_result = this->analyze_seq(sequences[i]);
+        std::get<0>(output_results).push_back(std::move(seq_result.first));
+        std::get<1>(output_results).push_back(std::move(seq_result.second));
+    }
+    return output_results;
 }

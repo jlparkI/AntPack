@@ -170,11 +170,36 @@ NB_MODULE(antpack_cpp_ext, m){
             heavy_chain_result (tuple): A tuple of (numbering, percent_identity,
                 chain_name, error_message). Numbering is the same length as the
                 input sequence. A low percent identity or an error message may
-                indicate a problem with the input sequence.
+                indicate a problem with the input sequence. The error_message is
+                "" unless some error occurred.
             light_chain_result (tuple): A tuple of (numbering, percent_identity,
                 chain_name, error_message). Numbering is the same length as the input
                 sequence. A low percent identity or an error message may indicate a problem
-                with the input sequence.)");
+                with the input sequence. The error_message is "" unless some error occurred.)")
+        .def("analyze_seqs", &PairedChainAnnotatorCpp::analyze_seqs,
+     R"(
+        Extracts and numbers the variable chain regions from a list of sequences
+        assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
+        The extracted light or heavy chains that are returned can be passed to
+        other tools like build_msa, trim_alignment, assign_cdr_labels and the
+        VJGeneTool.
+
+        Args:
+            sequence (str): A string which is a sequence
+                containing the usual 20 amino acids. X is also
+                allowed but should be used sparingly.
+
+        Returns:
+            heavy_chain_results (list): A list of tuples of (numbering, percent_identity,
+                chain_name, error_message). Numbering is the same length as the
+                corresponding sequence. A low percent identity or an error message may
+                indicate a problem with an input sequence. Each error_message is ""
+                unless some error occurred for that sequence.
+            light_chain_results (list): A list tuples of (numbering, percent_identity,
+                chain_name, error_message). Numbering is the same length as the corresponding
+                sequence. A low percent identity or an error message may indicate a problem
+                with an input sequence. Each error message is "" unless some error
+                occurred for that sequence.)");
 
     nb::class_<VJMatchCounter>(m, "VJMatchCounter")
         .def(nb::init<std::map<std::string, std::vector<std::string>>,

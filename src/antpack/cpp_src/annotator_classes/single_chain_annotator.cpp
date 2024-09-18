@@ -197,12 +197,12 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
 std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> SingleChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences){
     std::vector<std::tuple<std::vector<std::string>, double, std::string,
-            std::string>> outputResults;
+            std::string>> output_results;
 
-    for (size_t i=0; i < sequences.size(); i++){
-        outputResults.push_back(this->analyze_seq(sequences[i]));
-    }
-    return outputResults;
+    for (size_t i=0; i < sequences.size(); i++)
+        output_results.push_back(this->analyze_seq(sequences[i]));
+    
+    return output_results;
 }
 
 
