@@ -5,25 +5,32 @@ machine learning for antibody sequences. For usage,
 see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
-## What's new in v0.3
+## What's new in v0.3.5
 
-In v0.3.5, we've added the Aho numbering scheme. We've also improved the
-accuracy of VJ gene assignment -- previously AntPack used an algorithm
-very similar to ANARCI for VJ gene assignment which is suboptimal. Starting
-in v0.3.5 we are using an improved algorithm which offers greater accuracy.
-The API has been slightly redesigned, with VJ gene assignment merged with
-the numbering tools for greater ease of use. We've also added some multithreading
-to further speed up sequence numbering.
+In v0.3.5, we've added the Aho numbering scheme. We've made AntPack numbering
+about 30% faster (it was already the fastest numbering tool, but there's no
+such thing as too fast!) We've also improved VJ 
+gene assignment. AntPack can now assign v- and j-genes using either percent
+identity or e-value, and if multiple V- or J-genes have essentially the
+same similarity to the query sequence, it will return a list of them
+rather than trying to assign a single V or J gene (which doesn't make much
+sense in that case).
 
-Finally, starting in v0.3.5 we're providing a GUI -- currently in active
+The API has been slightly redesigned. This may cause some breaking changes,
+mainly for VJ gene assignment. Our apologies for any inconvenience -- the
+API should be stable from here on out. Finally, for numbering and VJ gene
+assignment, AntPack now accepts sequences which contain the letter 'X'
+(although we suggest using this only if necessary -- an alignment with
+all AAs will generally be better quality).
+
+Finally, AntPack now has a command line tool for running a quick standard
+analysis on small-medium size datasets. For more customized analyses and/or
+larger datasets the Python API can be used as before.
+
+Starting in v0.4 we're planning to add a GUI -- currently in active
 development -- which makes it easy to load and view sequences if you only
-have a few. You can align / number sequences, see how and where they differ,
-view predicted properties of each sequence, and see which regions are least
-human / should be changed in order to humanize a given sequence. The GUI
-is handy for qualitative analysis of a few sequences, while
-the Python package is better for building your own tools and workflows.
-We're planning to add more functionality to this (e.g. sequence clustering)
-and to AntPack generally -- coming soon!
+have a few. We're also planning to add additional functionality for antibody
+analysis -- coming soon!
 
 
 ## Installation
@@ -35,10 +42,6 @@ pip install antpack
 AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.7,
 so installation should be very straightforward. A source distribution is also available
 (C++17) in case there is any need to compile from source.
-
-Starting with v0.3.5, AntPack can also be used / accessed as a GUI tool. If you wish
-to make use of this tool, you'll have to follow a separate installation procedure;
-for more on this, see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 ## Capabilities
 
@@ -81,6 +84,19 @@ that identifying liabilities through finding motifs in this way is known to be p
 to false positives (an N-glycosylation motif, for example, will not always be glycosylated).
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
+
+
+#### Licensing
+
+AntPack is licensed under a GPL license, which means that you are free to
+use it for your own data analysis irrespective of whether you work on
+academic research or industrial R&D / QC.
+
+If you are writing software intended for sale / distribution, however,
+any software you create that uses AntPack must also be open-source, must
+use the GPL license and must acknowledge AntPack appropriately. If you
+are interested in using AntPack in a closed-source software product,
+please contact us to obtain a version of AntPack licensed for this use.
 
 
 #### Citing this work
