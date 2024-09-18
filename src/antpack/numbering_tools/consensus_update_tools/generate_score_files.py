@@ -4,6 +4,7 @@ so that they are aligned and numbered."""
 import os
 import numpy as np
 from Bio.Align import substitution_matrices
+from ..constants import aho_default_params as aho_dp
 from ..constants import imgt_default_params as imgt_dp
 from ..constants import kabat_default_params as kabat_dp
 from ..constants import martin_default_params as martin_dp
@@ -15,7 +16,7 @@ def build_consensus_files():
     data_path = os.path.join(fdir, "..", "consensus_data")
     cdir = os.getcwd()
 
-    for scheme_name in ["kabat", "martin", "imgt", "ctermfinder"]:
+    for scheme_name in ["kabat", "martin", "imgt", "ctermfinder", "aho"]:
         for chain_name in ["H", "K", "L"]:
             confile = f"{scheme_name.upper()}_CONSENSUS_{chain_name}.txt"
             build_scoring_files(data_path, cdir, confile,
@@ -42,6 +43,8 @@ def build_scoring_files(target_dir, current_dir, consensus_file,
         save_consensus_array(consensus_list, chain_type, martin_dp, "martin")
     elif scheme == "imgt":
         save_consensus_array(consensus_list, chain_type, imgt_dp, "imgt")
+    elif scheme == "aho":
+        save_consensus_array(consensus_list, chain_type, aho_dp, "aho")
     elif scheme == "ctermfinder":
         save_cterm_finder_array(consensus_list, chain_type)
 
@@ -91,7 +94,10 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
 
     if chain_type.endswith("K") or chain_type.endswith("L"):
         conserved_positions = constants.light_conserved_positions
-        special_positions = constants.light_special_positions
+        if scheme == "aho" and chain_type.endswith("K"):
+            special_positions = constants.kappa_special_positions
+        else:
+            special_positions = constants.light_special_positions
         cdrs = constants.light_cdrs
         npositions = constants.NUM_LIGHT
 
@@ -105,7 +111,7 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
         return
 
 
-    key_array = np.zeros((npositions, 22))
+    key_array = np.zeros((npositions, 23))
 
     for i, observed_aas in enumerate(consensus_list[:npositions]):
         position = i + 1
@@ -113,18 +119,18 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
         #Choose the gap penalty
         #for template (column 20) and for query (column 21) of key array.
         if position in conserved_positions:
-            key_array[i,20:] = shared_dp.HIGHLY_CONSERVED_GAP_PENALTY
+            key_array[i,21:] = shared_dp.HIGHLY_CONSERVED_GAP_PENALTY
         elif position in special_positions:
-            key_array[i,20] = special_positions[position][0]
-            key_array[i,21:] = special_positions[position][1]
+            key_array[i,21] = special_positions[position][0]
+            key_array[i,22:] = special_positions[position][1]
         elif position in cdrs:
-            key_array[i,20:] = cdrs[position]
+            key_array[i,21:] = cdrs[position]
         elif position in shared_dp.n_terminal_gap_positions:
-            key_array[i,20] = shared_dp.n_terminal_gap_positions[position][0]
-            key_array[i,21:] = shared_dp.n_terminal_gap_positions[position][1]
+            key_array[i,21] = shared_dp.n_terminal_gap_positions[position][0]
+            key_array[i,22:] = shared_dp.n_terminal_gap_positions[position][1]
         else:
-            key_array[i,20] = shared_dp.DEFAULT_QUERY_GAP_PENALTY
-            key_array[i,21] = shared_dp.DEFAULT_TEMPLATE_GAP_PENALTY
+            key_array[i,21] = shared_dp.DEFAULT_QUERY_GAP_PENALTY
+            key_array[i,22] = shared_dp.DEFAULT_TEMPLATE_GAP_PENALTY
 
         #Next, fill in the scores for other amino acid substitutions. If a conserved
         #residue, use the ones we specify here. Otherwise, use the best possible
@@ -138,6 +144,12 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
             else:
                 key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if
                     k != "-" else 0 for k in observed_aas])
+
+        #Finally, fill in the score for X. X should be assumed to be the best
+        #possible amino acid that could be present at that position.
+        key_array[i,20] = key_array[i,:20].max()
+        if position in conserved_positions:
+            key_array[i,20] = shared_dp.HIGHLY_CONSERVED_BONUS
 
     np.save(f"{scheme.upper()}_CONSENSUS_{chain_type}.npy", key_array)
 
@@ -158,7 +170,7 @@ def save_cterm_finder_array(consensus_list, chain_type):
 
     conserved_positions = {0,1,3}
 
-    key_array = np.zeros((len(consensus_list), 20))
+    key_array = np.zeros((len(consensus_list), 21))
 
     for i, observed_aas in enumerate(consensus_list):
 
@@ -178,5 +190,11 @@ def save_cterm_finder_array(consensus_list, chain_type):
             else:
                 key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if
                     k != "-" else 0 for k in observed_aas])
+
+        #Finally, fill in the score for X. X should be assumed to be the best
+        #possible amino acid that could be present at that position.
+        key_array[i,20] = key_array[i,:20].max()
+        if i in conserved_positions:
+            key_array[i,20] = 65
 
     np.save(f"CTERMFINDER_CONSENSUS_{chain_type}.npy", key_array)

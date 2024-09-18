@@ -3,7 +3,9 @@ import os
 import copy
 import gzip
 import unittest
-from antpack import VJGeneTool
+import numpy as np
+import blosum as bl
+from antpack import VJGeneTool, SingleChainAnnotator
 
 class TestVJGeneTool(unittest.TestCase):
 
@@ -13,44 +15,41 @@ class TestVJGeneTool(unittest.TestCase):
         as such, and that deliberately invalid inputs are recognized."""
         # Pass dummy sequences with errors.
         vj_tool = VJGeneTool()
-        with self.assertRaises(RuntimeError):
-            vj_tool.assign_numbered_sequence("AYAYAYA",
-                    ["1", "2", "3"], "H")
-        with self.assertRaises(RuntimeError):
-            vj_tool.assign_numbered_sequence("AYAYAYA",
-                ["1", "2", "3", "4", "5", "6", "7"], "Z")
-        with self.assertRaises(RuntimeError):
-            vj_tool.assign_numbered_sequence("BYBYBYY",
-                ["1", "2", "3", "4", "5", "6", "7"], "H")
+        vgene, jgene, vident, jident = vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "H", ""),
+                "AYAYAYA", "human", "identity")
+        self.assertTrue(vident==0)
+        self.assertTrue(jident==0)
+        self.assertTrue(vgene=="")
+        self.assertTrue(jgene=="")
 
-        results = vj_tool.assign_sequence("AYAYAYA")
-        self.assertTrue(results[0] is None)
-        self.assertTrue(results[1] is None)
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "H", ""),
+                "AYA", "platypus", "identity")
+
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "H", ""),
+                "AYA", "human", "robot")
+
 
 
     def test_gene_retrieval(self):
         """Make sure that we can retrieve genes and gene families
         using the appropriate methods."""
         vj_tool = VJGeneTool()
-        seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", species="human")
+        seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", "human")
         self.assertTrue(seq == "QVTLKESGP-VLVKPTETLTLTCTVSGFSLS--NARMGVSWIRQPPGKALEWLAHIFSN---DEKSYSTSLK-SRLTISKDTSKSQVVLTMTNMDPVDTATYYCARI---------------------")
 
-        family_seqs, family_names = vj_tool.get_vj_gene_family("IGHV1", species="human")
-        self.assertTrue(len(family_seqs) == len(family_names))
-        self.assertTrue(len(family_seqs) > 45)
-        self.assertTrue(len([f for f in family_names if not f.startswith("IGHV1")])==0)
-
-        seq = vj_tool.get_vj_gene_sequence("cow", species="human")
-        self.assertTrue(seq is None)
-        family_seqs, family_names = vj_tool.get_vj_gene_family("cow", species="human")
-        self.assertTrue(len(family_seqs) == 0)
-        self.assertTrue(len(family_names) == 0)
+        seq = vj_tool.get_vj_gene_sequence("cow", "human")
+        self.assertTrue(seq == "")
 
 
     def test_percent_ident_calc(self):
         """Double checks the percent identity calculation
         done by the cpp extension using a simple stupid
-        Python version, just to make sure it's correct."""
+        Python version."""
         vj_tool = VJGeneTool()
 
         project_path = os.path.abspath(os.path.dirname(__file__))
@@ -61,25 +60,26 @@ class TestVJGeneTool(unittest.TestCase):
             _ = fhandle.readline()
             test_seqs = [line.strip().split(",")[0] for line in fhandle]
 
-        seq_dict = {}
+        germline_seqs, germline_names = vj_tool.get_seq_lists()
 
-        for chain in ['H', 'K', 'L']:
-            for recep in [f"IG{chain}V", f"IG{chain}J"]:
-                seqs, names = vj_tool.vj_gene_matchups["human"][recep].getSeqLists()
-                seq_dict[recep] = {}
-                seq_dict[recep]["seqs"] = seqs
-                seq_dict[recep]["names"] = names
+        sc_annotator = SingleChainAnnotator()
 
         os.chdir(current_dir)
         for seq in test_seqs[:100]:
-            numbering, _, chain, _ = vj_tool.default_aligner.analyze_seq(seq)
-            fmt_seq = vj_tool._prep_sequence(seq, numbering)
+            alignment = sc_annotator.analyze_seq(seq)
+            chain = alignment[2]
+            fmt_seq = prep_sequence(seq, alignment)
 
-            for recep in [f"IG{chain}V", f"IG{chain}J"]:
-                gpred, id_pred = vj_tool.vj_gene_matchups["human"][recep].vjMatch(fmt_seq)
+            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+                    seq, "human", "identity")
+
+            gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
+
+            for recep, gpred, id_pred in zip([f"IG{chain}V", f"IG{chain}J"],
+                    gpreds, gidentities):
 
                 best_pid, matchnum = 0, 0
-                for i, template in enumerate(seq_dict[recep]["seqs"]):
+                for i, template in enumerate(germline_seqs[f"human_{recep}"]):
                     matches, ntot = 0, 0
 
                     for qletter, tletter in zip(fmt_seq, template):
@@ -94,16 +94,73 @@ class TestVJGeneTool(unittest.TestCase):
                         matchnum = i
                         best_pid = copy.deepcopy(true_pid)
 
-                gtrue = seq_dict[recep]["names"][matchnum]
+                gtrue = germline_names[f"human_{recep}"][matchnum]
+                self.assertTrue(gtrue in gpred)
+                self.assertTrue(np.allclose(id_pred, best_pid))
 
-                self.assertTrue(gtrue == gpred)
-                self.assertTrue(best_pid == id_pred)
+
+
+    def test_evalue_calc(self):
+        """Double checks the evalue calculation
+        done by the cpp extension using a
+        simple stupid Python version."""
+        vj_tool = VJGeneTool()
+
+        blosum_matrix = bl.BLOSUM(62)
+
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            test_seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        germline_seqs, germline_names = vj_tool.get_seq_lists()
+
+        sc_annotator = SingleChainAnnotator()
+
+        os.chdir(current_dir)
+        for seq in test_seqs[:100]:
+            alignment = sc_annotator.analyze_seq(seq)
+            chain = alignment[2]
+            fmt_seq = prep_sequence(seq, alignment)
+
+            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+                    seq, "human", "evalue")
+
+            gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
+
+            for recep, gpred, id_pred in zip([f"IG{chain}V", f"IG{chain}J"],
+                    gpreds, gidentities):
+
+                best_pid, matchnum = -1e10, 0
+                for i, template in enumerate(germline_seqs[f"human_{recep}"]):
+                    score = 0
+
+                    for qletter, tletter in zip(fmt_seq, template):
+                        if tletter == "-":
+                            continue
+                        if qletter == "-":
+                            continue
+
+                        score += blosum_matrix[qletter][tletter]
+
+
+                    if score > best_pid:
+                        matchnum = i
+                        best_pid = copy.deepcopy(score)
+
+                gtrue = germline_names[f"human_{recep}"][matchnum]
+                self.assertTrue(gtrue in gpred)
+                self.assertTrue(np.allclose(id_pred, best_pid))
 
 
     def test_vj_assignment(self):
         """Checks vj assignments against those done by other
         tools to ensure that they are usually the same."""
         vj_tool = VJGeneTool()
+        sc_annotator = SingleChainAnnotator()
 
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
@@ -118,17 +175,19 @@ class TestVJGeneTool(unittest.TestCase):
             for line in fhandle:
                 seq, vgene, jgene = line.strip().split(",")
                 # Eliminate problematic sequences (e.g. missing cysteine).
-                _, pid, chain, err = vj_tool.default_aligner.analyze_seq(seq)
+                alignment = sc_annotator.analyze_seq(seq)
+                pid, chain, err = alignment[1], alignment[2], alignment[3]
                 if pid < 0.8 or err != "":
                     continue
-                pred_vgene, pred_jgene, _, _ = vj_tool.assign_sequence(seq, species="human")
+                pred_vgene, pred_jgene, pidv, pidj = vj_tool.assign_vj_genes(alignment,
+                        seq, "human", "identity")
 
-                if pred_vgene == vgene:
+                if vgene in pred_vgene:
                     if chain == "H":
                         vhmatches += 1
                     else:
                         vklmatches += 1
-                if pred_jgene == jgene:
+                if jgene in pred_jgene:
                     jmatches += 1
                 if chain == "H":
                     vhtests += 1
@@ -145,6 +204,58 @@ class TestVJGeneTool(unittest.TestCase):
         self.assertTrue((jmatches / ntests) > 0.9)
 
         os.chdir(current_dir)
+
+
+    def test_scheme_switching(self):
+        """Checks vj assignments using different schemes to
+        ensure they match."""
+        imgt_tool = VJGeneTool(scheme="imgt")
+        imgt_aligner = SingleChainAnnotator(scheme="imgt")
+
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        for alternate_scheme in ["aho", "kabat", "aho"]:
+            alternate_tool = VJGeneTool(scheme=alternate_scheme)
+            alternate_aligner = SingleChainAnnotator(scheme=alternate_scheme)
+
+            with gzip.open("vj_gene_testing.csv.gz", "rt") as fhandle:
+                _ = fhandle.readline()
+
+                for line in fhandle:
+                    seq, _, _ = line.strip().split(",")
+                    annotation1 = imgt_aligner.analyze_seq(seq)
+                    annotation2 = alternate_aligner.analyze_seq(seq)
+
+                    pred_vgene1, pred_jgene1, pidv1, pidj1 = imgt_tool.assign_vj_genes(annotation1,
+                            seq, "human", "identity")
+                    pred_vgene2, pred_jgene2, pidv2, pidj2 = alternate_tool.assign_vj_genes(
+                            annotation2, seq, "human", "identity")
+
+                    self.assertTrue(pred_vgene1==pred_vgene2)
+                    self.assertTrue(pred_jgene1==pred_jgene2)
+                    self.assertTrue(np.allclose(pidv1, pidv2))
+                    self.assertTrue(np.allclose(pidj1, pidj2))
+
+        os.chdir(current_dir)
+
+
+
+
+
+def prep_sequence(sequence, alignment):
+    """Converts an imgt-formatted sequence into a query for
+    matching up to VJ genes."""
+    numbering = alignment[0]
+    std_positions = {str(i+1) for i in range(128)}
+
+    fmt_seq = ['-' for i in range(128)]
+    for letter, nb_assign in zip(sequence, numbering):
+        if nb_assign in std_positions:
+            fmt_seq[int(nb_assign) - 1] = letter
+
+    return "".join(fmt_seq)
 
 
 

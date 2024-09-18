@@ -20,17 +20,17 @@ light_conserved_positions = {23:"C", 35:"W", 88:"C", 98:"F", 99:"G", 101:"G"}
 #B) insertions are very common. We want special template and query gap penalties for
 #these positions. One or two of these are chain dependent. The first value is
 #the query gap column, the second is the template gap column.
-heavy_special_positions = {6:[-11.,-1.0], 35:[-1,-1],
+heavy_special_positions = {6:[-11.,-1.0], 35:[-1.1,-1.1],
         40:[-11.4,-25], 41:[-11.3,-25], 42:[-11.2,-25], 43:[-11.1,-25], 44:[-11,-25],
-        52:[-1,-1], 72:[-1.0,-25], 73:[-1.0,-25], 74:[-1.0,-25],
-        82:[-25,-1], 100:[-1.0,-1.0]}
+        52:[-1.1,-1.1], 72:[-1.0,-25], 73:[-1.0,-25], 74:[-1.0,-25],
+        82:[-25,-1], 100:[-1.1,-1.1]}
 
 light_special_positions = {10:[-1.0,-12],
         #CDR 1
         27:[-11.1,-1.0], 28:[-5.0,-11],
         29:[-5.1,-11], 30:[-5.2,-11],
         #CDR 2, 3
-        52:[-1.0,-1.0], 95:[-1.0,-1.0]}
+        52:[-1.1,-1.1], 95:[-1.1,-1.1]}
 
 # These are Kabat defined CDRs. For Kabat, unlike IMGT, heavy and light CDRs are different.
 heavy_cdrs = {31:-11.4, 32:-11.3, 33:-11.2, 34:-11.1,
@@ -45,5 +45,5 @@ light_cdrs = {24:-11.4, 25:-11.3, 26:-11.2, 31:-11.2,
         # CDR 2
         50:-11.2, 51:-11.1, 52:-1, 53:-11, 54:-11.15, 55:-11.25, 56:-11.35,
         #CDR 3
-        89:-11.6, 90:-11.5, 91:-11.4, 92:-11.3, 93:-11.2, 94:-11.1, 95:-1.,
+        89:-11.6, 90:-11.5, 91:-11.4, 92:-11.3, 93:-11.2, 94:-11.1, 95:-1.2,
             96:-11.5, 97:-11.6}

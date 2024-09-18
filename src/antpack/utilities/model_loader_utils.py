@@ -1,5 +1,6 @@
 """Contains utilities useful for loading fitted models."""
 import os
+import gzip
 import numpy as np
 from ..scoring_tools.categorical_mix import CategoricalMixture
 from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip

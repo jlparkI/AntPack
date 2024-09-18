@@ -42,3 +42,17 @@ percent identity.
 
 ### Version 0.2.7
 Added cibuildwheel support to build cross-platform automatically.
+
+### Version 0.3.5
+Revised and updated API for PairedChainAnnotator, SingleChainAnnotator.
+Added bug fix for unusual alignment errors. Updated numbering tools to
+accept letter X in input. Converted PairedChainAnnotator,
+SingleChainAnnotator, VJGeneTool to C++. Updated vj gene assignment
+to use either e-value or percent identity and either IMGT or OGRDB,
+and to report multiple matches if multiple equivalent matches are
+found. Switched C++ wrapping to Nanobind. Rewrote core alignment code
+to produce a 30% improvement in numbering speed / efficiency.
+Added Aho numbering scheme. Added code to convert between numbering
+schemes when assigning VJ so that VJ can be assigned using any
+scheme not just IMGT. Added command line interface for easy
+use on fasta files from the command line.

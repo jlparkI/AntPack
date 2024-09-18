@@ -26,12 +26,12 @@ light_conserved_positions = {23:"C", 41:"W", 104:"C", 118:"F", 119:"G", 121:"G"}
 #B) insertions are very common. We want special template and query gap penalties for
 #these positions. One or two of these are chain dependent. The first value is
 #the query gap column, the second is the template gap column.
-heavy_special_positions = {10:[-1,-12], 33:[-1.0,-1.0], 61:[-1.0,-1.0],
-        73:[-1,-11], 111:[-1.0,-1.0]}
+heavy_special_positions = {10:[-1,-12], 33:[-1.2,-1.2], 61:[-1.2,-1.2],
+        73:[-1,-11], 111:[-1.2,-1.2]}
 
 light_special_positions = {10:[-1,-12],
-        33:[-1.0,-1.0], 61:[-1.0,-1.0], 73:[-1,-11], 81:[-1.0,-25],
-        82:[-1.0,-25], 111:[-1.0,-1.0]}
+        33:[-1.2,-1.2], 61:[-1.2,-1.2], 73:[-1,-11], 81:[-1.,-25],
+        82:[-1.,-25], 111:[-1.2,-1.2]}
 
 #IMGT-defined CDRs. We have a specially defined gap penalty for each to ensure they are filled
 #in the correct order. For IMGT, light and heavy cdrs have the same definition.

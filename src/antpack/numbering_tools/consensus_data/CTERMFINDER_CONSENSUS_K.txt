@@ -1,4 +1,4 @@
-# cterminal finder
+# cterminal finder K
 1,F
 2,G
 3,A,Q,S,G,P

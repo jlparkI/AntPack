@@ -6,7 +6,7 @@ variational methods in future."""
 import numpy as np
 from ..utilities.special_functions import logsumexp
 from .scoring_constants import catmix_constants as constants
-from antpack_cpp_ext import getProbsCExt, getProbsCExt_masked, mask_terminal_deletions
+from antpack.antpack_cpp_ext import getProbsCExt, getProbsCExt_masked, mask_terminal_deletions
 
 
 

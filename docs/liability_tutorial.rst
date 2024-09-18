@@ -18,4 +18,3 @@ be narrowed down to find those which should be removed.
 .. autoclass:: antpack.LiabilitySearchTool
    :special-members: __init__
    :members: analyze_seq
-

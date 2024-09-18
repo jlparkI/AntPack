@@ -5,22 +5,35 @@ machine learning for antibody sequences. For usage,
 see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 
 
-## What's new in v0.3
+## What's new in v0.3.5
 
-v0.3 provides some API redesign for greater ease of use and convenience. The
-MultiChainAnnotator has been replaced with the PairedChainAnnotator, which
-is designed specifically for paired light and heavy chains. Both this tool
-and SingleChainAnnotator now offer a `build_msa` command that makes it easy
-to combine many numbered sequences into an fixed-length array for further
-analysis / writing to file.
+In v0.3.5, we've added the Aho numbering scheme. We've made AntPack numbering
+about 30% faster (it was already the fastest numbering tool, but there's no
+such thing as too fast!) We've also improved VJ 
+gene assignment. AntPack can now assign v- and j-genes using either percent
+identity or e-value, and if multiple V- or J-genes have essentially the
+same similarity to the query sequence, it will return a list of them
+rather than trying to assign a single V or J gene (which doesn't make much
+sense in that case).
 
-Coming soon: we're planning to add a GUI front-end you can use to review
-sequences numbered by AntPack, humanize sequences and determine how different
-mutations will impact predicted sequence properties. For more on this project
-as it matures, [see this repo](https://github.com/jlparkI/RESP_proteins).
+The API has been slightly redesigned. This may cause some breaking changes,
+mainly for VJ gene assignment. Our apologies for any inconvenience -- the
+API should be stable from here on out. Finally, for numbering and VJ gene
+assignment, AntPack now accepts sequences which contain the letter 'X'
+(although we suggest using this only if necessary -- an alignment with
+all AAs will generally be better quality).
+
+Finally, AntPack now has a command line tool for running a quick standard
+analysis on small-medium size datasets. For more customized analyses and/or
+larger datasets the Python API can be used as before.
+
+Starting in v0.4 we're planning to add a GUI -- currently in active
+development -- which makes it easy to load and view sequences if you only
+have a few. We're also planning to add additional functionality for antibody
+analysis -- coming soon!
 
 
-# Installation
+## Installation
 
 ```
 pip install antpack
@@ -71,6 +84,19 @@ that identifying liabilities through finding motifs in this way is known to be p
 to false positives (an N-glycosylation motif, for example, will not always be glycosylated).
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
+
+
+#### Licensing
+
+AntPack is licensed under a GPL license, which means that you are free to
+use it for your own data analysis irrespective of whether you work on
+academic research or industrial R&D / QC.
+
+If you are writing software intended for sale / distribution, however,
+any software you create that uses AntPack must also be open-source, must
+use the GPL license and must acknowledge AntPack appropriately. If you
+are interested in using AntPack in a closed-source software product,
+please contact us to obtain a version of AntPack licensed for this use.
 
 
 #### Citing this work

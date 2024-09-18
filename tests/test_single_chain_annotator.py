@@ -1,9 +1,9 @@
 """Tests basic functionality for the SingleChainAnnotator class."""
 import os
 import re
+import random
 import gzip
 import copy
-import random
 import unittest
 from antpack import SingleChainAnnotator
 
@@ -15,9 +15,6 @@ class TestSingleChainAnnotator(unittest.TestCase):
         as such, and that deliberately invalid inputs are recognized."""
         # Pass dummy sequences with errors.
         aligner = SingleChainAnnotator(chains=["H", "K", "L"])
-        with self.assertRaises(ValueError):
-            aligner.analyze_seqs("YYY")
-
         results = aligner.analyze_seqs(["YaY"])
         self.assertTrue(results[0][3].endswith("nonstandard AAs"))
         results = aligner.analyze_seqs(["YBW"])
@@ -43,7 +40,6 @@ class TestSingleChainAnnotator(unittest.TestCase):
         input chain when supplied with something that could be L or H,
         and ensure it can correctly detect sequences with large deletions
         that remove one or more conserved residues."""
-
         known_K = ("DIVMTQSPSSLTVTAGEKVTMSCKSSQSLLSSGNQKNYLTWYQQIPGQPPKLLIYWASTR"
                     "ESGVPDRFTGSGSGTDFTLTINSVQAEDLAVYYCQNDYTYPLTFGAGTKLELKRTV")
         known_L = ("QSALTQPASVSGSPGQSITISCTGTTSDVGTYNFVSWYQQHPGKAPKAIIFDVTNRPSGI"
@@ -51,21 +47,22 @@ class TestSingleChainAnnotator(unittest.TestCase):
         known_H = ("VHLQQSGAELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYN"
                     "ENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA")
 
-        for scheme in ["martin", "imgt", "kabat"]:
-            aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+        for multithreading_setting in [False]:
+            for scheme in ["martin", "imgt", "kabat", "aho"]:
+                aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                             scheme = scheme)
-            results = aligner.analyze_seqs([known_K, known_L, known_H])
-            self.assertTrue(results[0][2] == "K")
-            self.assertTrue(results[1][2] == "L")
-            self.assertTrue(results[2][2] == "H")
+                results = aligner.analyze_seqs([known_K, known_L, known_H])
+                self.assertTrue(results[0][2] == "K")
+                self.assertTrue(results[1][2] == "L")
+                self.assertTrue(results[2][2] == "H")
 
-            self.assertTrue(aligner.analyze_seq(known_K)[2] == "K")
-            self.assertTrue(aligner.analyze_seq(known_L)[2] == "L")
-            self.assertTrue(aligner.analyze_seq(known_H)[2] == "H")
+                self.assertTrue(aligner.analyze_seq(known_K)[2] == "K")
+                self.assertTrue(aligner.analyze_seq(known_L)[2] == "L")
+                self.assertTrue(aligner.analyze_seq(known_H)[2] == "H")
 
-            bad_chain = known_H[:100]
-            self.assertTrue(aligner.analyze_seqs([bad_chain])[0][3].startswith("Unexpected"))
-            self.assertTrue(aligner.analyze_seq(bad_chain)[3].startswith("Unexpected"))
+                bad_chain = known_H[:100]
+                self.assertTrue(aligner.analyze_seqs([bad_chain])[0][3].startswith("Unexpected"))
+                self.assertTrue(aligner.analyze_seq(bad_chain)[3].startswith("Unexpected"))
 
     def test_performance(self):
         """Run a batch of test data (approximately 1600 sequences from the
@@ -81,28 +78,31 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         with gzip.open("test_data.csv.gz", "rt") as fhandle:
             _ = fhandle.readline()
-            seqs, martin_num, imgt_num, kabat_num = [], [], [], []
+            seqs, martin_num, imgt_num, kabat_num, aho_num = \
+                    [], [], [], [], []
             for line in fhandle:
                 line_elements = line.strip().split(",")
                 seqs.append(line_elements[0])
                 martin_num.append(line_elements[1].split("_"))
                 imgt_num.append(line_elements[2].split("_"))
                 kabat_num.append(line_elements[3].split("_"))
+                aho_num.append(line_elements[4].split("_"))
 
         os.chdir(current_dir)
 
-        numberings = [martin_num, kabat_num, imgt_num]
-        schemes = ["martin", "kabat", "imgt"]
+        numberings = [martin_num, kabat_num, imgt_num, aho_num]
+        schemes = ["martin", "kabat", "imgt", "aho"]
 
-        aligners = [SingleChainAnnotator(chains=["H", "K", "L"],
-                        scheme=k) for k in schemes]
-
-        for aligner, scheme, numbering in zip(aligners, schemes, numberings):
-            aligner_results = aligner.analyze_seqs(seqs)
-            total_comparisons, num_correct = compare_results(aligner_results,
+        for multithreading_setting in [False]:
+            for scheme, numbering in zip(schemes, numberings):
+                aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                    scheme=scheme)
+                aligner_results = aligner.analyze_seqs(seqs)
+                total_comparisons, num_correct = compare_results(aligner_results,
                                     numbering, seqs, scheme)
-            print(f"{scheme}: Total comparisons: {total_comparisons}. Num matching: {num_correct}.")
-            self.assertTrue(num_correct / total_comparisons > 0.97)
+                print(f"{scheme}: Total comparisons: {total_comparisons}. "
+                        f"Num matching: {num_correct}. Multithreading {multithreading_setting}.")
+                self.assertTrue(num_correct / total_comparisons > 0.97)
 
         # The last one produced is IMGT. Use this to test MSA construction.
         hnumbering, lnumbering, hseqs, lseqs = [], [], [], []
@@ -115,12 +115,63 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 lnumbering.append(numbering)
                 lseqs.append(seq)
 
+        observed_positions = set()
+        for n in hnumbering:
+            for pos in n[0]:
+                observed_positions.add(pos)
+
         hpositions, hmsa = aligner.build_msa(hseqs, hnumbering)
         lpositions, lmsa = aligner.build_msa(lseqs, lnumbering)
 
         for position_set, msa in [(hpositions, hmsa), (lpositions, lmsa)]:
             for msa_seq in msa:
                 self.assertTrue(len(msa_seq) == len(position_set))
+
+
+
+
+    def test_alignment_trimming(self):
+        """Make sure the alignment trimming procedure yields correct results."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        padded_seqs = []
+        AAs = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+        random.seed(123)
+
+        for seq in seqs:
+            left_padding = random.randint(0,10)
+            right_padding = random.randint(0,10)
+            padded_seq = "".join([random.choice(AAs) for i in range(left_padding)]) + \
+                    seq + "".join([random.choice(AAs) for i in range(right_padding)])
+            padded_seqs.append(padded_seq)
+
+        os.chdir(current_dir)
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                    scheme="imgt")
+        aligner_results = aligner.analyze_seqs(padded_seqs)
+        
+        for sequence, alignment in zip(padded_seqs, aligner_results):
+            numbering = alignment[0]
+            exstart = next((i for i in range(len(numbering)) if numbering[i] != '-'), 0)
+            exend = next((i for i in range(exstart + 1, len(numbering)) if numbering[i] == '-'),
+                    len(numbering))
+            trimmed_sequence = sequence[exstart:exend]
+            trimmed_numbering = numbering[exstart:exend]
+
+            eval_seq, eval_numbering, eval_start, eval_end = aligner.trim_alignment(sequence,
+                    alignment)
+
+            self.assertTrue(eval_seq == trimmed_sequence)
+            self.assertTrue(eval_seq == sequence[eval_start:eval_end])
+            self.assertTrue(eval_numbering == trimmed_numbering)
 
 
 
@@ -209,10 +260,12 @@ class TestSingleChainAnnotator(unittest.TestCase):
             num_err = 0
 
             for seq in seqs:
-                numbering = aligner.analyze_seq(seq, get_region_labels=True)
+                numbering = aligner.analyze_seq(seq)
+                labels = aligner.assign_cdr_labels(numbering, scheme)
+
                 gt_regions = get_gt_regions(numbering[0],
                         scheme_labels[scheme][numbering[2]])
-                if gt_regions != numbering[-1]:
+                if gt_regions != labels:
                     num_err += 1
             self.assertTrue(num_err == 0)
 
@@ -233,7 +286,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
         num_err = 0
 
-        for scheme in ["martin", "imgt", "kabat"]:
+        for scheme in ["martin", "imgt", "kabat", "aho"]:
             aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme=scheme)
             for seq in seqs:
                 numbering = aligner.analyze_seq(seq)[0]
@@ -247,6 +300,83 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(num_err == 0)
 
 
+
+    def test_extended_length_handling(self):
+        """Check situations where the sequence is much longer than
+        a typical variable chain."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        AAs = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        os.chdir(current_dir)
+        random.seed(123)
+
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt")
+        for seq in seqs:
+            alignment = aligner.analyze_seq(seq)
+            # Exclude sequences that have gaps at the ends
+            if alignment[-1].startswith('Unexpected AA'):
+                continue
+            if '120' not in alignment[0]:
+                continue
+            if alignment[2] == "H":
+                if '128' not in alignment[0]:
+                    continue
+                if seq[alignment[0].index('128')] == "G":
+                    continue
+            else:
+                if '127' not in alignment[0]:
+                    continue
+
+            muddled_seq = seq + "YYYGGGGGSSSS" + "".join([random.choice(AAs) for i in range(250)])
+            alt_alignment = aligner.analyze_seq(muddled_seq)
+            self.assertTrue(len(alt_alignment[0]) == len(muddled_seq))
+
+
+            trimmed_alt = aligner.trim_alignment(muddled_seq, alt_alignment)
+            trimmed_gt = aligner.trim_alignment(seq, alignment)
+            self.assertTrue(trimmed_alt[0] == trimmed_gt[0])
+
+
+
+    def test_x_handling(self):
+        """Check situations where one or more letters has
+        been replaced with X."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        AAs = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N",
+            "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        os.chdir(current_dir)
+        random.seed(123)
+
+        aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt")
+        for seq in seqs:
+            pre_x_alignment = aligner.analyze_seq(seq)
+            if pre_x_alignment[-1] != "":
+                continue
+            if '1' not in pre_x_alignment[0] or '73' not in pre_x_alignment:
+                continue
+
+            xposition = random.randint(0, len(seq) - 1)
+            seq_list = list(seq)
+            seq_list[xposition] = "X"
+            alignment = aligner.analyze_seq("".join(seq_list))
+
+            self.assertTrue(alignment[0] == pre_x_alignment[0])
 
 
 

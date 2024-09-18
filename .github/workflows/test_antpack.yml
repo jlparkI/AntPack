@@ -24,7 +24,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools numpy pybind11 pytest
+        python -m pip install --upgrade pip numpy nanobind pytest
         pip install -r test_requirements.txt
         pip install -e . --verbose
     - name: Test with pytest
