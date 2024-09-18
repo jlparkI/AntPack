@@ -47,8 +47,8 @@ class AnnotatorBaseClassCpp {
 
         std::unique_ptr<CTermFinder> boundary_finder;
         std::unordered_map<std::string, std::vector<int>> cdr_breakpoints;
-        const std::array<std::string, 7> cdr_region_labels {{"fmwk1", "cdr1", "fmwk2", "cdr2",
-                                "fmwk3", "cdr3", "fmwk4"}};
+        const std::array<std::string, 7> cdr_region_labels {"fmwk1", "cdr1", "fmwk2", "cdr2",
+                                "fmwk3", "cdr3", "fmwk4"};
 
         bool split_subregion(const std::pair<size_t, size_t> &init_subregion,
                 size_t &split_point, const std::string &sequence,
