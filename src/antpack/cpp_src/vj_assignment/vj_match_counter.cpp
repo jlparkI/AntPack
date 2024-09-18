@@ -191,7 +191,7 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
             if (gene_seqs[i][j] == '-')
                 continue;
             nonzero_positions += 1;
-            if (gene_seqs[i][j] == prepped_sequence[j])
+            if (gene_seqs[i][j] == prepped_sequence[j] || prepped_sequence[j] == 'X')
                 matching_positions += 1;
         }
         if (nonzero_positions == 0)
