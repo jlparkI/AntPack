@@ -5,7 +5,8 @@ VJMatchCounter::VJMatchCounter(
                 std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
                 nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix,
-                std::string scheme
+                std::string scheme,
+                std::string consensus_filepath
 ):
     gene_seqs(gene_seqs),
     gene_names(gene_names),
@@ -58,6 +59,19 @@ VJMatchCounter::VJMatchCounter(
             && this->scheme != "kabat" && this->scheme != "martin"){
         throw std::runtime_error(std::string("Unrecognized scheme supplied. "
                     "Scheme must be one of imgt, martin, kabat or aho."));
+    }
+
+    // Set up three imgt scheme aligners for internal use (useful for various
+    // tasks).
+    std::vector<std::string> default_chains = {"H", "K", "L"};
+
+    for (auto & chain : default_chains){
+        this->scoring_tools.push_back(std::make_unique<IGAligner>(consensus_filepath,
+                            chain, "imgt",
+                            IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
+                            IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
+                            false)
+                        );
     }
 }
 
@@ -389,7 +403,6 @@ void VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &s
     }
     else{
         std::vector<std::string> prepped_numbering;
-        convert_numbering_to_imgt(numbering, prepped_numbering, this->scheme);
         for (size_t i=0; i < sequence.length(); i++){
             if (this->essential_imgt_map.find(prepped_numbering[i]) !=
                     this->essential_imgt_map.end())

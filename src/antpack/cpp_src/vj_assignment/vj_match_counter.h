@@ -10,8 +10,8 @@
 #include <unordered_set>
 #include <iostream>
 #include <memory>
+#include "../annotator_classes/ig_aligner.h"
 #include "../utilities/utilities.h"
-#include "../utilities/numbering_utilities.h"
 
 
 namespace nb = nanobind;
@@ -33,7 +33,8 @@ class VJMatchCounter {
                 std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
                 nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix,
-                std::string scheme);
+                std::string scheme,
+                std::string consensus_filepath);
 
         std::tuple<std::string, std::string, double, double> assign_vj_genes(std::tuple<std::vector<std::string>,
                 double, std::string, std::string> alignment, std::string sequence,
@@ -50,8 +51,8 @@ class VJMatchCounter {
         nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix;
         std::string scheme;
 
+        std::vector<std::unique_ptr<IGAligner>> scoring_tools;
         std::map<std::string, std::map<std::string, int>> names_to_positions;
-
         std::unordered_set<std::string> essential_imgt_map;
 
         void assign_gene_by_identity(std::vector<std::string> &gene_seqs,

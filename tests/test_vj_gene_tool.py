@@ -41,16 +41,8 @@ class TestVJGeneTool(unittest.TestCase):
         seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", "human")
         self.assertTrue(seq == "QVTLKESGP-VLVKPTETLTLTCTVSGFSLS--NARMGVSWIRQPPGKALEWLAHIFSN---DEKSYSTSLK-SRLTISKDTSKSQVVLTMTNMDPVDTATYYCARI---------------------")
 
-        #family_seqs, family_names = vj_tool.get_vj_gene_family("IGHV1", species="human")
-        #self.assertTrue(len(family_seqs) == len(family_names))
-        #self.assertTrue(len(family_seqs) > 45)
-        #self.assertTrue(len([f for f in family_names if not f.startswith("IGHV1")])==0)
-
         seq = vj_tool.get_vj_gene_sequence("cow", "human")
         self.assertTrue(seq == "")
-        #family_seqs, family_names = vj_tool.get_vj_gene_family("cow", species="human")
-        #self.assertTrue(len(family_seqs) == 0)
-        #self.assertTrue(len(family_names) == 0)
 
 
     def test_percent_ident_calc(self):

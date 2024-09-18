@@ -1,17 +1,6 @@
 #include "single_chain_annotator.h"
 
 
-// Important scheme-specific defaults. Do not change unless
-// necessary.
-#define IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
-#define IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
-#define AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
-#define AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
-#define MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
-#define MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
-#define KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY -1
-#define KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY -1
-
 
 // Special error code for cases where a rare but specific type
 // of alignment error may have occurred.
@@ -105,17 +94,17 @@ std::tuple<std::vector<std::string>, double, std::string,
 
     // It can (rarely) happen that we have a chain (usually light) where the expected FGxG
     // motif in the J-gene is altered AND there is significant additional sequence beyond
-    // the end of the J-gene, e.g. in a paired chain AND this results in an alignment
+    // the end of the J-gene, e.g. in a paired chain, AND this results in an alignment
     // error. In the event this unusual combination of circumstances occurs, it
     // usually manifests in the form of an unusually long CDR that exceeds the maximum
     // number of allowed insertion codes.
 
-    // If this may have occurred, subdivide the sequence into regions just as a generic
-    // ChainAnnotator would, align each region and return the one with the highest
-    // percent identity. This will work well unless the user has accidentally supplied
-    // a paired chain, in which case they should have used either PairedChainAnnotator
-    // or ChainAnnotator -- this tool is called SingleChainAnnotator because it extracts
-    // a single chain (even if multiple are present).
+    // If this may have occurred, subdivide the sequence into regions,
+    // align each region and return the one with the highest
+    // percent identity. This is not ideal if the sequence contains
+    // multiple chains because the other chains will go unreported,
+    // but a SingleChainAnnotator by definition is not ideal for
+    // this scenario.
     std::vector<std::pair<size_t,size_t>> subregions;
     this->split_sequence_into_subregions(subregions, sequence);
 

@@ -62,7 +62,8 @@ int validate_sequence(std::string &query_sequence){
 
 
 //Checks a query sequence to ensure it contains only recognized
-//amino acids OR the letter x.
+//amino acids OR the letter x. Use this in preference to
+//validate_sequence when 'X' is allowed or ok.
 int validate_x_sequence(std::string &query_sequence){
     bool validQuery = true;
 
@@ -170,11 +171,10 @@ int validate_gapped_sequence(std::string &query_sequence){
 // array of integers. This function does not do any safety checks
 // on the input so it should never be accessed by Python functions --
 // only ever by C++ functions that DO perform safety checks on
-// input. In particular, caller MUST verify that seqAsArray is
-// the same length as sequence.
+// input.
 int convert_sequence_to_array(int *queryAsIdx, std::string &query_sequence){
     
-    // Translate the query sequence into an integer 0-21 encoding. This
+    // Translate the query sequence into an integer encoding. This
     // is more verbose than using std::map but should be slightly faster
     // since compiler will convert to lookup table. If unexpected characters
     // are encountered, abort and return an error code.
@@ -255,8 +255,7 @@ int convert_sequence_to_array(int *queryAsIdx, std::string &query_sequence){
 // array of integers. This function does not do any safety checks
 // on the input so it should never be accessed by Python functions --
 // only ever by C++ functions that DO perform safety checks on
-// input. In particular, caller MUST verify that seqAsArray is
-// the same length as sequence. This function unlike convert_sequence_to_array
+// input. This function unlike convert_sequence_to_array
 // allows the letter X to be present in the input.
 int convert_x_sequence_to_array(int *queryAsIdx, std::string &query_sequence){
     
@@ -349,8 +348,8 @@ int convert_x_sequence_to_array(int *queryAsIdx, std::string &query_sequence){
 //Indeed, since it should only be necessary to call it once per
 //dataset, that should never actually happen.
 int sort_position_codes_utility(std::vector<std::string> &position_codes,
-        std::string scheme, std::vector<std::string> &orderedTranslatedCodes){
-    std::vector<float> orderedFloatCodes;
+        std::string scheme, std::vector<std::string> &ordered_translated_codes){
+    std::vector<float> ordered_float_codes;
     float arbitraryDivisor = 1000.0;
     int max_position = 128;
     if (scheme == "aho")
@@ -363,8 +362,8 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
     // as _1, _2 etc, but most numbering programs use letters, so we do the same here
     // for consistency and ease of comparison. This does limit the number of possible
     // insertions BUT there should never be a case where the user actually needs more than
-    // 78 insertion codes (if they really do there's something wrong with their
-    // alignments and/or it's not really an antibody...)
+    // 78 insertion codes (if they really do there's something wrong with the
+    // alignment and/or it's not really an antibody...)
     const std::map<std::string, int> alphabet = {{"A", 1}, {"B", 2}, {"C", 3}, {"D", 4}, {"E", 5},
                                 {"F", 6}, {"G", 7}, {"H", 8}, {"I", 9}, {"J", 10}, {"K", 11}, {"L", 12},
                                 {"M", 13}, {"N", 14}, {"O", 15}, {"P", 16}, {"Q", 17}, {"R", 18}, {"S", 19},
@@ -378,80 +377,81 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
                                 {"MMM", 65}, {"NNN", 66}, {"OOO", 67}, {"PPP", 68}, {"QQQ", 69}, {"RRR", 70}, {"SSS", 71},
                                 {"TTT", 72}, {"UUU", 73}, {"VVV", 74}, {"WWW", 75}, {"XXX", 76}, {"YYY", 77}, {"ZZZ", 78}
                                 };
-    std::map<int, std::string> reverseAlphabet;
+    std::map<int, std::string> reverse_alphabet;
     for ( const auto &p : alphabet )
-        reverseAlphabet[p.second] = p.first;
+        reverse_alphabet[p.second] = p.first;
 
 
     // The IMGT scheme has several positions at which we have to "count backwards", which is an annoying quirk of
     // that scheme. We have to hard-code these unfortunately.
-    std::set<int> backwardsCountPositions;
+    std::set<int> backwards_count_positions;
     if (scheme == "imgt")
-        backwardsCountPositions = {33, 61, 112};
+        backwards_count_positions = {33, 61, 112};
 
 
     for (size_t i=0; i < position_codes.size(); i++){
-        std::string inputCode = position_codes[i];
-        std::string nonNumericPortion;
-        int numericPortion;
-        float convertedCode;
+        std::string input_code = position_codes[i];
+        std::string non_numeric_portion;
+        int numeric_portion;
+        float converted_code;
 
         // This will throw if the string starts with a letter but will otherwise extract the integer piece,
         // which rules out certain kinds of invalid codes the user might pass in error (e.g. '-', 'A128').
         try{
-            numericPortion = std::stoi(inputCode);
+            numeric_portion = std::stoi(input_code);
         }
         catch (...){
             return INVALID_SEQUENCE;
         }
-        if (numericPortion <= 0 || numericPortion > max_position)
+        if (numeric_portion <= 0 || numeric_portion > max_position)
             return INVALID_SEQUENCE;
 
-        convertedCode = static_cast<float>(numericPortion);
+        converted_code = static_cast<float>(numeric_portion);
 
-        for (char & c : inputCode) {
+        for (char & c : input_code) {
 	        if (!std::isdigit(c))
-                nonNumericPortion += c;
+                non_numeric_portion += c;
         }
 
-        if (nonNumericPortion.length() == 0){
-            orderedFloatCodes.push_back(convertedCode);
+        if (non_numeric_portion.length() == 0){
+            ordered_float_codes.push_back(converted_code);
             continue;
         }
         
-        if (alphabet.find(nonNumericPortion)!=alphabet.end()){
-            if (backwardsCountPositions.find(numericPortion)!=backwardsCountPositions.end())
-                convertedCode -= (static_cast<float>(alphabet.at(nonNumericPortion)) / arbitraryDivisor);
+        if (alphabet.find(non_numeric_portion)!=alphabet.end()){
+            if (backwards_count_positions.find(numeric_portion)!=backwards_count_positions.end())
+                converted_code -= (static_cast<float>(alphabet.at(non_numeric_portion)) / arbitraryDivisor);
             else
-                convertedCode += (static_cast<float>(alphabet.at(nonNumericPortion)) / arbitraryDivisor);
+                converted_code += (static_cast<float>(alphabet.at(non_numeric_portion)) / arbitraryDivisor);
         }
         else
             return INVALID_SEQUENCE;
-        orderedFloatCodes.push_back(convertedCode);
+        ordered_float_codes.push_back(converted_code);
     }
 
-    std::sort(orderedFloatCodes.begin(), orderedFloatCodes.end());
+    std::sort(ordered_float_codes.begin(), ordered_float_codes.end());
 
 
-    for (size_t i=0; i < orderedFloatCodes.size(); i++){
-        int numericPortion = std::round(orderedFloatCodes[i]);
-        int nonNumericPortion = std::round((orderedFloatCodes[i] - numericPortion) * arbitraryDivisor);
-        std::string ostring = std::to_string(numericPortion);
+    for (size_t i=0; i < ordered_float_codes.size(); i++){
+        int numeric_portion = std::round(ordered_float_codes[i]);
+        int non_numeric_portion = std::round((ordered_float_codes[i] -
+                    static_cast<float>(numeric_portion)) * arbitraryDivisor);
+        std::string ostring = std::to_string(numeric_portion);
 
-        if (nonNumericPortion == 0){
-            orderedTranslatedCodes.push_back(ostring);
+        if (non_numeric_portion == 0){
+            ordered_translated_codes.push_back(ostring);
             continue;
         }
 
-        if (backwardsCountPositions.find(numericPortion)!=backwardsCountPositions.end())
-            nonNumericPortion = std::abs(nonNumericPortion);
+        if (backwards_count_positions.find(numeric_portion)!=backwards_count_positions.end())
+            non_numeric_portion = std::abs(non_numeric_portion);
         
-        if (reverseAlphabet.find(nonNumericPortion)!=reverseAlphabet.end())
-            ostring += reverseAlphabet.at(nonNumericPortion);
+        if (reverse_alphabet.find(non_numeric_portion)!=reverse_alphabet.end())
+            ostring += reverse_alphabet.at(non_numeric_portion);
         else
             return INVALID_SEQUENCE;
 
-        orderedTranslatedCodes.push_back(ostring);
+        ordered_translated_codes.push_back(ostring);
     }
 
     return VALID_SEQUENCE;
@@ -464,52 +464,57 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
 // Convenient for a smaller number of sequences that can fit in memory.
 int build_msa_utility(std::vector<std::string> &sequences,
         std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> &annotations,
-        std::vector<std::string> &positionCodes,
-        std::vector<std::string> &alignedSeqs,
+        std::vector<std::string> &position_codes,
+        std::vector<std::string> &aligned_seqs,
         const std::string &scheme){
     if (sequences.size() != annotations.size() || sequences.size() == 0)
         throw std::runtime_error(std::string("The number of sequences and annotations must match."));
 
-    std::set<std::string> allPositionCodes;
+    std::set<std::string> all_position_codes;
     int errCode;
-    int chainType = -1;
+    int chain_type = -1;
 
-    for (auto &annotation : annotations){
-        for (auto &posCode : std::get<0>(annotation)){
-            if (posCode != "-")
-                allPositionCodes.insert(posCode);
+    // Add all codes to the set of observed codes, and check that only
+    // one chain type is present.
+
+    for (auto & annotation : annotations){
+        for (auto & pos_code : std::get<0>(annotation)){
+            if (pos_code != "-")
+                all_position_codes.insert(pos_code);
         }
         if (std::get<2>(annotation) == "H"){
-            if (chainType > 0 && chainType != MSA_HEAVY_CHAIN_ONLY){
+            if (chain_type > 0 && chain_type != MSA_HEAVY_CHAIN_ONLY){
                 throw std::runtime_error(std::string("An MSA can only be built "
                             "from either heavy chains or light chains."));
             }
             else
-                chainType = MSA_HEAVY_CHAIN_ONLY;
+                chain_type = MSA_HEAVY_CHAIN_ONLY;
         }
         else if (std::get<2>(annotation) == "K" || std::get<2>(annotation) == "L"){
-            if (chainType > 0 && chainType != MSA_LIGHT_CHAIN_ONLY){
+            if (chain_type > 0 && chain_type != MSA_LIGHT_CHAIN_ONLY){
                 throw std::runtime_error(std::string("An MSA can only be built "
                             "from either heavy chains or light chains."));
             }
             else
-                chainType = MSA_LIGHT_CHAIN_ONLY;
+                chain_type = MSA_LIGHT_CHAIN_ONLY;
         }
     }
 
-    std::vector<std::string> allPositionCodesVec(allPositionCodes.begin(), allPositionCodes.end()); 
-    errCode = sort_position_codes_utility(allPositionCodesVec, scheme, positionCodes);
+    // Sort the position codes.
+
+    std::vector<std::string> all_position_codes_vec(all_position_codes.begin(), all_position_codes.end()); 
+    errCode = sort_position_codes_utility(all_position_codes_vec, scheme, position_codes);
     if (errCode != VALID_SEQUENCE)
         throw std::runtime_error(std::string("Invalid position codes were supplied."));
 
 
-    std::unordered_map<std::string, int> codeToLocation;
+    std::unordered_map<std::string, int> code_to_location;
 
-    for (size_t i=0; i < positionCodes.size(); i++)
-        codeToLocation[positionCodes[i]] = i;
+    for (size_t i=0; i < position_codes.size(); i++)
+        code_to_location[position_codes[i]] = i;
 
     for (size_t i=0; i < sequences.size(); i++){
-        std::string alignedSeq(positionCodes.size(), '-');
+        std::string aligned_seq(position_codes.size(), '-');
 
         // The only situations where the annotation could be a different
         // length from the sequence are if the user made changes to an
@@ -518,21 +523,21 @@ int build_msa_utility(std::vector<std::string> &sequences,
         // problems than it solves -- same for throwing an exception. For now,
         // we report a blank alignment if this has occurred.
         if (std::get<0>(annotations[i]).size() != sequences[i].length()){
-            alignedSeqs.push_back(alignedSeq);
+            aligned_seqs.push_back(aligned_seq);
             continue;
         }
 
         for (size_t j=0; j < sequences[i].length(); j++){
-            std::string posCode = std::get<0>(annotations[i])[j];
-            if (posCode == "-")
+            std::string pos_code = std::get<0>(annotations[i])[j];
+            if (pos_code == "-")
                 continue;
-            if (codeToLocation.find(posCode) == codeToLocation.end())
+            if (code_to_location.find(pos_code) == code_to_location.end())
                 throw std::runtime_error(std::string("Invalid position codes were supplied."));
             
-            int location = codeToLocation[posCode];
-            alignedSeq[location] = sequences[i][j];
+            int location = code_to_location[pos_code];
+            aligned_seq[location] = sequences[i][j];
         }
-        alignedSeqs.push_back(alignedSeq);
+        aligned_seqs.push_back(aligned_seq);
     }
     return VALID_SEQUENCE;
 }
@@ -542,8 +547,8 @@ int build_msa_utility(std::vector<std::string> &sequences,
 // non-numbered AAs.
 int trim_alignment_utility(const std::string &sequence,
         std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment,
-        std::vector<std::string> &trimmedAlignment, int &exstart, int &exend,
-        std::vector<char> &trimmedSeq){
+        std::vector<std::string> &trimmed_alignment, int &exstart, int &exend,
+        std::vector<char> &trimmed_seq){
     if (std::get<0>(alignment).size() != sequence.length())
         return INVALID_SEQUENCE;
 
@@ -558,8 +563,8 @@ int trim_alignment_utility(const std::string &sequence,
         }
         if (exstart < 0)
             exstart = i;
-        trimmedSeq.push_back(sequence.at(i));
-        trimmedAlignment.push_back(std::get<0>(alignment)[i]);
+        trimmed_seq.push_back(sequence[i]);
+        trimmed_alignment.push_back(std::get<0>(alignment)[i]);
     }
 
     if (exend < 0)

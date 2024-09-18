@@ -205,7 +205,7 @@ NB_MODULE(antpack_cpp_ext, m){
         .def(nb::init<std::map<std::string, std::vector<std::string>>,
                 std::map<std::string, std::vector<std::string>>,
                 nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig>,
-                std::string>() )
+                std::string, std::string>() )
         .def("assign_vj_genes", &VJMatchCounter::assign_vj_genes,
      R"(
         Assigns V and J genes for a sequence which has already been
