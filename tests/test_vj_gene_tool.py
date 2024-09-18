@@ -136,12 +136,11 @@ class TestVJGeneTool(unittest.TestCase):
 
                 best_pid, matchnum = -1e10, 0
                 for i, template in enumerate(germline_seqs[f"human_{recep}"]):
-                    score, dblen = 0, 0
+                    score = 0
 
                     for qletter, tletter in zip(fmt_seq, template):
                         if tletter == "-":
                             continue
-                        dblen += 1
                         if qletter == "-":
                             continue
 
@@ -152,8 +151,6 @@ class TestVJGeneTool(unittest.TestCase):
                         matchnum = i
                         best_pid = copy.deepcopy(score)
 
-                best_pid = float(dblen) * 2**(-float(best_pid))
-                best_pid *= len(seq)
                 gtrue = germline_names[f"human_{recep}"][matchnum]
                 self.assertTrue(gtrue in gpred)
                 self.assertTrue(np.allclose(id_pred, best_pid))

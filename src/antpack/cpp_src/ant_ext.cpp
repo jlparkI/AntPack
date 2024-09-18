@@ -233,16 +233,18 @@ NB_MODULE(antpack_cpp_ext, m){
             j_gene (str): The closest J-gene name(s), as measured by sequence identity.
             v_pident (float): If mode is 'identity', the number of positions at which
                 the numbered sequence matches the v-gene divided by the total number of
-                non-blank positions in the v-gene. If mode is 'evalue', the unscaled
-                evalue. if more than one v-gene with the same score is found, multiple
+                non-blank positions in the v-gene. If mode is 'evalue', the best BLOSUM
+                score (this can be converted to an e-value). If more than one v-gene
+                with the same score is found, multiple
                 v-genes are returned as a single string delimited with '_' to separate
                 the different v-genes. for the ogrdb database, where multiple names
                 have been assigned to the same aa sequence, these multiple names
                 are separated by ' ' in the output.
             j_pident (float): If mode is 'identity', the number of positions at which
                 the numbered sequence matches the j-gene divided by the total number of
-                non-blank positions in the j-gene. If mode is 'evalue', the unscaled
-                evalue. if more than one j-gene with the same score is found, multiple
+                non-blank positions in the j-gene. If mode is 'evalue', the best BLOSUM
+                score (this can be converted to an e-value). If more than one j-gene
+                with the same score is found, multiple
                 j-genes are returned as a single string delimited with '_' to separate
                 the different j-genes. for the ogrdb database, where multiple names
                 have been assigned to the same aa sequence, these multiple names

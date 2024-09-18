@@ -165,8 +165,6 @@ std::tuple<std::string, std::string,
                 videntity, vgene_name, 'v');
         this->assign_gene_by_evalue(jgenes, jnames, encoded_query.get(),
                 jidentity, jgene_name, 'j');
-        videntity *= sequence.length();
-        jidentity *= sequence.length();
     }
     else{
         throw std::runtime_error(std::string("Unrecognized mode was supplied. "
@@ -262,7 +260,7 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
     best_matches.reserve(10);
 
     best_gene_name = "";
-    int64_t db_length = 0, best_score = 0;
+    int64_t best_score = 0;
 
     // For a (very slight) speed gain we loop over only
     // the parts of the numbering that will not contain
@@ -283,83 +281,63 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
         for (int j=start_letter; j < end_letter; j++){
             switch (gene_seqs[i][j]){
                 case 'A':
-                    db_length += 1;
                     blosum_score += blosum_matrix(0,encoded_sequence[j]);
                     break;
                 case 'C':
-                    db_length += 1;
                     blosum_score += blosum_matrix(1,encoded_sequence[j]);
                     break;
                 case 'D':
-                    db_length += 1;
                     blosum_score += blosum_matrix(2,encoded_sequence[j]);
                     break;
                 case 'E':
-                    db_length += 1;
                     blosum_score += blosum_matrix(3,encoded_sequence[j]);
                     break;
                 case 'F':
-                    db_length += 1;
                     blosum_score += blosum_matrix(4,encoded_sequence[j]);
                     break;
                 case 'G':
-                    db_length += 1;
                     blosum_score += blosum_matrix(5,encoded_sequence[j]);
                     break;
                 case 'H':
-                    db_length += 1;
                     blosum_score += blosum_matrix(6,encoded_sequence[j]);
                     break;
                 case 'I':
-                    db_length += 1;
                     blosum_score += blosum_matrix(7,encoded_sequence[j]);
                     break;
                 case 'K':
-                    db_length += 1;
                     blosum_score += blosum_matrix(8,encoded_sequence[j]);
                     break;
                 case 'L':
-                    db_length += 1;
                     blosum_score += blosum_matrix(9,encoded_sequence[j]);
                     break;
                 case 'M':
-                    db_length += 1;
                     blosum_score += blosum_matrix(10,encoded_sequence[j]);
                     break;
                 case 'N':
-                    db_length += 1;
                     blosum_score += blosum_matrix(11,encoded_sequence[j]);
                     break;
                 case 'P':
-                    db_length += 1;
                     blosum_score += blosum_matrix(12,encoded_sequence[j]);
                     break;
                 case 'Q':
-                    db_length += 1;
                     blosum_score += blosum_matrix(13,encoded_sequence[j]);
                     break;
                 case 'R':
-                    db_length += 1;
                     blosum_score += blosum_matrix(14,encoded_sequence[j]);
                     break;
                 case 'S':
-                    db_length += 1;
                     blosum_score += blosum_matrix(15,encoded_sequence[j]);
                     break;
                 case 'T':
-                    db_length += 1;
                     blosum_score += blosum_matrix(16,encoded_sequence[j]);
                     break;
                 case 'V':
-                    db_length += 1;
                     blosum_score += blosum_matrix(17,encoded_sequence[j]);
                     break;
                 case 'W':
-                    db_length += 1;
                     blosum_score += blosum_matrix(18,encoded_sequence[j]);
                     break;
                 case 'Y':
-                    db_length += 1;
                     blosum_score += blosum_matrix(19,encoded_sequence[j]);
                     break;
                 case '-':
@@ -391,7 +369,6 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
     }
 
     best_identity = best_score;
-    best_identity = (double)db_length * std::pow(2, -best_identity);
 
     return VALID_SEQUENCE;
 }
