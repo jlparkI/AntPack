@@ -56,3 +56,6 @@ Added Aho numbering scheme. Added code to convert between numbering
 schemes when assigning VJ so that VJ can be assigned using any
 scheme not just IMGT. Added command line interface for easy
 use on fasta files from the command line.
+
+### Version 0.3.5.1
+Minor changes to docstrings in 0.3.5.
