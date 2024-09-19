@@ -8,7 +8,7 @@ see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 ## What's new in v0.3.5
 
 In v0.3.5, we've added the Aho numbering scheme. We've made AntPack numbering
-about 30% faster (it was already the fastest numbering tool, but there's no
+about 25% faster (it was already the fastest numbering tool, but there's no
 such thing as too fast!) We've also improved VJ 
 gene assignment. AntPack can now assign v- and j-genes using either percent
 identity or e-value, and if multiple V- or J-genes have essentially the
