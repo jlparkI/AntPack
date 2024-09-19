@@ -13,7 +13,7 @@ class PairedChainAnnotator(PairedChainAnnotatorCpp):
 
         Args:
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "martin", "kabat".
+                "martin", "kabat", "aho".
 
         Raises:
             RuntimeError: A RuntimeError is raised if unacceptable inputs are

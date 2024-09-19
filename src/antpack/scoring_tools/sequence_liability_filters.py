@@ -103,7 +103,7 @@ class LiabilitySearchTool:
                         continue
                 liabilities.append( (span, description) )
 
-        # A last (very unusual) liability is the presence of cysteines OUTSIDE of
+        # A last liability is the presence of cysteines OUTSIDE of
         # the standard positions. We check for this here.
         for i, (aa, imgt_pos) in enumerate(zip(sequence, numbering)):
             if aa == "C":

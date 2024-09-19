@@ -19,7 +19,7 @@ class SingleChainAnnotator(SingleChainAnnotatorCpp):
                 determine the most appropriate chain type for each input
                 sequence.
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "martin", "kabat".
+                "martin", "kabat", "aho".
             compress_init_gaps (bool): If True, rearrange gaps in the first 5
                 positions post-alignment so that gaps are at the beginning of
                 the sequence wherever possible. This is more consistent with
