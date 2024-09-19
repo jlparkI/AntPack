@@ -27,6 +27,8 @@ Finally, AntPack now has a command line tool for running a quick standard
 analysis on small-medium size datasets. For more customized analyses and/or
 larger datasets the Python API can be used as before.
 
+Python3.8 or later is now required.
+
 Starting in v0.4 we're planning to add a GUI -- currently in active
 development -- which makes it easy to load and view sequences if you only
 have a few. We're also planning to add additional functionality for antibody
