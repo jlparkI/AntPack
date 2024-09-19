@@ -17,7 +17,7 @@ section on the main page).
 
 Required dependencies are ``numpy``. These should be
 automatically installed but if desired can be installed first.
-Python3.7 or later is required.
+Python3.8 or later is required.
 
 Licensing
 ===========

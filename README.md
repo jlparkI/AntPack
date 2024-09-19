@@ -39,7 +39,7 @@ analysis -- coming soon!
 pip install antpack
 ```
 
-AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.7,
+AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8,
 so installation should be very straightforward. A source distribution is also available
 (C++17) in case there is any need to compile from source.
 
