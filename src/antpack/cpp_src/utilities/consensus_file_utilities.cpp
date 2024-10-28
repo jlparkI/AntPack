@@ -6,10 +6,6 @@
  * simplified somewhat. */
 #include "consensus_file_utilities.h"
 
-// Codes for consensus file load.
-#define VALID_CONSENSUS_FILE 1
-#define INVALID_CONSENSUS_FILE 0
-
 
 
 // Reads a specially formatted text file into a vector of vectors of strings.
@@ -17,7 +13,7 @@
 // position. Note that an empty vector at a given position indicates any AA is
 // tolerated at that position. Therefore, if a '-' is found at a given postiion,
 // assume any AA is tolerated there.
-int read_consensus_file(std::filesystem::path consFPath,
+int cnpy::read_consensus_file(std::filesystem::path consFPath,
         std::vector<std::vector<std::string>> &consensusAAs){
 
     if (!std::filesystem::exists(consFPath))
