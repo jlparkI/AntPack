@@ -20,30 +20,30 @@
 
 
 
-namespace NumberingTools{
+namespace NumberingTools {
 
 
-    class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
-        public:
-            PairedChainAnnotatorCpp(std::string scheme = "imgt",
-                    std::string consensus_filepath = "");
+class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
+ public:
+        PairedChainAnnotatorCpp(std::string scheme = "imgt",
+                std::string consensus_filepath = "");
 
-            std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
-                std::tuple<std::vector<std::string>, double, std::string, std::string>>
-                analyze_seq(std::string sequence);
-            std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
-                std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
-                analyze_seqs(std::vector<std::string> sequences);
+        std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
+            std::tuple<std::vector<std::string>, double, std::string, std::string>>
+            analyze_seq(std::string sequence);
+        std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
+            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
+            analyze_seqs(std::vector<std::string> sequences);
 
 
-        protected:
-            std::string scheme;
+ protected:
+        std::string scheme;
 
-            std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> light_chain_analyzer;
-            std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> heavy_chain_analyzer;
-            std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> analyzer;
-    };
+        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> light_chain_analyzer;
+        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> heavy_chain_analyzer;
+        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> analyzer;
+};
 
-}
+}  // namespace NumberingTools
 
 #endif

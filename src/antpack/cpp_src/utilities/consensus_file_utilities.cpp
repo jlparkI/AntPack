@@ -14,7 +14,7 @@
 // tolerated at that position. Therefore, if a '-' is found at a given postiion,
 // assume any AA is tolerated there.
 int cnpy::read_consensus_file(std::filesystem::path consFPath,
-        std::vector<std::vector<std::string>> &consensusAAs){
+        std::vector<std::vector<std::string>> &consensusAAs) {
 
     if (!std::filesystem::exists(consFPath))
         return INVALID_CONSENSUS_FILE;
@@ -25,8 +25,7 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
     bool readNow = false;
     std::string currentLine;
 
-    while (std::getline(file, currentLine))
-    {
+    while (std::getline(file, currentLine)) {
         if (currentLine.at(0) == '#'){
             readNow = true;
             continue;
@@ -41,17 +40,16 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
         bool firstSegment = true, allAAsAllowed = false;
         std::vector<std::string> allowedAAs;
 
-        while(std::getline(splitString, segment, ',')){
-            if (firstSegment){
+        while (std::getline(splitString, segment, ',')) {
+            if (firstSegment) {
                 int position = std::stoi(segment);
                 if (position - 1 != lastPosition)
                     return INVALID_CONSENSUS_FILE;
                 firstSegment = false;
                 lastPosition += 1;
-            }
-            else{
-                if (segment == "-"){
-                    consensusAAs.push_back( std::vector<std::string>{} );
+            } else {
+                if (segment == "-") {
+                    consensusAAs.push_back(std::vector<std::string>{});
                     allAAsAllowed = true;
                     break;
                 }
