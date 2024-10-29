@@ -8,6 +8,7 @@
 #include <tuple>
 #include <set>
 #include <array>
+#include <memory>
 
 // Library headers
 
@@ -39,9 +40,12 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
  protected:
         std::string scheme;
 
-        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> light_chain_analyzer;
-        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> heavy_chain_analyzer;
-        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp> analyzer;
+        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
+            light_chain_analyzer;
+        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
+            heavy_chain_analyzer;
+        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
+            analyzer;
 };
 
 }  // namespace NumberingTools

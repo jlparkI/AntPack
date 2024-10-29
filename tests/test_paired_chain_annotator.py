@@ -175,6 +175,53 @@ class TestPairedChainAnnotator(unittest.TestCase):
                         trimmed_hc_seq)
 
 
+    def test_single_chain_behavior(self):
+        """Take known heavy / light chains only and run them 
+        through PairedChainAnnotator. Compare the
+        numbering assigned by SingleChainAnnotator to that assigned
+        by PairedChainAnnotator (this of course assumes that
+        SingleChainAnnotator is functioning correctly)."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+        os.chdir(current_dir)
+
+        sc_aligner = SingleChainAnnotator(scheme="imgt")
+        m_aligner = PairedChainAnnotator(scheme="imgt")
+
+        # Skip sequences with only one cysteine, which are hard
+        # to analyze.
+        seqs = [s for s in seqs if len([l for l in s if l == "C"])
+                >= 2]
+
+        alignments = [sc_aligner.analyze_seq(seq) for seq in seqs]
+
+        heavy_chains = [(seq, a) for a, seq in zip(alignments, seqs)
+                if a[2] == "H"]
+        light_chains = [(seq, a) for a, seq in zip(alignments, seqs)
+                if a[2] != "H"]
+
+        random.seed(0)
+
+        for (seq, alignment) in heavy_chains:
+            pc_result = m_aligner.analyze_seq(seq)[0]
+            if pc_result != alignment:
+                import pdb
+                pdb.set_trace()
+            self.assertTrue(pc_result == alignment)
+
+        for (seq, alignment) in light_chains:
+            pc_result = m_aligner.analyze_seq(seq)[1]
+            if pc_result != alignment:
+                import pdb
+                pdb.set_trace()
+            self.assertTrue(pc_result == alignment)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

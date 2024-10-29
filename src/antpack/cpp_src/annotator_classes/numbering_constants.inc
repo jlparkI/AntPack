@@ -25,11 +25,6 @@ static constexpr int INVALID_SEQUENCE = 0;
 static constexpr int MINIMUM_SEQUENCE_LENGTH = 25;
 
 
-// The amount by which to offset from the start of a c-terminal region
-// when using tools that look for typical J-gene sequences.
-static constexpr int CTERMINAL_STANDARD_OFFSET = 9;
-
-
 // The IMGT numbering system will always have (at least) 128 positions.
 // Technically light chains also have 128, but due to another weird quirk
 // position 128 is never used for light chains.

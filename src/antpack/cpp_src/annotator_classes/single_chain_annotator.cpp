@@ -1,3 +1,12 @@
+// C++ headers
+#include <utility>
+#include <tuple>
+#include <vector>
+#include <memory>
+#include <string>
+
+
+// Project headers
 #include "single_chain_annotator.h"
 
 
@@ -32,45 +41,38 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
 
 
     for (auto & chain : this->chains) {
-        if (chain != "H" && chain != "K" && chain != "L")
-            throw std::runtime_error(std::string("Valid chains must be one of 'H', 'K', 'L'."));
-        else{
-
+        if (chain != "H" && chain != "K" && chain != "L") {
+            throw std::runtime_error(std::string("Valid chains must be "
+                        "one of 'H', 'K', 'L'."));
+        } else {
             if (scheme == "imgt") {
                 this->scoring_tools.push_back(IGAligner(consensus_filepath,
                         chain, scheme,
                         IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                         IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-                        compress_init_gaps)
-                    );
-            }
-            else if (scheme == "aho") {
+                        compress_init_gaps) );
+            } else if (scheme == "aho") {
                 this->scoring_tools.push_back(IGAligner(consensus_filepath,
                         chain, scheme,
                         AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                         AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-                        compress_init_gaps)
-                    );
-            }
-            else if (scheme == "martin") {
+                        compress_init_gaps) );
+            } else if (scheme == "martin") {
                 this->scoring_tools.push_back(IGAligner(consensus_filepath,
                         chain, scheme,
                         MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                         MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-                        compress_init_gaps)
-                    );
-            }
-            else if (scheme == "kabat") {
+                        compress_init_gaps) );
+            } else if (scheme == "kabat") {
                 this->scoring_tools.push_back(IGAligner(consensus_filepath,
                         chain, scheme,
                         KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
                         KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-                        compress_init_gaps)
-                    );
-            }
-            else{
-                throw std::runtime_error(std::string("Invalid scheme specified. Please use "
-                        "one of 'imgt', 'kabat', 'martin', 'aho'."));
+                        compress_init_gaps) );
+            } else {
+                throw std::runtime_error(std::string("Invalid scheme "
+                        "specified. Please use one of 'imgt', 'kabat', "
+                        "'martin', 'aho'."));
             }
         }
     }
@@ -83,9 +85,9 @@ std::tuple<std::vector<std::string>, double, std::string,
         std::string> SingleChainAnnotatorCpp::analyze_seq(std::string sequence) {
 
     double best_identity = -1;
-    std::vector<std::string> emptyNumbering; 
+    std::vector<std::string> empty_numbering;
     std::tuple<std::vector<std::string>, double, std::string,
-                    std::string> best_result{ emptyNumbering,
+                    std::string> best_result{ empty_numbering,
                         0, "", "Invalid sequence supplied -- nonstandard AAs"};
 
 
@@ -97,48 +99,72 @@ std::tuple<std::vector<std::string>, double, std::string,
     if (err_code !=  POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT)
         return best_result;
 
-    // It can (rarely) happen that we have a chain (usually light) where the expected FGxG
-    // motif in the J-gene is altered AND there is significant additional sequence beyond
-    // the end of the J-gene, e.g. in a paired chain, AND this results in an alignment
-    // error. In the event this unusual combination of circumstances occurs, it
-    // usually manifests in the form of an unusually long CDR that exceeds the maximum
-    // number of allowed insertion codes.
+    // It can (rarely) happen that we have a chain (usually light)
+    // where the expected FGxG motif in the J-gene is altered AND
+    // there is significant additional sequence beyond the end of
+    // the J-gene, e.g. in a paired chain, AND this results in an alignment
+    // error. In the event this unusual combination of circumstances
+    // occurs, it usually manifests in the form of an unusually long
+    // CDR that exceeds the maximum number of allowed insertion codes.
 
-    // If this may have occurred, subdivide the sequence into regions,
-    // align each region and return the one with the highest
-    // percent identity. This is not ideal if the sequence contains
+    // If this may have occurred, find the most likely c-terminal
+    // region and re-align the portion of the sequence that precedes
+    // this. This is not ideal if the sequence contains
     // multiple chains because the other chains will go unreported,
     // but a SingleChainAnnotator by definition is not ideal for
-    // this scenario.
-    std::vector<std::pair<size_t,size_t>> subregions;
-    this->split_sequence_into_subregions(subregions, sequence);
+    // this scenario. MultiChainAnnotator or PairedChainAnnotator
+    // should be used instead.
 
-    // Now align all the identified segments and return the best match.
+    std::array<double, 3> scores;
+    std::array<int, 3> positions;
+    if (!this->boundary_finder->find_best_cterminal(sequence,
+                scores, positions)) {
+        empty_numbering.clear();
+        best_result = { empty_numbering, 0, "",
+            "Alignment error -- no c-terminal region found."};
+        return best_result;
+    }
+
+
+    // Now find the most likely cterminal match, use that to cut the
+    // sequence and align the region prior to this.
+    size_t best_position = 0;
+    double best_score = 0;
+
+    for (size_t i = 0; i < scores.size(); i++) {
+        if (scores[i] > best_score) {
+            best_position = positions[i];
+            best_score = scores[i];
+        }
+    }
+
+    // Add the appropriate number of letters to best_position to
+    // use it as a cutoff. Make sure it is within the sequence.
+    // Also make sure it is not unreasonably short.
+    best_position = best_position + this->boundary_finder->
+        get_num_positions() + 5;
+    best_position = best_position > MINIMUM_SEQUENCE_LENGTH ?
+        best_position : MINIMUM_SEQUENCE_LENGTH;
+    best_position = best_position < sequence.length() ? best_position :
+        sequence.length();
+
+    // If the best position is the same as the sequence length,
+    // realigning will make no difference; return existing
+    // result.
+    if (best_position == sequence.length())
+        return best_result;
+
+
+
+    std::string subsequence = sequence.substr(0, best_position);
     best_identity = -1;
 
-    for (auto &subregion : subregions) {
-        double percent_identity = -1;
-        std::string subsequence = sequence.substr(subregion.first,
-                subregion.second - subregion.first);
-        std::tuple<std::vector<std::string>, double, std::string, std::string> result;
-        std::vector<std::string> output_numbering(subregion.first, "-");
+    err_code = this->align_input_subregion(best_result, best_identity,
+            subsequence);
 
-        err_code = this->align_input_subregion(result, percent_identity,
-                subsequence);
-        if (percent_identity < best_identity || err_code != SequenceUtilities::VALID_SEQUENCE)
-            continue;
-
-        best_identity = percent_identity;
-
-        for (auto &token : std::get<0>(result))
-            output_numbering.push_back(token);
-
-
-        for (size_t i=subregion.second; i < sequence.length(); i++)
-            output_numbering.push_back("-");
-
-            std::get<0>(result) = std::move(output_numbering);
-        best_result = std::move(result);
+    for (size_t i = 0; i < (sequence.length() - subsequence.length());
+            i++) {
+        std::get<0>(best_result).push_back("-");
     }
 
     return best_result;
@@ -151,7 +177,7 @@ std::tuple<std::vector<std::string>, double, std::string,
 int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::string>, double,
                 std::string, std::string> &best_result, double &best_identity,
                 std::string &query_sequence) {
-    auto queryAsIdx = std::make_unique<int[]>( query_sequence.length() );
+    auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
     bool fwgxg_error = false;
 
     if (!SequenceUtilities::convert_x_sequence_to_array(queryAsIdx.get(),

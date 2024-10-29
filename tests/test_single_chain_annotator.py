@@ -261,7 +261,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
             for seq in seqs:
                 numbering = aligner.analyze_seq(seq)
-                labels = aligner.assign_cdr_labels(numbering, scheme)
+                labels = aligner.assign_cdr_labels(numbering)
 
                 gt_regions = get_gt_regions(numbering[0],
                         scheme_labels[scheme][numbering[2]])
