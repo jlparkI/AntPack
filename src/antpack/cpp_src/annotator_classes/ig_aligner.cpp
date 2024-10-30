@@ -5,15 +5,9 @@ namespace NumberingTools{
 IGAligner::IGAligner(
              std::string consensus_filepath,
              std::string chain_name,
-             std::string scheme,
-             double terminalTemplateGapPenalty,
-             double CterminalQueryGapPenalty,
-             bool compress_initial_gaps):
+             std::string scheme):
     chain_name(chain_name),
-    scheme(scheme),
-    terminalTemplateGapPenalty(terminalTemplateGapPenalty),
-    CterminalQueryGapPenalty(CterminalQueryGapPenalty),
-    compress_initial_gaps(compress_initial_gaps) {
+    scheme(scheme) {
 
     // Note that exceptions thrown here are go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
@@ -249,28 +243,6 @@ void IGAligner::align(std::string query_sequence,
     }
 
 
-    // Next, let's check to see if there are gaps in positions 1 - 5. The convention
-    // in most numbering tools is to push those gaps to the beginning of the
-    // sequence. I'm personally not sure I agree with this, but it is what both ANARCI
-    // and AbNum do. As a result, we only do this if the user so requests (hence only
-    // if compress_initial_gaps is true). At this point, if the sequence has gaps in the
-    // first 5 numbered positions, we shuffle them around so the gaps are at the beginning --
-    // but again only if user so requested.
-    if (this->compress_initial_gaps && query_sequence.length() > 5) {
-        bool gaps_filled = false;
-        while (!gaps_filled) {
-            gaps_filled = true;
-            for (int i=0; i < 5; i++) {
-                if (init_numbering[i] ==1 && init_numbering[i+1] == 0) {
-                    init_numbering[i+1] = init_numbering[i];
-                    init_numbering[i] = 0;
-                    gaps_filled = false;
-                }
-            }
-        }
-    }
-
-
     // Build vector of IMGT numbers. Unfortunately the IMGT system adds insertion codes
     // forwards then backwards where there is > 1 insertion at a given position,
     // but ONLY if the insertion is at an expected position in the CDRs!
@@ -436,10 +408,12 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
     needle_scores[0] = 0;
     path_trace[0] = LEFT_TRANSFER;
     for (int i=0; i < query_seq_len; i++) {
-        needle_scores[i+1] = needle_scores[i] + this->terminalTemplateGapPenalty;
+        double updated_score = needle_scores[i] + NTERMINAL_QUERY_GAP_PENALTY;
+        updated_score = updated_score > MAX_NTERMINAL_GAP_PENALTY ?
+            updated_score : MAX_NTERMINAL_GAP_PENALTY;
+        needle_scores[i+1] = updated_score;
         path_trace[i+1] = LEFT_TRANSFER;
     }
-
 
 
 
@@ -449,20 +423,21 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
     // using if else statements to determine when the last row is
     // reached inside this loop.
     for (int i=1; i < this->num_positions; i++) {
-
         grid_pos = i * row_size;
         diagNeighbor = (i - 1) * row_size;
         upperNeighbor = diagNeighbor + 1;
-        // The first column assigns a modified penalty for gaps so that n-terminal
-        // deletions if encountered are accepted.
-        needle_scores[grid_pos] = needle_scores[diagNeighbor] + score_itr[QUERY_GAP_COLUMN];
+        needle_scores[grid_pos] = needle_scores[diagNeighbor] +
+            score_itr[QUERY_GAP_COLUMN];
         path_trace[grid_pos] = UP_TRANSFER;
         grid_pos++;
 
         for (int j=0; j < (query_seq_len - 1); j++) {
-            score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] + score_itr[encoded_sequence[j]];
-            score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] + score_itr[TEMPLATE_GAP_COLUMN];
-            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] + score_itr[QUERY_GAP_COLUMN];
+            score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
+                score_itr[encoded_sequence[j]];
+            score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
+                score_itr[TEMPLATE_GAP_COLUMN];
+            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
+                score_itr[QUERY_GAP_COLUMN];
 
             // This is mildly naughty -- we don't consider the possibility
             // of a tie, which could lead to a branched alignment. Realistically,
@@ -491,17 +466,16 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
             score_itr[encoded_sequence[query_seq_len - 1]];
         score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
             score_itr[TEMPLATE_GAP_COLUMN];
-        // We use a default score for the last column, so that c-terminal
-        // deletions if encountered are well-tolerated. We exclude however
+        // We use a default score for the last column. We exclude however
         // highly conserved positions, for which a large gap penalty should
-            // always be assigned.
+        // always be assigned.
             if (std::binary_search(this->highly_conserved_positions.begin(),
                     this->highly_conserved_positions.end(), i))
                 score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
                     score_itr[QUERY_GAP_COLUMN];
             else
                 score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
-                    this->CterminalQueryGapPenalty;
+                    CTERMINAL_TEMPLATE_GAP_PENALTY;
 
             best_score = score_updates[DIAGONAL_TRANSFER];
             best_pos = DIAGONAL_TRANSFER;
@@ -515,30 +489,35 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
             }
             needle_scores[grid_pos] = best_score;
             path_trace[grid_pos] = best_pos;
-        
+
             score_itr += this->score_arr_shape[1];
         }
 
 
 
         // Now handle the last row.
-        score_itr = this->score_array.get() + (this->num_positions-1) * this->score_arr_shape[1];
+        score_itr = this->score_array.get() + (this->num_positions-1) *
+            this->score_arr_shape[1];
         grid_pos = (this->num_positions) * row_size;
         diagNeighbor = (this->num_positions - 1) * row_size;
         upperNeighbor = diagNeighbor + 1;
 
-        // The first column assigns a low penalty for gaps so that n-terminal
-        // deletions if encountered are accepted, UNLESS we are at a highly
-        // conserved position.
-        needle_scores[grid_pos] = needle_scores[diagNeighbor] + score_itr[QUERY_GAP_COLUMN];
+        needle_scores[grid_pos] = needle_scores[diagNeighbor] +
+            score_itr[QUERY_GAP_COLUMN];
         path_trace[grid_pos] = UP_TRANSFER;
         grid_pos++;
 
         for (int j=0; j < (query_seq_len - 1); j++) {
             score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
                 score_itr[encoded_sequence[j]];
-            score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
-                this->terminalTemplateGapPenalty;
+            // If a gap is already open, extending a c-terminal gap should
+            // cost nothing.
+            if (path_trace[grid_pos - 1] != LEFT_TRANSFER) {
+                score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
+                    CTERMINAL_QUERY_GAP_PENALTY;
+            } else {
+                score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1];
+            }
             score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
                 score_itr[QUERY_GAP_COLUMN];
 
@@ -565,10 +544,16 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
         // And, finally, the last column of the last row.
         score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
             score_itr[encoded_sequence[query_seq_len-1]];
-        score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
-            this->terminalTemplateGapPenalty;
+        // If a gap is already open, extending a c-terminal gap should
+        // cost nothing.
+        if (path_trace[grid_pos - 1] != LEFT_TRANSFER) {
+            score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
+                    CTERMINAL_QUERY_GAP_PENALTY;
+        } else {
+            score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1];
+        }
         score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
-            this->CterminalQueryGapPenalty;
+            CTERMINAL_TEMPLATE_GAP_PENALTY;
 
         best_score = score_updates[DIAGONAL_TRANSFER];
         best_pos = DIAGONAL_TRANSFER;
@@ -582,6 +567,6 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
         }
         needle_scores[grid_pos] = best_score;
         path_trace[grid_pos] = best_pos;
-    }
+}
 
 }  // namespace NumberingTools

@@ -132,17 +132,11 @@ static constexpr int MARTIN_LIGHT_CDR_BREAKPOINT_4 = 53;
 static constexpr int MARTIN_LIGHT_CDR_BREAKPOINT_5 = 91;
 static constexpr int MARTIN_LIGHT_CDR_BREAKPOINT_6 = 97;
 
-
-// Important scheme-specific defaults. Do not change unless
-// necessary.
-static constexpr int IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1;
-static constexpr int IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1;
-static constexpr int AHO_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1;
-static constexpr int AHO_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1;
-static constexpr int MARTIN_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1;
-static constexpr int MARTIN_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1;
-static constexpr int KABAT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1;
-static constexpr int KABAT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1;
+// Gap open vs extend penalties for c and n terminals.
+static constexpr int NTERMINAL_QUERY_GAP_PENALTY = -1;
+static constexpr int CTERMINAL_QUERY_GAP_PENALTY = -1;
+static constexpr int CTERMINAL_TEMPLATE_GAP_PENALTY = -1;
+static constexpr int MAX_NTERMINAL_GAP_PENALTY = -5;
 
 }  // namespace NumberingTools
 

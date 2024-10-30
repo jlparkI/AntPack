@@ -56,8 +56,8 @@ class SequenceScoringTool():
 
         self.aa_list = constants.aa_list
         self.aa_dict = {aa:i for (i, aa) in enumerate(self.aa_list)}
-        self.aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme = "imgt",
-                compress_init_gaps = False)
+        self.aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                scheme = "imgt")
 
         self.normalize_scores = False
         self.score_adjustments = {"H":0.0, "L":0.0}

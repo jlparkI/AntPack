@@ -25,9 +25,9 @@ namespace NumberingTools {
 
 class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
  public:
-        SingleChainAnnotatorCpp(std::vector<std::string> chains = {"H", "K", "L"},
-                std::string scheme = "imgt", bool compress_init_gaps = false,
-                std::string consensus_filepath = "");
+        SingleChainAnnotatorCpp(std::vector<std::string> chains,
+                std::string scheme, std::string consensus_filepath,
+                std::unordered_map<std::string, size_t> nterm_kmers);
 
 
         /// @brief Numbers an input sequence
@@ -45,19 +45,17 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> analyze_seqs(std::vector<std::string> sequences);
 
+        /// @brief Aligns a subregion of an input sequence (for situations where
+        ///        a subregion needs to be extracted).
+        int align_input_subregion(std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &best_result, std::string &query_sequence,
+                std::string preferred_chain);
 
  protected:
         std::vector<std::string> chains;
         std::string scheme;
-        bool compress_init_gaps;
 
         std::vector<NumberingTools::IGAligner> scoring_tools;
-
-        /// @brief Aligns a subregion of an input sequence (for situations where
-        ///        a subregion needs to be extracted).
-        int align_input_subregion(std::tuple<std::vector<std::string>, double,
-                std::string, std::string> &best_result, double &best_identity,
-                std::string &query_sequence);
 };
 
 }  // namespace NumberingTools

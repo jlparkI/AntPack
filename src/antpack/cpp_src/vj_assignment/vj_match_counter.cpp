@@ -64,18 +64,12 @@ VJMatchCounter::VJMatchCounter(std::map<std::string,
 
     // Set up three imgt scheme aligners for internal use (useful for various
     // tasks).
-    this->h_aligner = std::make_unique<NumberingTools::IGAligner>(consensus_filepath,
-            "H", "imgt", NumberingTools::IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
-            NumberingTools::IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-            false);
-    this->k_aligner = std::make_unique<NumberingTools::IGAligner>(consensus_filepath,
-            "K", "imgt", NumberingTools::IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
-            NumberingTools::IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-            false);
-    this->l_aligner = std::make_unique<NumberingTools::IGAligner>(consensus_filepath,
-            "L", "imgt", NumberingTools::IMGT_DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY,
-            NumberingTools::IMGT_DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY,
-            false);
+    this->h_aligner = std::make_unique<NumberingTools::IGAligner>
+        (consensus_filepath, "H", "imgt");
+    this->k_aligner = std::make_unique<NumberingTools::IGAligner>
+        (consensus_filepath, "K", "imgt");
+    this->l_aligner = std::make_unique<NumberingTools::IGAligner>
+        (consensus_filepath, "L", "imgt");
 }
 
 

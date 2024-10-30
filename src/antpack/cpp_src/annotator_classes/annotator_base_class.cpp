@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <unordered_map>
 
 // Project headers
 #include "annotator_base_class.h"
@@ -14,7 +15,8 @@ namespace NumberingTools {
 
 
 AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme,
-        std::string consensus_filepath):
+        std::string consensus_filepath,
+        std::unordered_map<std::string, size_t> nterm_kmers):
     scheme(scheme) {
 
     // Set up a list of breakpoints that mark the dividing lines between
@@ -52,7 +54,9 @@ AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme,
 
 
 
-    this->boundary_finder = std::make_unique<CTermFinder>(consensus_filepath);
+    this->boundary_finder = std::make_unique
+        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
+                nterm_kmers);
 }
 
 

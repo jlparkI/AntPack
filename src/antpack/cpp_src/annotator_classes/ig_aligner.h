@@ -42,10 +42,7 @@ static constexpr int TEMPLATE_GAP_COLUMN = 22;
 class IGAligner {
  public:
         IGAligner(std::string consensus_filepath,
-            std::string chainName, std::string scheme,
-            double terminalTemplateGapPenalty,
-            double CterminalQueryGapPenalty,
-            bool compress_initial_gaps);
+            std::string chainName, std::string scheme);
 
 
         /// @brief Numbers an input sequence
@@ -81,9 +78,6 @@ class IGAligner {
 
         const std::string chain_name;
         std::string scheme;
-        double terminalTemplateGapPenalty;
-        double CterminalQueryGapPenalty;
-        bool compress_initial_gaps;
 
         std::unique_ptr<double[]> score_array;
         size_t score_arr_shape[2];

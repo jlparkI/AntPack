@@ -12,21 +12,23 @@
 namespace NumberingTools{
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
-        std::string scheme, std::string consensus_filepath):
-    AnnotatorBaseClassCpp(scheme, consensus_filepath),
+        std::string scheme, std::string consensus_filepath,
+        std::unordered_map<std::string, size_t> nterm_kmers
+        ):
+    AnnotatorBaseClassCpp(scheme, consensus_filepath, nterm_kmers),
     scheme(scheme) {
 
     std::vector<std::string> chains = {"K", "L"};
     this->light_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
-        (chains, scheme, false, consensus_filepath);
+        (chains, scheme, consensus_filepath, nterm_kmers);
 
     chains = {"H"};
     this->heavy_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
-        (chains, scheme, false, consensus_filepath);
+        (chains, scheme, consensus_filepath, nterm_kmers);
 
     chains = {"H", "K", "L"};
     this->analyzer = std::make_unique<SingleChainAnnotatorCpp>
-        (chains, scheme, false, consensus_filepath);
+        (chains, scheme, consensus_filepath, nterm_kmers);
 
 
     std::filesystem::path extensionPath = consensus_filepath;
@@ -55,189 +57,247 @@ std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>
     if (!SequenceUtilities::validate_x_sequence(sequence)) {
         std::tuple<std::vector<std::string>, double,
             std::string, std::string> vecres =
-            {{}, 0., "", "Invalid sequence supplied -- nonstandard AAs"};
+            {{}, 0., "", "Sequence contains invalid characters"};
         std::pair<std::tuple<std::vector<std::string>, double,
             std::string, std::string>,     std::tuple<std::vector<std::string>,
             double, std::string, std::string>> output_result = {vecres, vecres};
         return output_result;
     }
 
-    // There are three possible chains, so we will initially generate
-    // three scores, then merge the two light chain scores.
-    std::array<double, 3> scores;
-    std::array<int, 3> positions;
-    std::array<double, 2> merged_scores;
-    std::array<int, 2> merged_positions;
+    // There are three possible chains.
+    std::array<double, 3> cterm_scores;
+    std::array<int, 3> cterm_positions, nterm_positions, nterm_scores;
 
-    // Find likely c-terminal regions in the input sequence.
-    if (!this->boundary_finder->find_best_cterminal(sequence, scores,
-            positions)) {
+    // Find likely c- and n-terminal regions in the input sequence.
+    if (!this->boundary_finder->find_start_end_zones(sequence, cterm_scores,
+            cterm_positions, nterm_scores, nterm_positions)) {
         std::tuple<std::vector<std::string>, double,
             std::string, std::string> vecres =
-            {{}, 0., "", "Alignment error -- no c-terminal region found."};
+            {{}, 0., "", "Invalid sequence supplied -- either too short or "
+                "contains nonstandard AAs"};
         std::pair<std::tuple<std::vector<std::string>, double,
             std::string, std::string>,     std::tuple<std::vector<std::string>,
             double, std::string, std::string>> output_result = {vecres, vecres};
         return output_result;
     }
 
-    this->boundary_finder->merge_light_chain_scores(scores, positions,
-            merged_scores, merged_positions);
+    // Cterminal and nterminal scores are not always sufficiently reliable
+    // to distinguish between K and L. We therefore merge the light chain
+    // scores and if K or L is indicated use the light chain aligner.
+    std::array<int, 2> merged_nterm_scores, merged_nterm_positions,
+        merged_cterm_positions;
+    std::array<double, 2> merged_cterm_scores;
+    this->boundary_finder->merge_light_chain_nterm_scores(nterm_scores,
+            nterm_positions, merged_nterm_scores, merged_nterm_positions);
+    this->boundary_finder->merge_light_chain_cterm_scores(cterm_scores,
+            cterm_positions, merged_cterm_scores, merged_cterm_positions);
 
     // Ask the c-terminal finder for a threshold below which a score likely does
     // not indicate the presence of a c-terminal and store this.
-    double score_threshold = this->boundary_finder->get_threshold_score();
+    double best_cterm_score = this->boundary_finder->
+        get_cterm_threshold_score();
+    int best_nterm_score = this->boundary_finder->
+        get_nterm_threshold_score();
 
-    int cutoff_position = 0;
+    int start_cutoff = 0, end_cutoff = sequence.length();
 
     // Since this is a paired chain, there should be at least one and probably
-    // 2 c-terminal regions. Which one occurs first? We ensure the score is
-    // > cutoff to rule out regions that are likely not "real". If no region
-    // meets the cutoff, input sequence is either not an antibody or a severely
-    // truncated one. In that case, try to analyze it with the
-    // SingleChainAnnotator and return that result, whatever it is.
-    if (merged_scores[0] <= score_threshold &&
-            merged_scores[1] <= score_threshold) {
-        std::tuple<std::vector<std::string>, double,
-            std::string, std::string> init_results =
-            this->analyzer->analyze_seq(sequence);
-        std::pair<std::tuple<std::vector<std::string>, double,
-            std::string, std::string>,     std::tuple<std::vector<std::string>,
-            double, std::string, std::string>> output_result;
-        std::tuple<std::vector<std::string>, double,
-            std::string, std::string> second_result =
-            {{}, 0., "", "Alignment error; second chain not numbered "
-                "correctly / not found."};
+    // 2 c-terminal regions. Start by finding the highest-confidence c-terminal
+    // region. If we do not find anything, we keep the length of the sequence
+    // as the end cutoff.
+    std::vector<std::string> chain_list = this->boundary_finder->
+            get_chain_list();
+    int selected_idx = -1;
 
-        if (std::get<2>(init_results) == "H")
-            output_result = {init_results, second_result};
-        else
-            output_result = {second_result, init_results};
-
-        return output_result;
+    for (size_t i=0; i < merged_cterm_scores.size(); i++) {
+        if (merged_cterm_scores[i] > best_cterm_score) {
+            best_cterm_score = merged_cterm_scores[i];
+            selected_idx = i;
+            // Add onto the end to make sure all of cterminal is
+            // included plus a safety margin.
+            end_cutoff = merged_cterm_positions[i] + this->boundary_finder->
+                get_num_positions() + 5;
+            end_cutoff = end_cutoff < sequence.length() ?
+                end_cutoff : sequence.length();
+        }
     }
 
-    // Otherwise, if at least one region meets the cutoff, try
-    // to find whether light or heavy chain occurs first.
-    if (merged_positions[0] < merged_positions[1] &&
-            merged_scores[0] > score_threshold) {
-        cutoff_position = merged_positions[0];
-    } else if (merged_scores[1] > score_threshold) {
-        cutoff_position = merged_positions[1];
+
+    // Try to find something looking like an nterminal. If we
+    // found a specific cterminal, we should look for the
+    // matching nterminal. If we did not, we should look for
+    // an n-terminal.
+    if (selected_idx != -1) {
+        if (merged_nterm_scores[selected_idx] > best_nterm_score) {
+            start_cutoff = merged_nterm_positions[selected_idx] -
+                this->boundary_finder->get_kmer_window_size() - 5;
+        }
     } else {
-        cutoff_position = merged_positions[0];
+        for (size_t i=0; i < merged_nterm_scores.size(); i++) {
+            if (merged_nterm_scores[i] > best_nterm_score) {
+                best_nterm_score = merged_nterm_scores[i];
+                // Subtract from the end to make sure all of nterminal is
+                // included plus a safety margin.
+                start_cutoff = merged_nterm_positions[i] -
+                    this->boundary_finder->get_kmer_window_size() - 5;
+                selected_idx = i;
+            }
+        }
     }
 
-    // Make sure cutoff position obeys reasonable constraints.
-    cutoff_position = cutoff_position > 0 ? cutoff_position : 0;
-    cutoff_position = cutoff_position < sequence.length() ?
-        cutoff_position : sequence.length();
+    // If the start cutoff is too close to the end cutoff, reset it to
+    // a reasonable margin.
+    if (end_cutoff - start_cutoff < 100) {
+        start_cutoff = end_cutoff - 200;
+        if (start_cutoff < 0) {
+            start_cutoff = 0;
+            if (end_cutoff - start_cutoff < 100)
+                end_cutoff = start_cutoff + 200;
+        }
+    }
 
-
-    std::string subsequence = sequence.substr(cutoff_position,
-            sequence.length() - cutoff_position);
+    // Of course, always double check that everything is within bounds.
+    start_cutoff = start_cutoff > 0 ? start_cutoff : 0;
+    end_cutoff = end_cutoff < sequence.length() ? end_cutoff :
+        sequence.length();
+    std::string subsequence = sequence.substr(start_cutoff,
+            end_cutoff - start_cutoff);
 
     std::tuple<std::vector<std::string>, double,
-        std::string, std::string> init_results =
-        this->analyzer->analyze_seq(subsequence);
+            std::string, std::string> init_results =
+                this->analyzer->analyze_seq(subsequence);
+
 
     // If the initial alignment returned an error, the numbering
     // vector will be empty and chain assignment may be arbitrary.
     // This may happen if user passed a single chain by mistake.
-    // If so, abort and use a simpler procedure for the remaining
-    // analysis.
+    // We can try realigning with no cutoffs and no preferred chain
+    // and see what we get.
+    int err_code = VALID_SEQUENCE;
     if (std::get<0>(init_results).size() == 0) {
-        cutoff_position += this->boundary_finder->get_num_positions() + 5;
-        cutoff_position = cutoff_position < sequence.length() ?
-            cutoff_position : sequence.length();
-        subsequence = sequence.substr(0, cutoff_position);
+        start_cutoff = 0;
+        end_cutoff = sequence.length();
+        err_code = this->analyzer->align_input_subregion(init_results,
+                sequence, "");
+    }
 
-        // Change the error message in init_result to something
-        // more accurate.
-        std::get<3>(init_results) = "Alignment error; second chain "
-            "not numbered correctly / not found.";
-
-        std::tuple<std::vector<std::string>, double, std::string,
-                std::string> second_result;
-        second_result = this->analyzer->analyze_seq(subsequence);
-
-        size_t padding_amount = (sequence.length() -
-                std::get<0>(second_result).size());
-
-        for (size_t i=0; i < padding_amount; i++)
-            std::get<0>(second_result).push_back("-");
-
+    // If we still have the same problem, abort.
+    if (std::get<0>(init_results).size() == 0 || err_code != VALID_SEQUENCE) {
+        std::tuple<std::vector<std::string>, double,
+            std::string, std::string> blank =
+            {{}, 0., "", "Alignment error; cterminal, nterminal not found."};
         std::pair<std::tuple<std::vector<std::string>, double,
             std::string, std::string>,     std::tuple<std::vector<std::string>,
             double, std::string, std::string>> output_result;
 
-        if (std::get<2>(second_result) == "H") {
-            std::get<2>(init_results) = "L";
-            output_result = {second_result, init_results};
-        } else {
-            std::get<2>(init_results) = "H";
-            output_result = {init_results, second_result};
-        }
-
+        if (std::get<2>(init_results) == "H")
+            output_result = {init_results, blank};
+        else
+            output_result = {blank, init_results};
         return output_result;
     }
 
     // Otherwise, we can proceed. Add gaps onto the initial
     // alignment so it is the same length as the sequence.
-    std::vector<std::string> padded_init_numbering((sequence.length() -
-                std::get<0>(init_results).size()), "-");
+    std::get<0>(init_results) = this->pad_alignment(sequence,
+            std::get<0>(init_results), start_cutoff,
+            end_cutoff);
 
-    for (size_t i=0; i < std::get<0>(init_results).size(); i++)
-        padded_init_numbering.push_back(std::get<0>(init_results).at(i));
+    // Now we need to align either the region before init_results or
+    // the region after. Find where the alignment starts and
+    // ends.
 
-    std::get<0>(init_results) = std::move(padded_init_numbering);
-
-    size_t exstart = 0;
+    size_t postalign_start = 0, postalign_end =
+        std::get<0>(init_results).size();
 
     // Now number the region that is gaps in the first alignment.
     for (size_t i=0; i < std::get<0>(init_results).size(); i++) {
         if (std::get<0>(init_results)[i] != "-") {
-            exstart = i;
+            postalign_start = i;
+            break;
+        }
+    }
+    for (int i=std::get<0>(init_results).size();
+            i > 0; i--) {
+        if (std::get<0>(init_results)[i-1] != "-") {
+            postalign_end = i;
             break;
         }
     }
 
-    // It is possible that exstart is 0 (e.g. if user passed a
-    // single chain sequence by mistake). In this case the aligner
-    // will immediately reject with an appropriate error message
-    // so this is ok.
-
-    subsequence = sequence.substr(0, exstart);
+    // If exstart or exend is too close to the ends of the
+    // sequence to do an alignment, skip it. If both have
+    // to be skipped, then user passed a single chain by
+    // mistake, abort and return results. For now we are
+    // aligning both the start and end region -- TODO:
+    // for greater efficiency identify the most promising
+    // region using the nterm and cterm scores.
     std::tuple<std::vector<std::string>, double, std::string,
         std::string> second_result;
+    std::tuple<std::vector<std::string>, double, std::string,
+        std::string> third_result;
 
+    // Initialize to pessimistic values.
+    std::get<1>(second_result) = -1;
+    std::get<1>(third_result) = -1;
+    std::get<3>(second_result) = "Alignment error; chain not found.";
+    std::get<3>(third_result) = "Alignment error; chain not found.";
+    std::get<2>(second_result) = "";
+    std::get<2>(third_result) = "";
 
-    if (std::get<2>(init_results) == "H")
-        second_result = this->light_chain_analyzer->analyze_seq(subsequence);
-    else
-        second_result = this->heavy_chain_analyzer->analyze_seq(subsequence);
+    if (sequence.length() - postalign_end > MINIMUM_SEQUENCE_LENGTH) {
+        subsequence = sequence.substr(postalign_end, sequence.length() -
+                postalign_end);
+        if (std::get<2>(init_results) == "H") {
+            err_code = this->light_chain_analyzer->align_input_subregion(
+                    second_result, subsequence, "");
+        } else {
+            err_code = this->heavy_chain_analyzer->align_input_subregion(
+                    second_result, subsequence, "");
+        }
+    }
+    if (postalign_start > MINIMUM_SEQUENCE_LENGTH) {
+        subsequence = sequence.substr(0, postalign_start);
+        if (std::get<2>(init_results) == "H") {
+            err_code = this->light_chain_analyzer->align_input_subregion(
+                    third_result, subsequence, "");
+        } else {
+            err_code = this->heavy_chain_analyzer->align_input_subregion(
+                    third_result, subsequence, "");
+        }
+    }
 
-    size_t padding_amount = (sequence.length() -
-            std::get<0>(second_result).size());
-
-    for (size_t i=0; i < padding_amount; i++)
-        std::get<0>(second_result).push_back("-");
 
     std::pair<std::tuple<std::vector<std::string>, double,
         std::string, std::string>,     std::tuple<std::vector<std::string>,
         double, std::string, std::string>> output_result;
 
-    if (std::get<2>(init_results) == "H")
-        output_result = {init_results, second_result};
+    if (std::get<1>(second_result) > std::get<1>(third_result)) {
+        std::get<0>(second_result) = this->pad_alignment(sequence,
+            std::get<0>(second_result), postalign_end,
+            sequence.length());
 
-    else
-        output_result = {second_result, init_results};
+        if (std::get<2>(init_results) == "H")
+            output_result = {init_results, second_result};
+        else
+            output_result = {second_result, init_results};
+    } else {
+        std::get<0>(third_result) = this->pad_alignment(sequence,
+            std::get<0>(third_result), 0, postalign_start);
+
+        if (std::get<2>(init_results) == "H")
+            output_result = {init_results, third_result};
+        else
+            output_result = {third_result, init_results};
+    }
 
     return output_result;
 }
 
 
-// PairedChainAnnotatorCpp function which numbers a list of input sequences.
+
+/// PairedChainAnnotatorCpp function which numbers a list of input sequences.
+/// Basically a wrapper on analyze_seq for convenience if user passes a list.
 std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
              PairedChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences) {
@@ -257,5 +317,27 @@ std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string,
     }
     return output_results;
 }
+
+
+
+/// Pads the input alignment so it is the same length as the
+/// query sequence.
+std::vector<std::string> PairedChainAnnotatorCpp::pad_alignment(
+        const std::string &query_sequence,
+                const std::vector<std::string> &alignment,
+                const int &align_start, const int &align_end) {
+    std::vector<std::string> padded_numbering;
+
+    for (size_t i=0; i < align_start; i++)
+        padded_numbering.push_back("-");
+    for (size_t i=0; i < alignment.size(); i++)
+        padded_numbering.push_back(alignment.at(i));
+    for (size_t i=align_end; i < query_sequence.length(); i++)
+        padded_numbering.push_back("-");
+
+    return padded_numbering;
+}
+
+
 
 }  // namespace NumberingTools

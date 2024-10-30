@@ -11,7 +11,7 @@
 #include <unordered_map>
 
 // Project headers
-#include "cterm_finder.h"
+#include "prefiltering_tool.h"
 #include "numbering_constants.inc"
 #include "../utilities/utilities.h"
 
@@ -24,7 +24,8 @@ namespace NumberingTools {
 class AnnotatorBaseClassCpp {
  public:
         AnnotatorBaseClassCpp(std::string scheme,
-                std::string consensus_filepath);
+                std::string consensus_filepath,
+                std::unordered_map<std::string, size_t> nterm_kmers);
 
         /// @brief Sorts a list of position codes, respecting the
         ///        rules of the numbering scheme.
@@ -87,7 +88,7 @@ class AnnotatorBaseClassCpp {
  protected:
         std::string scheme;
 
-        std::unique_ptr<CTermFinder> boundary_finder;
+        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
         std::unordered_map<std::string, std::vector<int>> cdr_breakpoints;
         const std::array<std::string, 7> cdr_region_labels {{"fmwk1", "cdr1",
             "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"}};

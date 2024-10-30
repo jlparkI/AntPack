@@ -16,18 +16,18 @@ class TestSingleChainAnnotator(unittest.TestCase):
         # Pass dummy sequences with errors.
         aligner = SingleChainAnnotator(chains=["H", "K", "L"])
         results = aligner.analyze_seqs(["YaY"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seqs(["YBW"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seqs(["Y K"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seqs(["Y-K"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
 
         results = aligner.analyze_seq("Y-K")
-        self.assertTrue(results[3].endswith("nonstandard AAs"))
+        self.assertTrue(results[3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seq("yAy")
-        self.assertTrue(results[3].endswith("nonstandard AAs"))
+        self.assertTrue(results[3].startswith("Sequence contains invalid"))
 
         with self.assertRaises(RuntimeError):
             sorted_positions = aligner.sort_position_codes(["a", "1"])

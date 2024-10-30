@@ -8,9 +8,6 @@ NUM_LIGHT = 107
 #were selected to try to ensure a good alignment. Making large changes
 #to these WILL change the results, possibly substantially.
 
-DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1
-DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
-
 #These are positions that are essentially mandatory. A sequence that deviates
 #from one of these is an alignment issue or has a very large deletion.
 heavy_conserved_positions = {22:"C", 36:"W", 92:"C", 103:"W", 104:"G", 106:"G"}

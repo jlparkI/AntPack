@@ -87,7 +87,7 @@ class TestSequenceScoringTool(unittest.TestCase):
         score_tool = SequenceScoringTool(offer_classifier_option=True)
         adj_score_tool = SequenceScoringTool(offer_classifier_option=False,
                 normalization="training_set_adjust")
-        adj_score_tool.aligner = SingleChainAnnotator(compress_init_gaps=False)
+        adj_score_tool.aligner = SingleChainAnnotator()
 
         start_dir = os.path.abspath(os.path.dirname(__file__))
 

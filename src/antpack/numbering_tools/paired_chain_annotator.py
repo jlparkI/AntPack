@@ -1,7 +1,9 @@
 """Contains the PairedChainAnnotator class, which extracts variable region
 heavy and light chains from an input sequence that is presumed to contain
-a single variable heavy and a single variable light chain."""
+a single variable heavy and a single variable light chain (but may
+contain only a single chain instead)."""
 import os
+from .cterm_finder import _load_nterm_kmers
 from antpack.antpack_cpp_ext import PairedChainAnnotatorCpp
 
 
@@ -21,4 +23,5 @@ class PairedChainAnnotator(PairedChainAnnotatorCpp):
         """
         consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                 "consensus_data")
-        super().__init__(scheme, consensus_path)
+        kmer_dict = _load_nterm_kmers()
+        super().__init__(scheme, consensus_path, kmer_dict)

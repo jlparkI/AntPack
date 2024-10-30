@@ -2,6 +2,11 @@
  * calculations.
  */
 
+// C++ headers
+#include <string>
+#include <unordered_map>
+
+// Library headers
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/vector.h>
@@ -9,23 +14,24 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/unordered_map.h>
 
-#include <string>
+// Project headers
 #include "annotator_classes/single_chain_annotator.h"
 #include "annotator_classes/paired_chain_annotator.h"
 #include "annotator_classes/annotator_base_class.h"
 #include "annotator_classes/ig_aligner.h"
-#include "annotator_classes/cterm_finder.h"
+#include "annotator_classes/prefiltering_tool.h"
 #include "vj_assignment/vj_match_counter.h"
 #include "humanness_calcs/responsibility_calcs.h"
 #include "utilities/utilities.h"
 
 namespace nb = nanobind;
-using namespace std;
 
 NB_MODULE(antpack_cpp_ext, m){
     nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
-        .def(nb::init<std::string, std::string>())
+        .def(nb::init<std::string, std::string,
+                std::unordered_map<std::string, size_t>>())
         .def("sort_position_codes",
                 &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
      R"(
@@ -65,9 +71,8 @@ NB_MODULE(antpack_cpp_ext, m){
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
         annotated using the "analyze_seq" or "analyze_seqs" commands. The
         labels indicate which framework region or CDR each amino acid / position
-        is in. The labels can be assigned using a different scheme from the
-        one used to number, so that you can for example number using aho and
-        assign labels using kabat.
+        is in. The scheme that is used is the same as the one selected when
+        the annotator is constructed.
 
         Args:
             alignment (tuple): A tuple containing (numbering,
@@ -75,8 +80,6 @@ NB_MODULE(antpack_cpp_ext, m){
                 is what you will get as output if you pass sequences to
                 the analyze_seq method of SingleChainAnnotator
                 or PairedChainAnnotator.
-            cdr_scheme (str): One of 'aho', 'kabat', 'imgt', 'martin'. Indicates
-                the scheme to be used for assigning region labels.
 
         Returns:
             region_labels (list): A list of strings, each of which is one of
@@ -107,9 +110,11 @@ NB_MODULE(antpack_cpp_ext, m){
             exend (int): The last untrimmed position in the input sequence.
                 The trimmed sequence is sequence[exstart:exend].)");
 
-    nb::class_<NumberingTools::SingleChainAnnotatorCpp, NumberingTools::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
+    nb::class_<NumberingTools::SingleChainAnnotatorCpp,
+        NumberingTools::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
         .def(nb::init<std::vector<std::string>,
-                std::string, bool, std::string>())
+                std::string, std::string,
+                std::unordered_map<std::string, size_t>>())
         .def("analyze_seq", &NumberingTools::SingleChainAnnotatorCpp::analyze_seq,
      R"(
         Numbers and scores a single input sequence. A list of
@@ -151,8 +156,10 @@ NB_MODULE(antpack_cpp_ext, m){
 
 
 
-    nb::class_<NumberingTools::PairedChainAnnotatorCpp, NumberingTools::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
-        .def(nb::init<std::string, std::string>())
+    nb::class_<NumberingTools::PairedChainAnnotatorCpp,
+        NumberingTools::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
+        .def(nb::init<std::string, std::string,
+                std::unordered_map<std::string, size_t>>())
         .def("analyze_seq", &NumberingTools::PairedChainAnnotatorCpp::analyze_seq,
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
@@ -278,9 +285,8 @@ NB_MODULE(antpack_cpp_ext, m){
             nb::call_guard<nb::gil_scoped_release>());
 
     // This function is exposed for testing purposes only.
-    nb::class_<NumberingTools::CTermFinder>(m, "CTermFinder")
-        .def(nb::init<std::string>())
+    nb::class_<PrefilteringRoutines::PrefilteringTool>(m, "PrefilteringTool")
+        .def(nb::init<std::string, std::unordered_map<std::string, size_t>>())
         .def("pyfind_c_terminals",
-                &NumberingTools::CTermFinder::pyfind_c_terminals);
-
+                &PrefilteringRoutines::PrefilteringTool::pyfind_c_terminals);
 }

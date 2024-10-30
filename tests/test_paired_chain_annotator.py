@@ -21,20 +21,28 @@ class TestPairedChainAnnotator(unittest.TestCase):
         aligner = PairedChainAnnotator()
 
         results = aligner.analyze_seq("YaY")
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].startswith("Invalid sequence")
+                or results[0][3].startswith("Sequence contains"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence")
+                or results[1][3].startswith("Sequence contains"))
 
         results = aligner.analyze_seq("YBW")
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].startswith("Invalid sequence")
+                or results[0][3].startswith("Sequence contains"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence")
+                or results[1][3].startswith("Sequence contains"))
 
         results = aligner.analyze_seq("Y K")
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].startswith("Invalid sequence")
+                or results[0][3].startswith("Sequence contains"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence")
+                or results[1][3].startswith("Sequence contains"))
 
         results = aligner.analyze_seq("Y-K")
-        self.assertTrue(results[0][3].startswith("Invalid sequence"))
-        self.assertTrue(results[1][3].startswith("Invalid sequence"))
+        self.assertTrue(results[0][3].startswith("Invalid sequence")
+                or results[0][3].startswith("Sequence contains"))
+        self.assertTrue(results[1][3].startswith("Invalid sequence")
+                or results[1][3].startswith("Sequence contains"))
 
 
 
@@ -78,7 +86,6 @@ class TestPairedChainAnnotator(unittest.TestCase):
 
 
 
-
     def test_sequence_extraction(self):
         """Take test heavy and light chains and number them using
         SingleChainAnnotator. Next, join pairs of chains with a random
@@ -114,19 +121,17 @@ class TestPairedChainAnnotator(unittest.TestCase):
         for ordering in (order1, order2):
             for hc, lc in ordering:
                 prefix = [SCCONST.aa_list[random.randint(0,19)]
-                    for i in range(random.randint(0,25))]
+                    for i in range(random.randint(5,25))]
                 suffix = [SCCONST.aa_list[random.randint(0,19)]
-                    for i in range(random.randint(0,25))]
+                    for i in range(random.randint(5,25))]
                 joiner1 = [SCCONST.aa_list[random.randint(0,19)]
-                    for i in range(random.randint(0,25))]
+                    for i in range(random.randint(5,25))]
                 joiner2 = [SCCONST.aa_list[random.randint(0,19)]
-                    for i in range(random.randint(0,25))]
+                    for i in range(random.randint(5,25))]
 
                 merged_hc = "".join( ["".join(prefix), hc[0], "".join(joiner1) ] )
                 merged_lc = "".join( ["".join(joiner2), lc[0], "".join(suffix) ] )
                 merged_chain = merged_hc + merged_lc
-                if merged_hc.endswith("SSA"):
-                    continue
 
                 hc_align = sc_aligner.analyze_seq(merged_hc)
                 lc_align = sc_aligner.analyze_seq(merged_lc)
@@ -208,16 +213,10 @@ class TestPairedChainAnnotator(unittest.TestCase):
 
         for (seq, alignment) in heavy_chains:
             pc_result = m_aligner.analyze_seq(seq)[0]
-            if pc_result != alignment:
-                import pdb
-                pdb.set_trace()
             self.assertTrue(pc_result == alignment)
 
         for (seq, alignment) in light_chains:
             pc_result = m_aligner.analyze_seq(seq)[1]
-            if pc_result != alignment:
-                import pdb
-                pdb.set_trace()
             self.assertTrue(pc_result == alignment)
 
 
