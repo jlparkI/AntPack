@@ -7,10 +7,10 @@ convert a list of sequences into a fixed-length multiple sequence alignment
 or MSA:::
 
   from antpack import SingleChainAnnotator, PairedChainAnnotator
-  aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt",
-                        compress_init_gaps = False)
+  aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt")
   paired_aligner = PairedChainAnnotator(scheme = "imgt")
 
+Both tools have the same basic methods / functions available.
 
 For single chains: if you don't know what type of chain you're working with, leave
 ``chains`` as default and SingleChainAnnotator will figure out the chain
@@ -19,17 +19,14 @@ heavy ["H"] or light ["K", "L"] set SingleChainAnnotator to only
 look for that chain.
 
 ``PairedChainAnnotator`` is designed to work with sequences that contain both a
-light and a heavy chain (in any order). It is however a little slower than
-``SingleChainAnnotator`` because it has to do some additional operations. If
-you pre-separate each sequence you're working with into light and heavy then feed
-these into ``SingleChainAnnotators`` of the appropriate type, this will always be
-faster. Both tools have the same basic methods / functions available.
+light and a heavy chain (in any order) but can also handle single chains. Keep in
+mind that PairedChainAnnotator *will* try to find two chains in the input sequence,
+so your clue that there is only one chain present will be a very low percent
+identity and/or an error message for one of the two chains. It is a little slower than
+``SingleChainAnnotator`` because it has to do some additional operations.
 
-``compress_init_gaps`` rearranges gaps in the first five positions of the
-numbered sequence when there are small n-terminal deletions. Some other tools
-like to have the gaps at the beginning of the numbering. You can mimic this
-behavior by setting ``compress_init_gaps`` to True. We recommend leaving this
-as False (default) and may deprecate this option in future.
+Some prior versions accepted an option called ``compress_init_gaps``. This option
+is deprecated as of v0.3.6.
 
 .. autoclass:: antpack.SingleChainAnnotator
    :special-members: __init__
@@ -46,7 +43,7 @@ antibody sequences up into batches, and you can do this easily by using
 Python ``multiprocessing``. In each process, create a ``SingleChainAnnotator``
 and use that to number one batch of the sequences.
 
-Currently Aho, IMGT, Martin ("modern Chothia") and Kabat are supported numbering schemes.
+Aho, IMGT, Martin ("modern Chothia") and Kabat are supported numbering schemes.
 
 Notice that it's easy to convert the output of either annotator into a fixed-length
 MSA by using ``build_msa``. If you have a large set of sequences that's too large to
