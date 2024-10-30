@@ -2,6 +2,11 @@
  * calculations.
  */
 
+// C++ headers
+#include <string>
+#include <unordered_map>
+
+// Library headers
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/vector.h>
@@ -9,24 +14,26 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/unordered_map.h>
 
-#include <string>
+// Project headers
 #include "annotator_classes/single_chain_annotator.h"
 #include "annotator_classes/paired_chain_annotator.h"
 #include "annotator_classes/annotator_base_class.h"
 #include "annotator_classes/ig_aligner.h"
-#include "annotator_classes/cterm_finder.h"
+#include "annotator_classes/prefiltering_tool.h"
 #include "vj_assignment/vj_match_counter.h"
 #include "humanness_calcs/responsibility_calcs.h"
 #include "utilities/utilities.h"
 
 namespace nb = nanobind;
-using namespace std;
 
 NB_MODULE(antpack_cpp_ext, m){
-    nb::class_<AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
-        .def(nb::init<std::string, std::string>())
-        .def("sort_position_codes", &AnnotatorBaseClassCpp::sort_position_codes,
+    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
+        .def(nb::init<std::string, std::string,
+                std::unordered_map<std::string, size_t>>())
+        .def("sort_position_codes",
+                &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
      R"(
         Takes an input list of position codes for a specified scheme and
         sorts them. This is useful since for some schemes (e.g. IMGT)
@@ -39,7 +46,7 @@ NB_MODULE(antpack_cpp_ext, m){
 
         Returns:
             sorted_codes (list): A list of sorted position codes.)")
-        .def("build_msa", &AnnotatorBaseClassCpp::build_msa,
+        .def("build_msa", &NumberingTools::AnnotatorBaseClassCpp::build_msa,
      R"(
         Builds a multiple sequence alignment using a list of sequences
         and a corresponding list of tuples output by analyze_seq or
@@ -52,21 +59,27 @@ NB_MODULE(antpack_cpp_ext, m){
                 are what you will get as output if you pass sequences to
                 the analyze_seq or analyze_seqs methods of SingleChainAnnotator
                 or PairedChainAnnotator.
+            add_unobserved_positions (bool): If False, only positions observed
+                for one or more sequences appear in the output. If True, by
+                contrast, not just observed positions but all expected positions
+                for a given numbering scheme appear in the output. If IMGT expected
+                position 9 does not occur in any dataset sequence, for example,
+                it will not appear in the output if this argument is False but
+                will be added (and will be blank for all sequences) if True.
 
         Returns:
             position_codes (list): A list of position codes from the appropriate numbering
                 scheme.
             aligned_seqs (list): A list of strings -- the input sequences all aligned
                 to form an MSA.)")
-        .def("assign_cdr_labels", &AnnotatorBaseClassCpp::assign_cdr_labels,
+        .def("assign_cdr_labels", &NumberingTools::AnnotatorBaseClassCpp::assign_cdr_labels,
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
         annotated using the "analyze_seq" or "analyze_seqs" commands. The
         labels indicate which framework region or CDR each amino acid / position
-        is in. The labels can be assigned using a different scheme from the
-        one used to number, so that you can for example number using aho and
-        assign labels using kabat.
+        is in. The scheme that is used is the same as the one selected when
+        the annotator is constructed.
 
         Args:
             alignment (tuple): A tuple containing (numbering,
@@ -74,14 +87,12 @@ NB_MODULE(antpack_cpp_ext, m){
                 is what you will get as output if you pass sequences to
                 the analyze_seq method of SingleChainAnnotator
                 or PairedChainAnnotator.
-            cdr_scheme (str): One of 'aho', 'kabat', 'imgt', 'martin'. Indicates
-                the scheme to be used for assigning region labels.
 
         Returns:
             region_labels (list): A list of strings, each of which is one of
                 "fmwk1", "fmwk2", "fmwk3", "fmwk4", "cdr1", "cdr2", "cdr3" or "-".
                 This list will be of the same length as the input alignment.)")
-        .def("trim_alignment", &AnnotatorBaseClassCpp::trim_alignment,
+        .def("trim_alignment", &NumberingTools::AnnotatorBaseClassCpp::trim_alignment,
      R"(
         Takes as input a sequence and a tuple produced by
         analyze_seq and trims off any gap regions at the end
@@ -106,10 +117,12 @@ NB_MODULE(antpack_cpp_ext, m){
             exend (int): The last untrimmed position in the input sequence.
                 The trimmed sequence is sequence[exstart:exend].)");
 
-    nb::class_<SingleChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
+    nb::class_<NumberingTools::SingleChainAnnotatorCpp,
+        NumberingTools::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
         .def(nb::init<std::vector<std::string>,
-                std::string, bool, std::string>())
-        .def("analyze_seq", &SingleChainAnnotatorCpp::analyze_seq,
+                std::string, std::string,
+                std::unordered_map<std::string, size_t>>())
+        .def("analyze_seq", &NumberingTools::SingleChainAnnotatorCpp::analyze_seq,
      R"(
         Numbers and scores a single input sequence. A list of
         outputs from this function can be passed to build_msa
@@ -127,7 +140,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 message is "". An alignment with low percent identity (e.g. < 0.85)
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.)")
-        .def("analyze_seqs", &SingleChainAnnotatorCpp::analyze_seqs,
+        .def("analyze_seqs", &NumberingTools::SingleChainAnnotatorCpp::analyze_seqs,
      R"(
         Numbers and scores a list of input sequences. The outputs
         can be passed to other functions like build_msa, trim_alignment,
@@ -146,14 +159,15 @@ NB_MODULE(antpack_cpp_ext, m){
                 message is "". An alignment with low percent identity (e.g. < 0.85)
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.)");
-        //.def("_test_needle_scoring", &SingleChainAnnotatorCpp::_test_needle_scoring);
 
 
 
 
-    nb::class_<PairedChainAnnotatorCpp, AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
-        .def(nb::init<std::string, std::string>())
-        .def("analyze_seq", &PairedChainAnnotatorCpp::analyze_seq,
+    nb::class_<NumberingTools::PairedChainAnnotatorCpp,
+        NumberingTools::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
+        .def(nb::init<std::string, std::string,
+                std::unordered_map<std::string, size_t>>())
+        .def("analyze_seq", &NumberingTools::PairedChainAnnotatorCpp::analyze_seq,
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
         assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
@@ -176,7 +190,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 chain_name, error_message). Numbering is the same length as the input
                 sequence. A low percent identity or an error message may indicate a problem
                 with the input sequence. The error_message is "" unless some error occurred.)")
-        .def("analyze_seqs", &PairedChainAnnotatorCpp::analyze_seqs,
+        .def("analyze_seqs", &NumberingTools::PairedChainAnnotatorCpp::analyze_seqs,
      R"(
         Extracts and numbers the variable chain regions from a list of sequences
         assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
@@ -201,12 +215,13 @@ NB_MODULE(antpack_cpp_ext, m){
                 with an input sequence. Each error message is "" unless some error
                 occurred for that sequence.)");
 
-    nb::class_<VJMatchCounter>(m, "VJMatchCounter")
+    nb::class_<VJAssignment::VJMatchCounter>(m, "VJMatchCounter")
         .def(nb::init<std::map<std::string, std::vector<std::string>>,
                 std::map<std::string, std::vector<std::string>>,
                 nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig>,
                 std::string, std::string>() )
-        .def("assign_vj_genes", &VJMatchCounter::assign_vj_genes,
+        .def("assign_vj_genes",
+                &VJAssignment::VJMatchCounter::assign_vj_genes,
      R"(
         Assigns V and J genes for a sequence which has already been
         numbered, preferably by AntPack but potentially by some other
@@ -249,7 +264,8 @@ NB_MODULE(antpack_cpp_ext, m){
                 the different j-genes. for the ogrdb database, where multiple names
                 have been assigned to the same aa sequence, these multiple names
                 are separated by ' ' in the output.)") 
-        .def("get_vj_gene_sequence", &VJMatchCounter::get_vj_gene_sequence,
+        .def("get_vj_gene_sequence",
+                &VJAssignment::VJMatchCounter::get_vj_gene_sequence,
      R"(
         Retrieves the amino acid sequence of a specified V or J
         gene, if it is in the latest version of the specified
@@ -266,9 +282,18 @@ NB_MODULE(antpack_cpp_ext, m){
             sequence (str): The amino acid sequence of the V or J gene
                 that was requested. If that V or J gene name does not
                 match anything, None is returned.)")
-        .def("get_seq_lists", &VJMatchCounter::get_seq_lists);
+        .def("get_seq_lists", &VJAssignment::VJMatchCounter::get_seq_lists);
 
-    m.def("getProbsCExt", &getProbsCExt, nb::call_guard<nb::gil_scoped_release>());
-    m.def("mask_terminal_deletions", &mask_terminal_deletions, nb::call_guard<nb::gil_scoped_release>());
-    m.def("getProbsCExt_masked", &getProbsCExt_masked, nb::call_guard<nb::gil_scoped_release>());
+    m.def("getProbsCExt", &HumannessCalculations::getProbsCExt,
+            nb::call_guard<nb::gil_scoped_release>());
+    m.def("mask_terminal_deletions", &HumannessCalculations::mask_terminal_deletions,
+            nb::call_guard<nb::gil_scoped_release>());
+    m.def("getProbsCExt_masked", &HumannessCalculations::getProbsCExt_masked,
+            nb::call_guard<nb::gil_scoped_release>());
+
+    // This function is exposed for testing purposes only.
+    nb::class_<PrefilteringRoutines::PrefilteringTool>(m, "PrefilteringTool")
+        .def(nb::init<std::string, std::unordered_map<std::string, size_t>>())
+        .def("pyfind_c_terminals",
+                &PrefilteringRoutines::PrefilteringTool::pyfind_c_terminals);
 }

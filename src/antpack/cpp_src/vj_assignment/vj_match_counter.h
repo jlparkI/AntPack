@@ -1,6 +1,7 @@
 #ifndef VJ_MATCH_COUNTER_HEADER_H
 #define VJ_MATCH_COUNTER_HEADER_H
 
+// C++ headers
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <vector>
@@ -9,6 +10,11 @@
 #include <map>
 #include <unordered_set>
 #include <memory>
+
+// Library headers
+
+
+// Project headers
 #include "../annotator_classes/ig_aligner.h"
 #include "../utilities/utilities.h"
 
@@ -24,10 +30,10 @@ namespace nb = nanobind;
 #define INVALID_SEQUENCE 0
 
 
-
+namespace VJAssignment{
 
 class VJMatchCounter {
-    public:
+ public:
         VJMatchCounter(
                 std::map<std::string, std::vector<std::string>> gene_names,
                 std::map<std::string, std::vector<std::string>> gene_seqs,
@@ -39,23 +45,25 @@ class VJMatchCounter {
                 double, std::string, std::string> alignment, std::string sequence,
                 std::string species, std::string mode);
 
-        std::string get_vj_gene_sequence(std::string query_name, std::string species);
+        std::string get_vj_gene_sequence(std::string query_name,
+                std::string species);
 
         std::tuple<std::map<std::string, std::vector<std::string>>,
-                std::map<std::string, std::vector<std::string>>>  get_seq_lists();
+            std::map<std::string, std::vector<std::string>>> get_seq_lists();
 
-    protected:
+ protected:
         std::map<std::string, std::vector<std::string>> gene_seqs;
         std::map<std::string, std::vector<std::string>> gene_names;
-        nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix;
+        nb::ndarray<double, nb::shape<22,22>, nb::device::cpu,
+            nb::c_contig> blosum_matrix;
         std::string scheme;
 
         std::map<std::string, std::map<std::string, int>> names_to_positions;
         std::unordered_set<std::string> essential_imgt_map;
 
-        std::unique_ptr<IGAligner> h_aligner;
-        std::unique_ptr<IGAligner> k_aligner;
-        std::unique_ptr<IGAligner> l_aligner;
+        std::unique_ptr<NumberingTools::IGAligner> h_aligner;
+        std::unique_ptr<NumberingTools::IGAligner> k_aligner;
+        std::unique_ptr<NumberingTools::IGAligner> l_aligner;
 
         void assign_gene_by_identity(std::vector<std::string> &gene_seqs,
                 std::vector<std::string> &gene_names,
@@ -75,5 +83,7 @@ class VJMatchCounter {
                 std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment);
 
 };
+
+}  // namespace VJAssignment
 
 #endif

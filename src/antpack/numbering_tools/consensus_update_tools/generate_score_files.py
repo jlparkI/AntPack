@@ -168,33 +168,21 @@ def save_cterm_finder_array(consensus_list, chain_type):
     blosum = substitution_matrices.load("BLOSUM62")
     blosum_key = {letter:i for i, letter in enumerate(blosum.alphabet)}
 
-    conserved_positions = {0,1,3}
-
     key_array = np.zeros((len(consensus_list), 21))
 
     for i, observed_aas in enumerate(consensus_list):
 
-        #Fill in the scores for amino acid substitutions. If a conserved
-        #residue, use an arbitrary large bonus. Otherwise, use the best possible
-        #score given the amino acids observed in the alignments. If the only
-        #thing observed in the alignments is gaps, no penalty is applied.
+        # Fill in the scores for amino acid substitutions. For this (unlike
+        # the aligner), we do not provide a large bonus for matching at
+        # conserved positions, and we do not need to consider gaps.If the only
+        # thing observed in the alignments is gaps, no penalty is applied.
         for j, letter in enumerate(allowed_aa_list):
             letter_blosum_idx = blosum_key[letter]
-            if i in conserved_positions:
-                if len(observed_aas) > 1:
-                    raise RuntimeError("There should be only one aa at a highly conserved "
-                            "position. There is very likely an error in a template file; "
-                            "please investigate.")
-                if letter == observed_aas[0]:
-                    key_array[i,j] = 65
-            else:
-                key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if
+            key_array[i,j] = max([blosum[letter_blosum_idx, blosum_key[k]] if
                     k != "-" else 0 for k in observed_aas])
 
         #Finally, fill in the score for X. X should be assumed to be the best
         #possible amino acid that could be present at that position.
         key_array[i,20] = key_array[i,:20].max()
-        if i in conserved_positions:
-            key_array[i,20] = 65
 
     np.save(f"CTERMFINDER_CONSENSUS_{chain_type}.npy", key_array)

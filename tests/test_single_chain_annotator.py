@@ -16,18 +16,18 @@ class TestSingleChainAnnotator(unittest.TestCase):
         # Pass dummy sequences with errors.
         aligner = SingleChainAnnotator(chains=["H", "K", "L"])
         results = aligner.analyze_seqs(["YaY"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seqs(["YBW"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seqs(["Y K"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seqs(["Y-K"])
-        self.assertTrue(results[0][3].endswith("nonstandard AAs"))
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
 
         results = aligner.analyze_seq("Y-K")
-        self.assertTrue(results[3].endswith("nonstandard AAs"))
+        self.assertTrue(results[3].startswith("Sequence contains invalid"))
         results = aligner.analyze_seq("yAy")
-        self.assertTrue(results[3].endswith("nonstandard AAs"))
+        self.assertTrue(results[3].startswith("Sequence contains invalid"))
 
         with self.assertRaises(RuntimeError):
             sorted_positions = aligner.sort_position_codes(["a", "1"])
@@ -120,8 +120,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
             for pos in n[0]:
                 observed_positions.add(pos)
 
-        hpositions, hmsa = aligner.build_msa(hseqs, hnumbering)
-        lpositions, lmsa = aligner.build_msa(lseqs, lnumbering)
+        hpositions, hmsa = aligner.build_msa(hseqs, hnumbering, False)
+        lpositions, lmsa = aligner.build_msa(lseqs, lnumbering, False)
 
         for position_set, msa in [(hpositions, hmsa), (lpositions, lmsa)]:
             for msa_seq in msa:
@@ -261,7 +261,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
             for seq in seqs:
                 numbering = aligner.analyze_seq(seq)
-                labels = aligner.assign_cdr_labels(numbering, scheme)
+                labels = aligner.assign_cdr_labels(numbering)
 
                 gt_regions = get_gt_regions(numbering[0],
                         scheme_labels[scheme][numbering[2]])

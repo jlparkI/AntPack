@@ -3,37 +3,45 @@
 AntPack is a toolkit for antibody numbering, data processing, statistical inference and
 machine learning for antibody sequences. For usage,
 see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
+It is currently in active development, so we are adding new features
+and making more improvements periodically. We will try to avoid breaking
+changes but nonetheless recommend checking the docs after you install
+a new version to be sure the component you are using is unaffected.
 
 
-## What's new in v0.3.5
+## What's new in v0.3.6
 
-In v0.3.5, we've added the Aho numbering scheme. We've made AntPack numbering
-about 25% faster (it was already the fastest numbering tool, but there's no
-such thing as too fast!) We've also improved VJ 
-gene assignment. AntPack can now assign v- and j-genes using either percent
-identity or e-value, and if multiple V- or J-genes have essentially the
-same similarity to the query sequence, it will return a list of them
-rather than trying to assign a single V or J gene (which doesn't make much
-sense in that case).
+v0.3.6 incorporates a couple of bug fixes and some improvements to
+the command line tool. It's also about 2x faster than the previous
+version. On an Intel-i7-13700K, the time taken to number 3500
+sequences for different tools was as follows:
 
-The API has been slightly redesigned. This may cause some breaking changes,
-mainly for VJ gene assignment. Our apologies for any inconvenience -- the
-API should be stable from here on out. Finally, for numbering and VJ gene
-assignment, AntPack now accepts sequences which contain the letter 'X'
-(although we suggest using this only if necessary -- an alignment with
-all AAs will generally be better quality).
+| Tool     | Time (s)        |
+| -------- | --------------- |
+| ANARCI   | 45    +/- 1     |
+| AntPack  | 0.18  +/- 0.01  |
+| AbRSA    | 13.02 +-/ 0.01  |
 
-Finally, AntPack now has a command line tool for running a quick standard
-analysis on small-medium size datasets. For more customized analyses and/or
-larger datasets the Python API can be used as before.
+Previous versions of AntPack achieved about 0.35 seconds. Finally,
+in previous versions you had to know whether the sequences you
+were using were single or paired. AntPack still has the
+SingleChainAnnotator and PairedChainAnnotator *but* PairedChainAnnotator
+has been made more flexible and better at dealing with
+single chains, so if your input data contains both paired and single
+chains, it's ok to default to using PairedChainAnnotator. (SingleChain
+will be much faster, so if you know you're dealing with single chains
+only, always use SingleChainAnnotator instead.)
 
-Python3.8 or later is now required.
+## Coming soon
 
-Starting in v0.4 we're planning to add a GUI -- currently in active
-development -- which makes it easy to load and view sequences if you only
-have a few. We're also planning to add additional functionality for antibody
-analysis -- coming soon!
+We're adding a GUI that can be launched with a single command
+from the terminal / Windows command line so that AntPack can be
+used either as a command line tool, a Python library or a GUI,
+depending on your needs and what you're comfortable with.
 
+We're also planning to link AntPack to a searchable online database of
+human antibody sequences and add tools for fast sequence clustering
+and stability prediction -- coming soon.
 
 ## Installation
 
@@ -44,6 +52,10 @@ pip install antpack
 AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8,
 so installation should be very straightforward. A source distribution is also available
 (C++17) in case there is any need to compile from source.
+
+The only required dependency is numpy. In future, to use the
+GUI there will be a couple of additional optional dependencies
+(although this is not added yet).
 
 ## Capabilities
 

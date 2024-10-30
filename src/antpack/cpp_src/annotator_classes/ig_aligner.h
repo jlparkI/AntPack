@@ -1,8 +1,7 @@
 #ifndef IG_ALIGNERS_HEADER_H
 #define IG_ALIGNERS_HEADER_H
 
-#include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
+// C++ headers
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -11,49 +10,67 @@
 #include <set>
 #include <array>
 #include <memory>
+
+// Library headers
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+
+// Project headers
 #include "../utilities/consensus_file_utilities.h"
 #include "../utilities/utilities.h"
-#include "../numbering_constants.h"
-
-
-
-// Codes for the pathways that can link a score
-// to the best-scoring parent.
-#define LEFT_TRANSFER 1
-#define UP_TRANSFER 2
-#define DIAGONAL_TRANSFER 0
-
-// The columns of the score matrix that are accessed for gap penalties.
-#define QUERY_GAP_COLUMN 21
-#define TEMPLATE_GAP_COLUMN 22
+#include "numbering_constants.inc"
 
 
 namespace nb = nanobind;
 
 
+namespace NumberingTools{
+
+// Codes for the pathways that can link a score
+// to the best-scoring parent.
+static constexpr int LEFT_TRANSFER = 1;
+static constexpr int UP_TRANSFER = 2;
+static constexpr int DIAGONAL_TRANSFER = 0;
+
+// The columns of the score matrix that are accessed for gap penalties.
+static constexpr int QUERY_GAP_COLUMN = 21;
+static constexpr int TEMPLATE_GAP_COLUMN = 22;
+
+
+
+
 class IGAligner {
-    public:
+ public:
         IGAligner(std::string consensus_filepath,
-                std::string chainName, std::string scheme,
-                double terminalTemplateGapPenalty,
-                double CterminalQueryGapPenalty,
-                bool compress_initial_gaps);
+            std::string chainName, std::string scheme);
+
+
+        /// @brief Numbers an input sequence
+        /// @param query_sequence Sequence to number
+        /// @param encoded_sequence Pointer to array of same length
+        ///        as query sequence with the encoded query seq.
+        /// @param final_numbering vector that will store the generated
+        ///        numbering
+        /// @param percent_identity the percent identity to the template.
+        /// @param error_message the error message (if none, "").
         void align(std::string query_sequence, int *encoded_sequence,
                 std::vector<std::string> &final_numbering,
                 double &percent_identity, std::string &error_message);
+
+        /// @brief Convenience function to obtain the chain with which this
+        ///        analyzer is associated.
         std::string get_chain_name();
 
-        void _test_fill_needle_scoring_table(std::string query_sequence,
-                    nb::ndarray<double, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> scoreMatrix,
-                    nb::ndarray<uint8_t, nb::shape<-1,-1>, nb::device::cpu, nb::c_contig> pathTraceMat);
 
-        // Allowed error codes. These will be mapped to strings which explain in more detail.
-        enum allowedErrorCodes {noError = 0, invalidSequence = 1, fatalRuntimeError = 2,
+        // Allowed error codes. These will be mapped to strings
+        // which explain in more detail.
+        enum allowedErrorCodes {noError = 0, invalidSequence = 1,
+            fatalRuntimeError = 2,
             tooManyInsertions  = 3, alignmentWrongLength = 4,
             unacceptableConservedPositions = 5};
 
 
-    protected:
+ protected:
         // Default gap penalties for gaps at the beginning and end of the sequence.
         // template is a weak penalty for placing gaps outside the numbering,
         // while query is a weak penalty for placing gaps in the numbering
@@ -61,9 +78,6 @@ class IGAligner {
 
         const std::string chain_name;
         std::string scheme;
-        double terminalTemplateGapPenalty;
-        double CterminalQueryGapPenalty;
-        bool compress_initial_gaps;
 
         std::unique_ptr<double[]> score_array;
         size_t score_arr_shape[2];
@@ -88,20 +102,24 @@ class IGAligner {
         // that's how we handle this eventuality if it occurs. (Indeed, it is very rare to have
         // more than a few at any given position, so the size of alphabet here is overkill.)
         const std::vector<std::string> alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I",
-                                    "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
-                                    "V", "W", "X", "Y", "Z", "AA", "BB", "CC", "DD", "EE",
-                                    "FF", "GG", "HH", "II", "JJ", "KK", "LL", "MM", "NN",
-                                    "OO", "PP", "QQ", "RR", "SS", "TT", "UU", "VV",
-                                    "WW", "XX", "YY", "ZZ", "AAA", "BBB", "CCC", "DDD", 
-                                    "EEE", "FFF", "GGG", "HHH", "III", "JJJ", "KKK", "LLL",
-                                    "MMM", "NNN", "OOO", "PPP", "QQQ", "RRR", "SSS", "TTT",
-                                    "UUU", "VVV", "WWW", "XXX", "YYY", "ZZZ"};
-        
-        void fill_needle_scoring_table(uint8_t *path_trace,
-                    int query_seq_len, int row_size,
-                    const int *encoded_sequence,
-                    int &numElements);
+                                "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+                                "V", "W", "X", "Y", "Z", "AA", "BB", "CC", "DD", "EE",
+                                "FF", "GG", "HH", "II", "JJ", "KK", "LL", "MM", "NN",
+                                "OO", "PP", "QQ", "RR", "SS", "TT", "UU", "VV",
+                                "WW", "XX", "YY", "ZZ", "AAA", "BBB", "CCC", "DDD", 
+                                "EEE", "FFF", "GGG", "HHH", "III", "JJJ", "KKK", "LLL",
+                                "MMM", "NNN", "OOO", "PPP", "QQQ", "RRR", "SSS", "TTT",
+                                "UUU", "VVV", "WWW", "XXX", "YYY", "ZZZ"};
 
+
+        /// @brief Fills a scoring table corresponding to alignment of the
+        ///        input sequence to the template.
+        void fill_needle_scoring_table(uint8_t *path_trace,
+                int query_seq_len, int row_size,
+                const int *encoded_sequence,
+                int &numElements);
 };
+
+}  // namespace NumberingTools
 
 #endif

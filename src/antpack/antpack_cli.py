@@ -37,7 +37,8 @@ def gen_arg_parser():
             "per input sequence and try to extract it. If this "
             "flag is supplied, it will instead assume each input "
             "sequence contains a heavy chain and a light chain and "
-            "try to extract both.")
+            "try to extract both. The --paired flag can still be "
+            "supplied if some of the sequences are single-chain.")
     parser.add_argument("--vj", nargs=2, help=
             "If this flag is supplied, AntPack will find the closest "
             "VJ genes for the specified species and write these "
@@ -86,7 +87,7 @@ def process_fasta_online(cli_args, chains):
             output_dict[chain]["seqs"] = seqs
             output_dict[chain]["seqinfo"] = seqinfo
             output_dict[chain]["msa"] = sc_tool.build_msa(seqs,
-                    output_dict[chain]["annotations"])
+                    output_dict[chain]["annotations"], True)
 
         del seq_annotations
 
@@ -107,7 +108,7 @@ def process_fasta_online(cli_args, chains):
         for chain in ["heavy", "light"]:
             if len(output_dict[chain]["seqs"]) > 0:
                 output_dict[chain]["msa"] = sc_tool.build_msa(output_dict[chain]["seqs"],
-                        output_dict[chain]["annotations"])
+                        output_dict[chain]["annotations"], True)
 
     if cli_args.vj is not None:
         for chain in ["heavy", "light"]:
@@ -125,22 +126,25 @@ def process_fasta_online(cli_args, chains):
         with open(cli_args.output[0] + f"_{chain}.csv", "w+",
                 encoding="utf-8") as fhandle:
             if cli_args.vj is not None:
-                _ = fhandle.write("Sequence_info,vj_species,vj_mode,v_gene,"
-                        "v_score,j_gene,j_score,")
+                _ = fhandle.write("Sequence_info,percent_identity,vj_species,"
+                        "vj_mode,v_gene,v_score,j_gene,j_score,")
             else:
-                _ = fhandle.write("Sequence_info,")
+                _ = fhandle.write("Sequence_info,percent_identity,")
             _ = fhandle.write(f"{','.join(cdict['msa'][0])},error_message\n")
 
             if not cli_args.vj:
-                for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
-                        cdict["msa"][1])):
-                    _ = fhandle.write(",".join([seq_id] + list(msa_row)))
+                for i, (seq_id, annotation, msa_row) in enumerate(zip(cdict["seqinfo"],
+                    cdict["annotations"], cdict["msa"][1])):
+                    percent_identity = 100 * round(annotation[1], 3)
+                    _ = fhandle.write(f"{seq_id},{percent_identity},")
+                    _ = fhandle.write(",".join(list(msa_row)))
                     _ = fhandle.write(f",{cdict['annotations'][i][3]}\n")
 
             else:
-                for i, (seq_id, msa_row) in enumerate(zip(cdict["seqinfo"],
-                        cdict["msa"][1])):
-                    _ = fhandle.write(seq_id + ",")
+                for i, (seq_id, annotation, msa_row) in enumerate(zip(cdict["seqinfo"],
+                    cdict["annotations"], cdict["msa"][1])):
+                    percent_identity = 100 * round(annotation[1], 3)
+                    _ = fhandle.write(f"{seq_id},{percent_identity},")
                     _ = fhandle.write(",".join([cli_args.vj[0], cli_args.vj[1],
                         cdict["v_genes"][i], str(cdict["v_scores"][i]),
                         cdict["j_genes"][i], str(cdict["j_scores"][i]) ] +

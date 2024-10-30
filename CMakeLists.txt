@@ -64,7 +64,7 @@ nanobind_add_module(
     src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp
     src/antpack/cpp_src/utilities/utilities.cpp
     src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp
-    src/antpack/cpp_src/annotator_classes/cterm_finder.cpp
+    src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
     src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
 
 )

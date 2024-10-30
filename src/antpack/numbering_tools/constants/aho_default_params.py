@@ -9,9 +9,6 @@ NUM_LIGHT = 149
 #were selected to try to ensure a good alignment. Making large changes
 #to these WILL change the results, possibly substantially.
 
-DEFAULT_C_TERMINAL_QUERY_GAP_PENALTY = -1
-DEFAULT_TERMINAL_TEMPLATE_GAP_PENALTY = -1
-
 #These are positions that are essentially mandatory. A sequence that deviates
 #from one of these is an alignment issue or has a very large deletion. Note that
 #AHO defines position 90 as highly conserved in the sense that a hydrophobic

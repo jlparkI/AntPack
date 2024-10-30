@@ -36,7 +36,7 @@ class LiabilitySearchTool:
                 ]
 
         self.aligner = SingleChainAnnotator(chains = ["H", "K", "L"],
-                    scheme = "imgt", compress_init_gaps = False)
+                    scheme = "imgt")
 
         self.cdr_sets = {"H": set(ahip.imgt_cdrs["H"]["1"] + ahip.imgt_cdrs["H"]["2"] +
                         ahip.imgt_cdrs["H"]["3"]),
