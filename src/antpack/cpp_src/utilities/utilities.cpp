@@ -1,5 +1,11 @@
 /* Utilities, tools and other extensions for sequence processing.
 */
+// C++ headers
+#include <set>
+#include <string>
+#include <map>
+
+// Project headers
 #include "utilities.h"
 
 
@@ -9,7 +15,7 @@ namespace SequenceUtilities {
 // Checks a query sequence to ensure it contains only recognized
 // amino acids.
 int validate_sequence(std::string &query_sequence) {
-    bool validQuery = true;
+    bool valid_query = true;
 
     if (query_sequence.length() == 0)
         return INVALID_SEQUENCE;
@@ -40,13 +46,13 @@ int validate_sequence(std::string &query_sequence) {
             case 'Y':
                 break;
             default:
-                validQuery = false;
+                valid_query = false;
                 break;
         }
-        if (!validQuery)
+        if (!valid_query)
             break;
     }
-    if (!validQuery)
+    if (!valid_query)
         return INVALID_SEQUENCE;
 
     return VALID_SEQUENCE;
@@ -57,7 +63,7 @@ int validate_sequence(std::string &query_sequence) {
 // amino acids OR the letter x. Use this in preference to
 // validate_sequence when 'X' is allowed or ok.
 int validate_x_sequence(std::string &query_sequence) {
-    bool validQuery = true;
+    bool valid_query = true;
 
     if (query_sequence.length() == 0)
         return INVALID_SEQUENCE;
@@ -89,13 +95,13 @@ int validate_x_sequence(std::string &query_sequence) {
             case 'X':
                 break;
             default:
-                validQuery = false;
+                valid_query = false;
                 break;
         }
-        if (!validQuery)
+        if (!valid_query)
             break;
     }
-    if (!validQuery)
+    if (!valid_query)
         return INVALID_SEQUENCE;
 
     return VALID_SEQUENCE;
@@ -106,7 +112,7 @@ int validate_x_sequence(std::string &query_sequence) {
 // amino acids OR GAPS. Use this in preference to validate_sequence
 // when gaps are allowed / ok.
 int validate_gapped_sequence(std::string &query_sequence) {
-    bool validQuery = true;
+    bool valid_query = true;
 
     if (query_sequence.length() == 0)
         return INVALID_SEQUENCE;
@@ -138,13 +144,13 @@ int validate_gapped_sequence(std::string &query_sequence) {
             case '-':
                 break;
             default:
-                validQuery = false;
+                valid_query = false;
                 break;
         }
-        if (!validQuery)
+        if (!valid_query)
             break;
     }
-    if (!validQuery)
+    if (!valid_query)
         return INVALID_SEQUENCE;
 
     return VALID_SEQUENCE;
@@ -457,11 +463,12 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
                                 {"TTT", 72}, {"UUU", 73}, {"VVV", 74}, {"WWW", 75}, {"XXX", 76}, {"YYY", 77}, {"ZZZ", 78}
                                 };
     std::map<int, std::string> reverse_alphabet;
-    for ( const auto &p : alphabet )
+    for ( const auto & p : alphabet )
         reverse_alphabet[p.second] = p.first;
 
 
-    // The IMGT scheme has several positions at which we have to "count backwards", which is an annoying quirk of
+    // The IMGT scheme has several positions at which we have to
+    // "count backwards", which is an annoying quirk of
     // that scheme. We have to hard-code these unfortunately.
     std::set<int> backwards_count_positions;
     if (scheme == "imgt")
@@ -474,9 +481,11 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
         int numeric_portion;
         float converted_code;
 
-        // This will throw if the string starts with a letter but will otherwise extract the integer piece,
-        // which rules out certain kinds of invalid codes the user might pass in error (e.g. '-', 'A128').
-        try{
+        // This will throw if the string starts with a letter but
+        // will otherwise extract the integer piece,
+        // which rules out certain kinds of invalid codes the user
+        // might pass in error (e.g. '-', 'A128').
+        try {
             numeric_portion = std::stoi(input_code);
         }
         catch (...) {
@@ -553,7 +562,8 @@ int build_msa_utility(std::vector<std::string> &sequences,
         std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> &annotations,
         std::vector<std::string> &position_codes,
         std::vector<std::string> &aligned_seqs,
-        const std::string &scheme) {
+        const std::string &scheme,
+        bool add_unobserved_positions) {
     if (sequences.size() != annotations.size() || sequences.size() == 0)
         throw std::runtime_error(std::string("The number of sequences and "
                     "annotations must match."));
@@ -588,6 +598,42 @@ int build_msa_utility(std::vector<std::string> &sequences,
             }
         }
     }
+
+    // If the user has requested addition of unobserved position codes,
+    // add any as appropriate for the scheme. We have hard-coded the
+    // expected positions for each scheme here, which is...not great...
+    // but on the other hand, the numbering schemes are relatively ancient
+    // and will not change at any time in the forseeable future,
+    // so this may be ok for now.
+    if (add_unobserved_positions) {
+        std::vector<std::string> codes_to_add;
+        // IMGT and AHO are chain invariant.
+        if (scheme == "imgt") {
+            for (int i=1; i <= 128; i++)
+                all_position_codes.insert(std::to_string(i));
+        } else if (scheme == "aho") {
+            for (int i=1; i <= 149; i++)
+                all_position_codes.insert(std::to_string(i));
+        } else if (chain_type == MSA_LIGHT_CHAIN_ONLY) {
+            // The other schemes sadly are not.
+            if (scheme == "martin") {
+                for (int i=1; i <= 107; i++)
+                    all_position_codes.insert(std::to_string(i));
+            } else if (scheme == "kabat") {
+                for (int i=1; i <= 107; i++)
+                    all_position_codes.insert(std::to_string(i));
+            }
+        } else if (chain_type == MSA_HEAVY_CHAIN_ONLY) {
+            if (scheme == "martin") {
+                for (int i=1; i <= 113; i++)
+                    all_position_codes.insert(std::to_string(i));
+            } else if (scheme == "kabat") {
+                for (int i=1; i <= 113; i++)
+                    all_position_codes.insert(std::to_string(i));
+            }
+        }
+    }
+
 
     // Sort the position codes.
 

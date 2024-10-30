@@ -102,12 +102,15 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
 /// @param aligned_seqs A vector to store the output gapped sequences. Gapped sequences for each
 ///                     input sequence are stored here. Should be empty initially.
 /// @param scheme One of "imgt", "aho", "kabat" or "martin".
+/// @param add_unobserved_positions If True, add positions expected for a given numbering
+///        scheme even if they are not observed in any of the aligned sequences.
 /// @return Returns VALID_SEQUENCE if no error, INVALID_SEQUENCE if an error.
 int build_msa_utility(std::vector<std::string> &sequences,
     std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> &annotations,
     std::vector<std::string> &position_codes,
     std::vector<std::string> &aligned_seqs,
-    const std::string &scheme);
+    const std::string &scheme,
+    bool add_unobserved_positions);
 
 
 

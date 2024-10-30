@@ -91,12 +91,15 @@ std::vector<std::string> AnnotatorBaseClassCpp::sort_position_codes(
 // a list of previously numbered sequences. The sequences must all be of the
 // same chain type. Essentially a wrapper on the corresponding utility function
 // that can be accessed by Python or outside callers.
-std::tuple<std::vector<std::string>, std::vector<std::string>> AnnotatorBaseClassCpp::build_msa(std::vector<std::string> sequences,
-        std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>> annotations) {
+std::tuple<std::vector<std::string>, std::vector<std::string>>
+AnnotatorBaseClassCpp::build_msa(std::vector<std::string> sequences,
+        std::vector<std::tuple<std::vector<std::string>, double,
+        std::string, std::string>> annotations,
+        bool add_unobserved_positions) {
     std::vector<std::string> positionCodes, alignedSeqs;
 
     if (!SequenceUtilities::build_msa_utility(sequences, annotations, positionCodes,
-            alignedSeqs, this->scheme)) {
+            alignedSeqs, this->scheme, add_unobserved_positions)) {
         throw std::runtime_error(std::string("A fatal error occured when "
                     "building an MSA -- please report."));
     }

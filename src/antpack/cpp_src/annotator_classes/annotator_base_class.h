@@ -45,13 +45,17 @@ class AnnotatorBaseClassCpp {
         ///        numberings of the same length as that string, a percent
         ///        identity, a chain type and an error message. This tuple
         ///        is returned by the analyze_seq methods of child classes.
+        /// @param add_unobserved_positions If True, positions expected
+        ///        for a given scheme are added even if not observed for
+        ///        any of the input alignments.
         /// @return A tuple of two vectors. The first contains a consensus
         ///         set of position codes. The second contains all of the
         ///         input sequences, gapped to be the same length.
         std::tuple<std::vector<std::string>, std::vector<std::string>>
             build_msa(std::vector<std::string> sequences,
             std::vector<std::tuple<std::vector<std::string>,
-            double, std::string, std::string>> annotations);
+            double, std::string, std::string>> annotations,
+            bool add_unobserved_positions);
 
         /// @brief Takes an input sequence and corresponding numbering
         ///        and trims it so that gaps at the c- and n-terminals

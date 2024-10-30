@@ -59,6 +59,13 @@ NB_MODULE(antpack_cpp_ext, m){
                 are what you will get as output if you pass sequences to
                 the analyze_seq or analyze_seqs methods of SingleChainAnnotator
                 or PairedChainAnnotator.
+            add_unobserved_positions (bool): If False, only positions observed
+                for one or more sequences appear in the output. If True, by
+                contrast, not just observed positions but all expected positions
+                for a given numbering scheme appear in the output. If IMGT expected
+                position 9 does not occur in any dataset sequence, for example,
+                it will not appear in the output if this argument is False but
+                will be added (and will be blank for all sequences) if True.
 
         Returns:
             position_codes (list): A list of position codes from the appropriate numbering
