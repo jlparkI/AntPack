@@ -6,35 +6,42 @@ see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 It is currently in active development, so we are adding new features
 and making more improvements periodically. We will try to avoid breaking
 changes but nonetheless recommend checking the docs after you install
-a new version to be sure your code is unaffected.
+a new version to be sure the component you are using is unaffected.
 
 
 ## What's new in v0.3.6
 
-v0.3.6 incorporates a couple of bug fixes and a for now very basic
-graphical user interface (GUI) (we're planning to add more features
-to this soon). The GUI can be launched with a single command
-from the terminal / Windows command line. AntPack can now therefore be used
-either from the command line, from Python or from the GUI. The GUI
-is convenient if you just want to take a quick look at a small
-number of sequences. The command line tool is ideal if you want to
-run a fairly simple standard analysis. The Python API is best if
-you want to build your own pipeline, need to do a more custom analysis
-and/or are comfortable writing scripts / working in Jupyter Notebook.
+v0.3.6 incorporates a couple of bug fixes and some improvements to
+the command line tool. It's also about 2x faster than the previous
+version. On an Intel-i7-13700K, the time taken to number 3500
+sequences for different tools was as follows:
 
-## Upcoming in planned versions
+| Tool     | Time (s)        |
+| -------- | --------------- |
+| ANARCI   | 45    +/- 1     |
+| AntPack  | 0.18  +/- 0.01  |
+| AbRSA    | 13.02 +-/ 0.01  |
 
-We're planning to make some extensive additions to the GUI, to refactor
-the numbering code for improved efficiency, and to add a ChainAnnotator
-to the Python API. Currently AntPack has SingleChainAnnotator if you
-know your sequence contains one variable region or PairedChainAnnotator
-if you know it contains heavy and light. ChainAnnotator will extract
-however many variable regions are in your sequence with no advance
-knowledge needed about number of regions present.
+Previous versions of AntPack achieved about 0.35 seconds. Finally,
+in previous versions you had to know whether the sequences you
+were using were single or paired. AntPack still has the
+SingleChainAnnotator and PairedChainAnnotator *but* PairedChainAnnotator
+has been made more flexible and better at dealing with
+single chains, so if your input data contains both paired and single
+chains, it's ok to default to using PairedChainAnnotator. (SingleChain
+will be much faster, so if you know you're dealing with single chains
+only, always use SingleChainAnnotator instead.)
+
+## Coming soon
+
+We're adding a GUI that can be launched with a single command
+from the terminal / Windows command line so that AntPack can be
+used either as a command line tool, a Python library or a GUI,
+depending on your needs and what you're comfortable with.
 
 We're also planning to link AntPack to a searchable online database of
-human antibody sequences -- coming soon.
-
+human antibody sequences and add tools for fast sequence clustering
+and stability prediction -- coming soon.
 
 ## Installation
 
@@ -46,9 +53,9 @@ AntPack is distributed as a wheel precompiled for most platforms and CPython >= 
 so installation should be very straightforward. A source distribution is also available
 (C++17) in case there is any need to compile from source.
 
-The only required dependency is numpy. If you want to use the GUI, however, you will
-need to install two additional optional dependencies (optional because they are required
-only for the GUI and not for other AntPack functionality).
+The only required dependency is numpy. In future, to use the
+GUI there will be a couple of additional optional dependencies
+(although this is not added yet).
 
 ## Capabilities
 

@@ -33,8 +33,8 @@ class TestAntPackCLI(unittest.TestCase):
                 fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
 
 
-        _ = subprocess.run(["AntPack", "input_fasta_data.fasta", "output_data",
-            "imgt", "--paired"])
+        _ = subprocess.run(["AntPack", "input_fasta_data.fasta",
+                "output_data", "imgt", "--paired"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
         self.assertTrue("output_data_light.csv" in os.listdir())
@@ -45,7 +45,7 @@ class TestAntPackCLI(unittest.TestCase):
             for i, line in enumerate(fhandle):
                 elements = line.strip().split(",")
                 self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue("".join(elements[1:-1])==map_sequence(merged_seqs[i],
+                self.assertTrue("".join(elements[2:-1])==map_sequence(merged_seqs[i],
                     heavy_pc_annotations[i], heavy_code_map))
                 self.assertTrue(elements[-1]==heavy_pc_annotations[i][-1])
 
@@ -53,11 +53,11 @@ class TestAntPackCLI(unittest.TestCase):
 
         with open("output_data_light.csv", "r",
                 encoding="utf-8") as fhandle:
-            _ = fhandle.readline()
+            temp = fhandle.readline()
             for i, line in enumerate(fhandle):
                 elements = line.strip().split(",")
                 self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue("".join(elements[1:-1])==map_sequence(merged_seqs[i],
+                self.assertTrue("".join(elements[2:-1])==map_sequence(merged_seqs[i],
                     light_pc_annotations[i], light_code_map))
                 self.assertTrue(elements[-1]==light_pc_annotations[i][-1])
 
@@ -95,18 +95,19 @@ class TestAntPackCLI(unittest.TestCase):
         with open("output_data_heavy.csv", "r",
                 encoding="utf-8") as fhandle:
             _ = fhandle.readline()
+
             for i, line in enumerate(fhandle):
                 elements = line.strip().split(",")
                 self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue(elements[1] == "human")
-                self.assertTrue(elements[2] == "identity")
+                self.assertTrue(elements[2] == "human")
+                self.assertTrue(elements[3] == "identity")
                 v_gene, j_gene, vident, jident = vj_tool.assign_vj_genes(heavy_pc_annotations[i],
                         merged_seqs[i], "human", "identity")
-                self.assertTrue(elements[3]==v_gene)
-                self.assertTrue(np.allclose(float(elements[4]), vident))
-                self.assertTrue(elements[5]==j_gene)
-                self.assertTrue(np.allclose(float(elements[6]), jident))
-                self.assertTrue("".join(elements[7:-1])==map_sequence(merged_seqs[i],
+                self.assertTrue(elements[4]==v_gene)
+                self.assertTrue(np.allclose(float(elements[5]), vident))
+                self.assertTrue(elements[6]==j_gene)
+                self.assertTrue(np.allclose(float(elements[7]), jident))
+                self.assertTrue("".join(elements[8:-1])==map_sequence(merged_seqs[i],
                     heavy_pc_annotations[i], heavy_code_map))
                 self.assertTrue(elements[-1]==heavy_pc_annotations[i][-1])
 
@@ -118,15 +119,15 @@ class TestAntPackCLI(unittest.TestCase):
             for i, line in enumerate(fhandle):
                 elements = line.strip().split(",")
                 self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue(elements[1] == "human")
-                self.assertTrue(elements[2] == "identity")
+                self.assertTrue(elements[2] == "human")
+                self.assertTrue(elements[3] == "identity")
                 v_gene, j_gene, vident, jident = vj_tool.assign_vj_genes(light_pc_annotations[i],
                         merged_seqs[i], "human", "identity")
-                self.assertTrue(elements[3]==v_gene)
-                self.assertTrue(np.allclose(float(elements[4]), vident))
-                self.assertTrue(elements[5]==j_gene)
-                self.assertTrue(np.allclose(float(elements[6]), jident))
-                self.assertTrue("".join(elements[7:-1])==map_sequence(merged_seqs[i],
+                self.assertTrue(elements[4]==v_gene)
+                self.assertTrue(np.allclose(float(elements[5]), vident))
+                self.assertTrue(elements[6]==j_gene)
+                self.assertTrue(np.allclose(float(elements[7]), jident))
+                self.assertTrue("".join(elements[8:-1])==map_sequence(merged_seqs[i],
                     light_pc_annotations[i], light_code_map))
                 self.assertTrue(elements[-1]==light_pc_annotations[i][-1])
 
@@ -174,7 +175,7 @@ class TestAntPackCLI(unittest.TestCase):
                     elements = line.strip().split(",")
                     code = int(elements[0].split("this is sequence # ")[1])
                     self.assertTrue(annotations[code][-1] == elements[-1])
-                    self.assertTrue("".join(elements[1:-1])==map_sequence(seqs[code],
+                    self.assertTrue("".join(elements[2:-1])==map_sequence(seqs[code],
                         annotations[code], code_map))
 
         self.assertTrue(ntot==len(annotations))
@@ -219,16 +220,16 @@ class TestAntPackCLI(unittest.TestCase):
                     ntot += 1
                     elements = line.strip().split(",")
                     code = int(elements[0].split("this is sequence # ")[1])
-                    self.assertTrue(elements[1] == "human")
-                    self.assertTrue(elements[2] == "identity")
+                    self.assertTrue(elements[2] == "human")
+                    self.assertTrue(elements[3] == "identity")
                     v_gene, j_gene, vident, jident = vj_tool.assign_vj_genes(annotations[code],
                             seqs[code], "human", "identity")
-                    self.assertTrue(elements[3]==v_gene)
-                    self.assertTrue(np.allclose(float(elements[4]), vident))
-                    self.assertTrue(elements[5]==j_gene)
-                    self.assertTrue(np.allclose(float(elements[6]), jident))
+                    self.assertTrue(elements[4]==v_gene)
+                    self.assertTrue(np.allclose(float(elements[5]), vident))
+                    self.assertTrue(elements[6]==j_gene)
+                    self.assertTrue(np.allclose(float(elements[7]), jident))
                     self.assertTrue(annotations[code][-1] == elements[-1])
-                    self.assertTrue("".join(elements[7:-1])==map_sequence(seqs[code],
+                    self.assertTrue("".join(elements[8:-1])==map_sequence(seqs[code],
                         annotations[code], code_map))
 
         self.assertTrue(ntot==len(annotations))
@@ -239,16 +240,24 @@ class TestAntPackCLI(unittest.TestCase):
 
 
 
-def create_manual_mapping(annotation_list, pc_tool):
+def create_manual_mapping(annotation_list, pc_tool,
+        scheme = "imgt", add_unobserved_positions = True):
     """Manually creates a dictionary mapping codes to positions."""
     code_set = set()
 
     for annotation in annotation_list:
         code_set.update(annotation[0])
 
+    if add_unobserved_positions:
+        if scheme == "imgt":
+            for i in range(1, 129):
+                code_set.add(str(i))
+
     code_set = list(code_set)
     sorted_codes = pc_tool.sort_position_codes(code_set)
     return {k:i for i, k in enumerate(sorted_codes)}
+
+
 
 def map_sequence(sequence, annotation, code_dict):
     """Maps an input sequence to a standard length vector to

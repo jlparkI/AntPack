@@ -120,8 +120,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
             for pos in n[0]:
                 observed_positions.add(pos)
 
-        hpositions, hmsa = aligner.build_msa(hseqs, hnumbering)
-        lpositions, lmsa = aligner.build_msa(lseqs, lnumbering)
+        hpositions, hmsa = aligner.build_msa(hseqs, hnumbering, False)
+        lpositions, lmsa = aligner.build_msa(lseqs, lnumbering, False)
 
         for position_set, msa in [(hpositions, hmsa), (lpositions, lmsa)]:
             for msa_seq in msa:

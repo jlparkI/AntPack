@@ -59,3 +59,11 @@ use on fasta files from the command line.
 
 ### Version 0.3.5.1
 Minor changes to docstrings in 0.3.5.
+
+### Version 0.3.6
+Bug fixes (the rare substr error). Added option to build msa to
+add unobserved positions. Rewrote algorithm for paired chain annotator
+to improve support for single chains supplied by accident (or
+intentionally). Added prefiltering for alignment which improves speed
+by roughly 2x. Updated CLI to include unobserved positions by default
+and to include percent identity.
