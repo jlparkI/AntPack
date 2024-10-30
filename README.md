@@ -30,7 +30,10 @@ has been made more flexible and better at dealing with
 single chains, so if your input data contains both paired and single
 chains, it's ok to default to using PairedChainAnnotator. (SingleChain
 will be much faster, so if you know you're dealing with single chains
-only, always use SingleChainAnnotator instead.)
+only, always use SingleChainAnnotator instead.) You can also use
+SingleChainAnnotator on chains that may be single or paired; if you
+set it to look for a specific chain type (e.g. heavy), it will
+extract that chain from paired sequences.
 
 ## Coming soon
 
