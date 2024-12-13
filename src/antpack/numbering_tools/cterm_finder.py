@@ -1,4 +1,4 @@
-"""Contains the CTermFinder class."""
+"""Contains the CTermFinder class. Used for testing only."""
 import os
 import gzip
 from antpack.antpack_cpp_ext import PrefilteringTool

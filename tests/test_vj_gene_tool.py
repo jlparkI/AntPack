@@ -33,6 +33,16 @@ class TestVJGeneTool(unittest.TestCase):
                 (["1", "2", "3"], 0, "H", ""),
                 "AYA", "human", "robot")
 
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "L", ""),
+                "AYA", "alpaca", "identity")
+
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "K", ""),
+                "AYA", "alpaca", "identity")
+
 
 
     def test_gene_retrieval(self):
@@ -41,6 +51,9 @@ class TestVJGeneTool(unittest.TestCase):
         vj_tool = VJGeneTool()
         seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", "human")
         self.assertTrue(seq == "QVTLKESGP-VLVKPTETLTLTCTVSGFSLS--NARMGVSWIRQPPGKALEWLAHIFSN---DEKSYSTSLK-SRLTISKDTSKSQVVLTMTNMDPVDTATYYCARI---------------------")
+
+        seq = vj_tool.get_vj_gene_sequence("IGHV1-1*01", "alpaca")
+        self.assertTrue(seq == "QVQLVQPGA-ELRKPGALLKVSCKASGYTF----TSYYIDWVRQAPGQGLGWVGRIDPE--DGGTNYAQKFQ-GRVTLTADTSTSTAYVELSSLRSEDTAVCYCVR----------------------")
 
         seq = vj_tool.get_vj_gene_sequence("cow", "human")
         self.assertTrue(seq == "")

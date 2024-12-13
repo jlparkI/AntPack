@@ -237,7 +237,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 is what you will get as output if you pass sequences to
                 the analyze_seq method of SingleChainAnnotator
                 or PairedChainAnnotator.
-            species (str): Currently must be one of 'human', 'mouse'.
+            species (str): Currently must be one of 'human', 'mouse', 'alpaca'.
             mode (str): One of 'identity', 'evalue'. If 'identity' the highest
                 percent identity sequence(s) are identified. If 'evalue' the
                 lowest e-value (effectively best BLOSUM score) sequence(s)
@@ -276,7 +276,7 @@ NB_MODULE(antpack_cpp_ext, m){
         Args:
             vj_gene_name (str): A valid V or J gene name, as generated
                 by for example assign_sequence.
-            species (str): One of 'human', 'mouse'.
+            species (str): One of 'human', 'mouse', 'alpaca'.
 
         Returns:
             sequence (str): The amino acid sequence of the V or J gene
