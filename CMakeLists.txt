@@ -68,7 +68,6 @@ nanobind_add_module(
 
     src/antpack/cpp_src/utilities/utilities.cpp
     src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
-    src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp
     src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
 
     src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp

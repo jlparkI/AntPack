@@ -29,6 +29,7 @@
 
 namespace nb = nanobind;
 
+
 NB_MODULE(antpack_cpp_ext, m) {
     nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m,
             "AnnotatorBaseClassCpp")
@@ -36,6 +37,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 std::unordered_map<std::string, size_t>>())
         .def("sort_position_codes",
                 &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
+                nb::arg("position_code_list"),
      R"(
         Takes an input list of position codes for a specified scheme and
         sorts them. This is useful since for some schemes (e.g. IMGT)
@@ -49,6 +51,8 @@ NB_MODULE(antpack_cpp_ext, m) {
         Returns:
             sorted_codes (list): A list of sorted position codes.)")
         .def("build_msa", &NumberingTools::AnnotatorBaseClassCpp::build_msa,
+                nb::arg("sequences"), nb::arg("annotations"),
+                nb::arg("add_unobserved_positions"),
      R"(
         Builds a multiple sequence alignment using a list of sequences
         and a corresponding list of tuples output by analyze_seq or
@@ -75,6 +79,7 @@ NB_MODULE(antpack_cpp_ext, m) {
             aligned_seqs (list): A list of strings -- the input sequences all aligned
                 to form an MSA.)")
         .def("assign_cdr_labels", &NumberingTools::AnnotatorBaseClassCpp::assign_cdr_labels,
+                nb::arg("alignment"),
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
@@ -95,6 +100,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 "fmwk1", "fmwk2", "fmwk3", "fmwk4", "cdr1", "cdr2", "cdr3" or "-".
                 This list will be of the same length as the input alignment.)")
         .def("trim_alignment", &NumberingTools::AnnotatorBaseClassCpp::trim_alignment,
+                nb::arg("sequence"), nb::arg("alignment"),
      R"(
         Takes as input a sequence and a tuple produced by
         analyze_seq and trims off any gap regions at the end
@@ -125,6 +131,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
         .def("analyze_seq", &NumberingTools::SingleChainAnnotatorCpp::analyze_seq,
+                nb::arg("sequence"),
      R"(
         Numbers and scores a single input sequence. A list of
         outputs from this function can be passed to build_msa
@@ -143,6 +150,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.)")
         .def("analyze_seqs", &NumberingTools::SingleChainAnnotatorCpp::analyze_seqs,
+                nb::arg("sequences"),
      R"(
         Numbers and scores a list of input sequences. The outputs
         can be passed to other functions like build_msa, trim_alignment,
@@ -170,6 +178,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def(nb::init<std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
         .def("analyze_seq", &NumberingTools::PairedChainAnnotatorCpp::analyze_seq,
+                nb::arg("sequence"),
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
         assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
@@ -193,6 +202,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 sequence. A low percent identity or an error message may indicate a problem
                 with the input sequence. The error_message is "" unless some error occurred.)")
         .def("analyze_seqs", &NumberingTools::PairedChainAnnotatorCpp::analyze_seqs,
+                nb::arg("sequences"),
      R"(
         Extracts and numbers the variable chain regions from a list of sequences
         assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
@@ -224,6 +234,8 @@ NB_MODULE(antpack_cpp_ext, m) {
                 std::string, std::string>() )
         .def("assign_vj_genes",
                 &VJAssignment::VJMatchCounter::assign_vj_genes,
+                nb::arg("sequence"), nb::arg("alignment"),
+                nb::arg("species"), nb::arg("mode"),
      R"(
         Assigns V and J genes for a sequence which has already been
         numbered, preferably by AntPack but potentially by some other
@@ -268,6 +280,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 are separated by ' ' in the output.)") 
         .def("get_vj_gene_sequence",
                 &VJAssignment::VJMatchCounter::get_vj_gene_sequence,
+                nb::arg("vj_gene_name"), nb::arg("species"),
      R"(
         Retrieves the amino acid sequence of a specified V or J
         gene, if it is in the latest version of the specified
@@ -293,6 +306,8 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def(nb::init<>() )
         .def("analyze_seq",
                 &LiabilitySearch::LiabilitySearchToolCpp::analyze_seq,
+                nb::arg("sequence"), nb::arg("alignment"),
+                nb::arg("scheme"),
      R"(
         Searches for some common motifs which may correspond to possible
         development liabilities. Note that this may sometimes be a false positive;
