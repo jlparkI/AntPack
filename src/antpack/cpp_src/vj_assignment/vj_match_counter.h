@@ -54,7 +54,7 @@ class VJMatchCounter {
             assign_vj_genes(std::tuple<std::vector<std::string>,
                 double, std::string, std::string> alignment,
                 std::string sequence, std::string species,
-                std::string mode);
+                std::string mode = "identity");
 
         std::string get_vj_gene_sequence(std::string query_name,
                 std::string species);

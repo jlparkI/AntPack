@@ -17,7 +17,7 @@ class TestVJGeneTool(unittest.TestCase):
         vj_tool = VJGeneTool()
         vgene, jgene, vident, jident = vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
-                "AYAYAYA", "human", "identity")
+                "AYAYAYA", "human")
         self.assertTrue(vident==0)
         self.assertTrue(jident==0)
         self.assertTrue(vgene=="")
@@ -26,7 +26,7 @@ class TestVJGeneTool(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
-                "AYA", "platypus", "identity")
+                "AYA", "platypus")
 
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
@@ -36,7 +36,7 @@ class TestVJGeneTool(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "L", ""),
-                "AYA", "alpaca", "identity")
+                "AYA", "alpaca")
 
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
@@ -84,7 +84,7 @@ class TestVJGeneTool(unittest.TestCase):
             fmt_seq = prep_sequence(seq, alignment)
 
             vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
-                    seq, "human", "identity")
+                    seq, "human")
 
             gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
 

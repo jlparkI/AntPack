@@ -55,7 +55,7 @@ class AnnotatorBaseClassCpp {
             build_msa(std::vector<std::string> sequences,
             std::vector<std::tuple<std::vector<std::string>,
             double, std::string, std::string>> annotations,
-            bool add_unobserved_positions);
+            bool add_unobserved_positions = false);
 
         /// @brief Takes an input sequence and corresponding numbering
         ///        and trims it so that gaps at the c- and n-terminals

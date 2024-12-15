@@ -52,7 +52,7 @@ NB_MODULE(antpack_cpp_ext, m) {
             sorted_codes (list): A list of sorted position codes.)")
         .def("build_msa", &NumberingTools::AnnotatorBaseClassCpp::build_msa,
                 nb::arg("sequences"), nb::arg("annotations"),
-                nb::arg("add_unobserved_positions"),
+                nb::arg("add_unobserved_positions") = false,
      R"(
         Builds a multiple sequence alignment using a list of sequences
         and a corresponding list of tuples output by analyze_seq or
@@ -235,7 +235,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def("assign_vj_genes",
                 &VJAssignment::VJMatchCounter::assign_vj_genes,
                 nb::arg("sequence"), nb::arg("alignment"),
-                nb::arg("species"), nb::arg("mode"),
+                nb::arg("species"), nb::arg("mode") = "identity",
      R"(
         Assigns V and J genes for a sequence which has already been
         numbered, preferably by AntPack but potentially by some other
