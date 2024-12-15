@@ -25,11 +25,13 @@
 #include "vj_assignment/vj_match_counter.h"
 #include "humanness_calcs/responsibility_calcs.h"
 #include "utilities/utilities.h"
+#include "developability_calcs/liability_search_tool.h"
 
 namespace nb = nanobind;
 
-NB_MODULE(antpack_cpp_ext, m){
-    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
+NB_MODULE(antpack_cpp_ext, m) {
+    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m,
+            "AnnotatorBaseClassCpp")
         .def(nb::init<std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
         .def("sort_position_codes",
@@ -284,9 +286,50 @@ NB_MODULE(antpack_cpp_ext, m){
                 match anything, None is returned.)")
         .def("get_seq_lists", &VJAssignment::VJMatchCounter::get_seq_lists);
 
+
+
+    nb::class_<LiabilitySearch::LiabilitySearchToolCpp>(m,
+            "LiabilitySearchTool")
+        .def(nb::init<>() )
+        .def("analyze_seq",
+                &LiabilitySearch::LiabilitySearchToolCpp::analyze_seq,
+     R"(
+        Searches for some common motifs which may correspond to possible
+        development liabilities. Note that this may sometimes be a false positive;
+        the presence of a possible N-glycosylation motif, for example, does
+        not guarantee that N-glycosylation will occur. It does however identify
+        sites where there is a risk.
+
+        Args:
+            sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
+                X is also allowed but should be used sparingly.
+            alignment (tuple): A tuple containing (numbering,
+                percent_identity, chain_name, error_message). This tuple
+                is what you will get as output if you pass sequences to
+                the analyze_seq method of SingleChainAnnotator
+                or PairedChainAnnotator.
+            scheme (str): The numbering scheme. One of 'aho', 'imgt', 'kabat'
+                or 'martin'. It is very important to use the same scheme
+                that was used to number the sequence; using some other scheme
+                may lead to incorrect motif identification.
+
+        Returns:
+            liabilities (list): A list of tuples. The first element of each
+                tuple is a 2-tuple of (starting position, ending position)
+                numbered with the start of the sequence as 0, indicating the
+                start and end of the liability. The second element of each tuple
+                is a string describing the type of liability found. If the list
+                is empty, no liabilities were found. If sequence numbering fails,
+                the list contains a single tuple indicating the cause of the failure.
+                (This can occur if the expected cysteines in the chain are not present
+                at the expected positions, which is also a liability.) )");
+
+
+
     m.def("getProbsCExt", &HumannessCalculations::getProbsCExt,
             nb::call_guard<nb::gil_scoped_release>());
-    m.def("mask_terminal_deletions", &HumannessCalculations::mask_terminal_deletions,
+    m.def("mask_terminal_deletions",
+            &HumannessCalculations::mask_terminal_deletions,
             nb::call_guard<nb::gil_scoped_release>());
     m.def("getProbsCExt_masked", &HumannessCalculations::getProbsCExt_masked,
             nb::call_guard<nb::gil_scoped_release>());

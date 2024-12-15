@@ -116,6 +116,8 @@ std::tuple<std::vector<std::string>, double, std::string,
                 if (nterm_scores[i] > best_nterm_score) {
                     preferred_chain = chain_list.at(i);
                     best_nterm_score = nterm_scores[i];
+                } else {
+                    preferred_chain = "";
                 }
             } else if (nterm_scores[i] > best_nterm_score) {
                 best_nterm_score = nterm_scores[i];
@@ -123,15 +125,22 @@ std::tuple<std::vector<std::string>, double, std::string,
         }
     }
 
+    // Perform the alignment, passing the preferred_chain variable.
+    // Since preferred_chain is initialized to "", if no preferred
+    // chain was found, the aligner will try all available chains.
+
     int err_code = this->align_input_subregion(best_result, sequence,
             preferred_chain);
+
+    // It is unlikely but possible to have a rare error when the j-region
+    // is highly unusual and CDR3 is very long. Return if there is no
+    // error code indicating this has happened.
     if (err_code !=  POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT)
         return best_result;
 
-
-    // It is unlikely but possible to have a rare error when the j-region
-    // is highly unusual and CDR3 is very long. If this has happened,
-    // check for closest matching c-terminal and try to realign.
+    // If error code indicates this MAY have happened, we will proceed
+    // by trying to re-align with the most likely c-terminal we found
+    // as a cutoff and aligning the region prior to that cutoff.
 
     size_t best_seq_cutoff = 0;
     double best_score = 0;
@@ -189,7 +198,8 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
 
     // If preferred chain is specified (i.e. is not ""), we can
     // only align to one scoring tool...neat! In that case, score
-    // using that tool then return.
+    // using that tool then return, AS LONG AS the preferred chain
+    // matches one of the chains specified for this object.
     if (preferred_chain != "") {
         auto first_chain = this->chains.begin();
         auto last_chain = this->chains.end();
@@ -217,7 +227,9 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
 
 
 
-    // Otherwise, if no preferred chain was specified, we need to
+    // Otherwise, if no preferred chain was specified or if the preferred
+    // chain is not one this object can handle (e.g. it was initialized
+    // with chain H only but preferred is K), we need to
     // try all available aligners. Save the one that yields the highest
     // percent identity.
 

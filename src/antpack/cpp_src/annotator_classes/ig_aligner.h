@@ -23,7 +23,6 @@
 
 namespace nb = nanobind;
 
-
 namespace NumberingTools{
 
 // Codes for the pathways that can link a score
@@ -35,7 +34,6 @@ static constexpr int DIAGONAL_TRANSFER = 0;
 // The columns of the score matrix that are accessed for gap penalties.
 static constexpr int QUERY_GAP_COLUMN = 21;
 static constexpr int TEMPLATE_GAP_COLUMN = 22;
-
 
 
 

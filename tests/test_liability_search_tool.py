@@ -1,7 +1,7 @@
 """Tests basic functionality for the LiabilitySearchTool class."""
 import os
 import unittest
-from antpack import LiabilitySearchTool
+from antpack import LiabilitySearchTool, SingleChainAnnotator
 
 class TestLiabilitySearchTool(unittest.TestCase):
 
@@ -10,39 +10,60 @@ class TestLiabilitySearchTool(unittest.TestCase):
         """Check that sequences with liabilities are flagged as such
         while other sequences are passed."""
         search_tool = LiabilitySearchTool()
-
-        dummy_sequence = "AATHSCSSC"
-        result = search_tool.analyze_seq(dummy_sequence)
-        self.assertTrue(result[0][1] == "Sequence contains invalid characters")
+        annotation_tool = SingleChainAnnotator()
 
         generic_test_seq = "VHLQQSGAELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYNENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA"
-        result = search_tool.analyze_seq(generic_test_seq)
+        alignment = annotation_tool.analyze_seq(generic_test_seq)
+        result = search_tool.analyze_seq(generic_test_seq, alignment, "imgt")
         self.assertTrue(len(result)==3)
-        self.assertTrue(result[0][1] == "Deamidation (elevated risk)")
-        self.assertTrue(result[1][1] == "Methionine / Tryptophan oxidation moderate risk")
-        self.assertTrue(result[2][1] == "Deamidation (low risk)")
+        self.assertTrue(result[0][1] == "Methionine / Tryptophan oxidation moderate risk")
+        self.assertTrue(result[1][1] == "Deamidation (low risk)")
+        self.assertTrue(result[2][1] == "Deamidation (elevated risk)")
 
         corrected_seq = list(generic_test_seq)
         corrected_seq[102:104] = "AL"
-        self.assertTrue(len(search_tool.analyze_seq("".join(corrected_seq))) == 2)
-        corrected_seq[31] = "A"
-        self.assertTrue(len(search_tool.analyze_seq("".join(corrected_seq))) == 1)
-        corrected_seq[56:58] = "AL"
-        self.assertTrue(len(search_tool.analyze_seq("".join(corrected_seq))) == 0)
+        corrected_seq = "".join(corrected_seq)
+        alignment = annotation_tool.analyze_seq(corrected_seq)
+        self.assertTrue(len(search_tool.analyze_seq(corrected_seq,
+            alignment, "imgt")) == 2)
 
+        corrected_seq = list(corrected_seq)
+        corrected_seq[31] = "A"
+        corrected_seq = "".join(corrected_seq)
+        alignment = annotation_tool.analyze_seq(corrected_seq)
+        self.assertTrue(len(search_tool.analyze_seq(corrected_seq,
+            alignment, "imgt")) == 1)
+
+        corrected_seq = list(corrected_seq)
+        corrected_seq[56:58] = "AL"
+        corrected_seq = "".join(corrected_seq)
+        alignment = annotation_tool.analyze_seq(corrected_seq)
+        self.assertTrue(len(search_tool.analyze_seq(corrected_seq,
+            alignment, "imgt")) == 0)
+
+        corrected_seq = list(corrected_seq)
         liability_seq = corrected_seq.copy()
         liability_seq[3] = "C"
-        result = search_tool.analyze_seq("".join(liability_seq))
+        liability_seq = "".join(liability_seq)
+        alignment = annotation_tool.analyze_seq(liability_seq)
+        result = search_tool.analyze_seq(liability_seq,
+                alignment, "imgt")
         self.assertTrue(result[0][1] == "Unusual cysteine")
 
         liability_seq = corrected_seq.copy()
         liability_seq[-5:-2] = "NAS"
-        result = search_tool.analyze_seq("".join(liability_seq))
-        self.assertTrue(result[0][1] == "N-glycosylation")
+        liability_seq = "".join(liability_seq)
+        alignment = annotation_tool.analyze_seq(liability_seq)
+        result = search_tool.analyze_seq(liability_seq,
+                alignment, "imgt")
+        self.assertTrue(result[0][1] == "N-glycosylation risk")
 
         liability_seq = corrected_seq.copy()
         liability_seq[3:5] = "M"
-        result = search_tool.analyze_seq("".join(liability_seq))
+        liability_seq = "".join(liability_seq)
+        alignment = annotation_tool.analyze_seq(liability_seq)
+        result = search_tool.analyze_seq(liability_seq,
+                alignment, "imgt")
         self.assertTrue(len(result) == 0)
 
 
