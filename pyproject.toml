@@ -20,7 +20,8 @@ dependencies = [
 
 
 [project.scripts]
-AntPack = "antpack:run_cli_interface"
+AntPack-CLI = "antpack:run_cli_interface"
+AntPack-SeqView = "antpack:run_seq_viewer"
 
 
 [project.urls]
