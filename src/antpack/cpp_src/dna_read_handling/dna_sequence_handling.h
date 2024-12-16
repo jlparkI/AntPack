@@ -44,6 +44,7 @@ class DNASeqTranslatorCpp {
 
  private:
       std::unordered_set<std::string> known_mab_kmers;
+
 };
 
 

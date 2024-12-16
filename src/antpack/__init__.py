@@ -4,6 +4,7 @@ __version__ = "0.3.7"
 
 from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator, PyCTermFinder
 #from .numbering_tools.consensus_update_tools import build_consensus_files
+from .numbering_tools.dna_sequence_translation import DNASeqTranslator
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool, HumanizationTool
 from antpack.antpack_cpp_ext import LiabilitySearchTool

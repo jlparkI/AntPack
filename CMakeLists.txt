@@ -66,9 +66,12 @@ nanobind_add_module(
 
     src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp
 
+    src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp
+
     src/antpack/cpp_src/utilities/utilities.cpp
     src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
     src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
+    src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp
 
     src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp
     src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
