@@ -237,7 +237,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 std::string, std::string>() )
         .def("assign_vj_genes",
                 &VJAssignment::VJMatchCounter::assign_vj_genes,
-                nb::arg("sequence"), nb::arg("alignment"),
+                nb::arg("alignment"), nb::arg("sequence"),
                 nb::arg("species"), nb::arg("mode") = "identity",
      R"(
         Assigns V and J genes for a sequence which has already been
@@ -247,13 +247,13 @@ NB_MODULE(antpack_cpp_ext, m) {
         used for numbering is the same used for the VJGeneTool.
 
         Args:
-            sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
-                X is also allowed but should be used sparingly.
             alignment (tuple): A tuple containing (numbering,
                 percent_identity, chain_name, error_message). This tuple
                 is what you will get as output if you pass sequences to
                 the analyze_seq method of SingleChainAnnotator
                 or PairedChainAnnotator.
+            sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
+                X is also allowed but should be used sparingly.
             species (str): Currently must be one of 'human', 'mouse', 'alpaca'.
             mode (str): One of 'identity', 'evalue'. If 'identity' the highest
                 percent identity sequence(s) are identified. If 'evalue' the

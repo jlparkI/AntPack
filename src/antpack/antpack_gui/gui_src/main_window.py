@@ -1,16 +1,19 @@
 """Describes the MainWindow class which forms the core of the application."""
 import os
-import qdarktheme
-from PySide6 import QtGui
-from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QMessageBox, QFileDialog, QTableWidgetItem, QScrollArea
+from PySide6 import QtWidgets
+from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QTableWidget, QMessageBox, QFileDialog, QTableWidgetItem, QScrollArea
+from PySide6.QtWidgets import QPushButton, QHBoxLayout, QStackedWidget, QSizePolicy, QLabel
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QIcon, QAction
-import pyqtgraph as pgp
+from PySide6.QtGui import QIcon, QAction, QPixmap
 
-from .data_loaders.dataset import Dataset
-from .utils.message_box import display_message_box
-from .dialogs.sequence_type import SequenceTypeSelector
+from antpack import SingleChainAnnotator, PairedChainAnnotator, SequenceScoringTool
+from antpack import VJGeneTool, LiabilitySearchTool
 
+from .data_processing.selected_seq_processing import process_selected_seq
+from .custom_widgets.sidebar import SideMenuWidget
+from .dialogs.add_sequence_dialog import AddSequenceDialog
+from .ui_construction.tab_builder import build_menubar
 
 
 class MainWindow(QMainWindow):
@@ -20,100 +23,98 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.theme = "dark"
-        self.setWindowTitle("RESP / AntPack")
+        self.setWindowTitle("AntPack")
         fpath = os.path.dirname(os.path.abspath(__file__))
-        self.setWindowIcon(QIcon(os.path.join(fpath, "..", "resources", "mAb.png")))
-        self.setMinimumSize(QSize(600,400))
+        self.setWindowIcon(QIcon(os.path.join(fpath, "..",
+            "..", "resources", "beaker.png")))
+        self.setMinimumSize(QSize(800,400))
 
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
 
-        # Any loaded data is stored as a Dataset object; the AntPack library
-        # is used extensively in construction of the Dataset.
         self.dataset = None
+        self.selected_seqs = None
 
-        # Always store the user selected numbering scheme.
         self.scheme = "imgt"
+        self.sc_annotator = SingleChainAnnotator(scheme="imgt")
+        self.pc_annotator = PairedChainAnnotator(scheme="imgt")
+        self.vj_tool = VJGeneTool(scheme="imgt")
+        self.liability_tool = LiabilitySearchTool()
+        self.scoring_tool = SequenceScoringTool()
 
-        # There are several main tabs the user can access.
-        self.tab_widget = QTabWidget()
-        self.setCentralWidget(self.tab_widget)
+        # A default pixmap we will use for pieces which have not been
+        # implemented yet.
+        default_pixmap = QPixmap(os.path.join(fpath, "..", "..", "resources",
+            "not_available.jpg"))
 
-        # Key elements of these tabs are the raw data table and the property
-        # plot.
-        self.property_graph = pgp.PlotWidget()
-        self.property_graph.setMouseEnabled(False, False)
-        self.update_property_plot()
+        # Add the special sidebar.
+        sidebar_layout = QVBoxLayout()
+        sidebar_contents = [
+                ("Sequence Review", os.path.join(fpath, "..", "..",
+                    "resources", "pipette--plus.png")),
+                ("Dataset Review", os.path.join(fpath, "..", "..",
+                    "resources", "flask--plus.png")),
+                ("Process New\nDataset", os.path.join(fpath, "..", "..",
+                    "resources", "database--plus.png"))
+                ]
+        self.sidebar = SideMenuWidget(sidebar_contents)
+        self.sidebar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.sidebar.listview.selectionModel().selectionChanged.connect(self.tab_select)
+        sidebar_layout.addWidget(self.sidebar)
 
-        self.raw_data_table = QTableWidget()
-        self.raw_data_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.reset_raw_data_table()
-        selection = self.raw_data_table.selectionModel()
-        selection.selectionChanged.connect(self.update_table_selection)
+        # Next, create the single sequence viewer. This will have two tabs,
+        # one of which is for sequence comparison and one of which is
+        # for plotting.
+        seq_view_tabs = QTabWidget()
+        tab1 = QWidget()
+        seq_view_tab1_layout = QVBoxLayout()
+        tab1.setLayout(seq_view_tab1_layout)
 
-        self.raw_tab = QWidget()
-        self.property_tab = QWidget()
-        self.alignment_tab = QWidget()
-        #self.cluster_tab = QWidget()
+        top_box_layout = QHBoxLayout()
+        add_seq_button = QPushButton("Add new sequence")
+        add_seq_button.clicked.connect(self.seqview_add_sequence)
+        top_box_layout.addWidget(add_seq_button)
+        top_box_layout.addStretch(1)
+
+        seq_view_tab1_layout.addLayout(top_box_layout)
+        seq_view_tab1_layout.addStretch(1)
+        seq_view_tabs.addTab(tab1, "Sequence View")
+        not_added = QLabel()
+        not_added.setPixmap(default_pixmap)
+        seq_view_tabs.addTab(not_added, "Property View")
+
+        heavy_light_tabs = QTabWidget()
+        seq_view_tab1_layout.addWidget(heavy_light_tabs)
+
+        self.heavy_chain_view = QTableWidget()
+        self.light_chain_view = QTableWidget()
+        self.heavy_chain_view.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.light_chain_view.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.heavy_chain_view.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.light_chain_view.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+
+
+        heavy_light_tabs.addTab(self.heavy_chain_view, "Heavy")
+        heavy_light_tabs.addTab(self.light_chain_view, "Light")
+        self.update_seq_comparison_tabs()
+
+        self.stacked_widget = QStackedWidget(self)
+        self.stacked_widget.addWidget(seq_view_tabs)
+        qp1_label = QLabel()
+        qp2_label = QLabel()
+        qp1_label.setPixmap(default_pixmap)
+        qp2_label.setPixmap(default_pixmap)
+        self.stacked_widget.addWidget(qp1_label)
+        self.stacked_widget.addWidget(qp2_label)
 
         # Add the main widgets in each tab to the appropriate tab...
-        raw_tab_layout = QVBoxLayout(self.raw_tab)
-        property_tab_layout = QVBoxLayout(self.property_tab)
-
-        self.scroll = QScrollArea()
-        raw_tab_layout.addWidget(self.raw_data_table)
-        property_tab_layout.addWidget(self.scroll)
-        self.scroll.setWidget(self.property_graph)
-        self.scroll.setWidgetResizable(True)
-
-
-
-        # ...now add the tabs to the tab widget.
-        self.tab_widget.addTab(self.raw_tab, "Raw Data")
-        self.tab_widget.addTab(self.property_tab, "Property Viewer")
-        self.tab_widget.addTab(self.alignment_tab, "Alignment Viewer")
+        main_layout = QHBoxLayout()
+        main_layout.addLayout(sidebar_layout)
+        main_layout.addWidget(self.stacked_widget)
+        central_widget.setLayout(main_layout)
 
         # Next add menu options and the menu bar.
-        theme_command = QAction("Switch color scheme", self)
-        theme_command.triggered.connect(self.theme_event)
-        quit_command = QAction("Quit", self)
-        quit_command.triggered.connect(self.quit_event)
-        quit_command.setShortcut('Ctrl+Q')
-
-        menu_bar = QMenuBar()
-        file_menu = menu_bar.addMenu("File")
-        file_menu.addAction(theme_command)
-        file_menu.addAction(quit_command)
-
-
-        fasta_load = QAction("Load FASTA file", self)
-        fasta_load.triggered.connect(self.fasta_load_event)
-        csv_load = QAction("Load csv file", self)
-        csv_load.triggered.connect(self.csv_load_event)
-
-        data_menu = menu_bar.addMenu("Data")
-
-        num_scheme_select = data_menu.addMenu("Select numbering scheme")
-        self.imgt_select = QAction("IMGT", checkable=True)
-        self.imgt_select.triggered.connect(self.set_imgt_scheme)
-        self.imgt_select.setChecked(1)
-        num_scheme_select.addAction(self.imgt_select)
-
-        self.kabat_select = QAction("Kabat", checkable=True)
-        self.kabat_select.triggered.connect(self.set_kabat_scheme)
-        num_scheme_select.addAction(self.kabat_select)
-
-        self.martin_select = QAction("Martin", checkable=True)
-        self.martin_select.triggered.connect(self.set_martin_scheme)
-        num_scheme_select.addAction(self.martin_select)
-
-        data_menu.addAction(fasta_load)
-        data_menu.addAction(csv_load)
-
-        self.setMenuBar(menu_bar)
-
-
-        # Next add tools specific to the property tab.
-        self.selected_property = "Hydrophobicity"
+        self.setMenuBar(build_menubar(self))
 
 
 
@@ -123,156 +124,145 @@ class MainWindow(QMainWindow):
         self.close()
 
 
-    def fasta_load_event(self):
-        """Prompts the user for a filepath to a fasta file,
-        asks some questions about what kinds of sequences it
-        contains, and loads the data."""
-        self.reset_raw_data_table()
-        self.dataset = None
-        seqtype_sel = SequenceTypeSelector(self)
-
-        if seqtype_sel.paired.isChecked():
-            dtype = "paired"
-        elif seqtype_sel.single.isChecked():
-            dtype = "single"
-
-        new_dataset = Dataset(dtype, self.scheme)
-        file_name = QFileDialog.getOpenFileName(self,
-                    "Open FASTA", filter="FASTA Files (*.fa *.fasta)")[0]
-
-        err_message = new_dataset.load_fasta_file(file_name)
-
-        if err_message is not None:
-            display_message_box("Error", err_message, self)
-            return
-
-        self.dataset = new_dataset
-        self.update_data_table()
-
-
-
-    def csv_load_event(self):
-        """Prompts the user for a filepath to a csv file,
-        asks some questions about what kinds of sequences it
-        contains, and loads the data."""
-        self.reset_raw_data_table()
-        self.dataset = None
-        pass
-
-
-    def reset_raw_data_table(self):
-        """Resets the raw data table when loading data or
-        initializing the application."""
-        self.raw_data_table.clearContents()
-        self.raw_data_table.setColumnCount(7)
-        self.raw_data_table.setRowCount(20)
-        self.raw_data_table.setHorizontalHeaderLabels(["ID", "Metadata",
-            "Heavy chain\nsequence", "Light chain\nsequence",
-            "Errors/\nissues", "Input file", "Cluster"])
-        # Reset the property plot as well.
-        self.update_property_plot()
-
-
-    def update_data_table(self):
-        """Updates the data table with the data from a newly-loaded dataset.
-        Assumes that reset_raw_data_table was called recently so that
-        num columns and column headers are already correct."""
-        if self.dataset is None:
-            return
-        if self.dataset.get_num_seqs() == 0:
-            return
-        self.raw_data_table.setRowCount(self.dataset.get_num_seqs())
-
-        for i, seq_data in enumerate(self.dataset.get_seq_data()):
-            self.raw_data_table.setItem(i, 0, QTableWidgetItem(str(i)))
-            self.raw_data_table.setItem(i, 1, QTableWidgetItem(seq_data.get_metadata()))
-            self.raw_data_table.setItem(i, 2, QTableWidgetItem(seq_data.get_heavy_chain()))
-            self.raw_data_table.setItem(i, 3, QTableWidgetItem(seq_data.get_light_chain()))
-            self.raw_data_table.setItem(i, 4, QTableWidgetItem(seq_data.get_errors()))
-            self.raw_data_table.setItem(i, 5, QTableWidgetItem(self.dataset.get_input_file()))
-
-
-
-    def update_table_selection(self, selected, deselected):
-        """Updates the properties tab if the selected sequence has changed."""
-        if self.dataset is None:
-            return
-        selected_rows = self.raw_data_table.selectionModel().selectedRows()
-        if len(selected_rows) != 1:
-            self.update_property_plot()
-            return
-
-        self.update_property_plot(selected_rows[0].row())
-
-
-    def update_property_plot(self, seqnum = None):
-        """Updates the property plot tab. If seqnum or dataset is None,
-        it resets it to a blank plot. If seqnum is not None, it pulls the
-        corresponding sequence data from the dataset and plots it on
-        the property tab."""
-        self.property_graph.clear()
-        self.property_graph.setDefaultPadding(0)
-
-        #color = self.palette().color(QtGui.QPalette.Window)
-        #self.property_graph.setBackground(color)
-        if self.theme == "light":
-            self.property_graph.setBackground("w")
+    def tab_select(self):
+        """Callback when user selects a specific tab."""
+        selected_idx = [idx.row() for idx in self.sidebar.listview.selectedIndexes()]
+        if len(selected_idx) == 1 and selected_idx[0] < 3:
+            self.stacked_widget.setCurrentIndex(selected_idx[0])
         else:
-            self.property_graph.setBackground("k")
-            #pgp.setConfigOption("foreground", "gray")
-        x = None
+            self.stacked_widget.setCurrentIndex(0)
 
-        if self.dataset is None or seqnum is None:
+
+    def seqview_add_sequence(self):
+        """Open the add sequence dialog box and if user does not
+        cancel, add a sequence. Either way, update the seq compare
+        and the properties windows."""
+        self.selected_seqs = None
+
+        dialog = AddSequenceDialog(self)
+        if dialog.exec():
+            seq, seq_type, pid_thresh, species = dialog.get_options()
+            if seq is None:
+                _ = QMessageBox.warning(self, "Sequence not processed",
+                        "The sequence and/or options you "
+                        "entered were not valid.", QMessageBox.Ok)
+                self.update_seq_comparison_tabs()
+                return
+            try:
+                self.selected_seqs = process_selected_seq(seq, seq_type,
+                    self.sc_annotator, self.pc_annotator,
+                    self.scoring_tool, self.vj_tool,
+                    self.liability_tool, self.scheme,
+                    pid_thresh, species)
+            except RuntimeError as e:
+                print(e)
+                # AntPack actually should not generate exceptions for unrecognized
+                # characters -- it will return an error message -- so exceptions
+                # here are unexpected. For now, handle with the default error
+                # message.
+                self.selected_seqs = None
+
+            if self.selected_seqs is None:
+                _ = QMessageBox.warning(self, "Sequence not processed",
+                        "The sequence you entered was rejected "
+                    "by AntPack's numbering tool. Common reasons include: "
+                    "lowercase letters, unrecognized amino acids (X and the "
+                    "typical 20 AAs are allowed but not gaps) and "
+                    "punctuation.", QMessageBox.Ok)
+
+        self.update_seq_comparison_tabs()
+
+
+
+    def update_seq_comparison_tabs(self):
+        """Updates the spreadsheet rows for comparing sequences
+        in the sequence viewer."""
+        self.heavy_chain_view.clear()
+        self.light_chain_view.clear()
+
+        if self.selected_seqs is None:
+            self.heavy_chain_view.setColumnCount(15)
+            self.heavy_chain_view.setRowCount(2)
+            self.light_chain_view.setColumnCount(15)
+            self.light_chain_view.setRowCount(2)
             return
-        elif seqnum >= self.dataset.get_num_seqs():
-            return
 
-        idx, x, y, metadata = self.dataset.get_property(seqnum, self.selected_property)
-        if len(x) == 0:
-            return
-
-        self.property_graph.setFixedWidth(len(x) * 30)
-
-        bar_graph = pgp.BarGraphItem(x=idx, y1=y, width=1)
-        self.property_graph.addItem(bar_graph)
-        self.property_graph.setLabel("left", self.selected_property)
-        self.property_graph.setLabel("bottom", metadata + "\n")
-        self.property_graph.getPlotItem().getAxis('bottom').setTicks([[(idn, nmbr)
-                for (idn, nmbr) in zip(idx, x) ]])
-        #self.property_graph.getPlotItem().getAxis('left').setWidth(20)
-        #self.property_graph.getPlotItem().getAxis('bottom').setHeight(20)
-
-
-
-    def theme_event(self):
-        """Switches between light and dark theme."""
-        if self.theme == "dark":
-            qdarktheme.setup_theme("light")
-            self.theme = "light"
+        if self.selected_seqs.get_num_light() == 0:
+            self.light_chain_view.setColumnCount(15)
+            self.light_chain_view.setRowCount(2)
         else:
-            qdarktheme.setup_theme("dark")
-            self.theme = "dark"
+            self.light_chain_view.setRowCount(self.selected_seqs.get_num_light())
+            light_nmbr = self.selected_seqs.get_light_numbering()
+            self.light_chain_view.setColumnCount(len(light_nmbr) + 3)
+            self.light_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
+            self.light_chain_view.setHorizontalHeaderItem(1, QTableWidgetItem("Percent\nidentity"))
+            self.light_chain_view.setHorizontalHeaderItem(2,
+                    QTableWidgetItem("Error message\n(if any)"))
+            for i, nmbr in enumerate(light_nmbr):
+                self.light_chain_view.setHorizontalHeaderItem(i+3, nmbr)
+            light_data = self.selected_seqs.get_light_data()
+            for i, (seq, pid, err, descrip) in enumerate(zip(light_data)):
+                self.light_chain_view.setItem(i, 0, QTableWidgetItem(descrip))
+                self.light_chain_view.setItem(i, 1, QTableWidgetItem(pid))
+                self.light_chain_view.setItem(i, 2, QTableWidgetItem(err))
+                for j, letter in enumerate(seq):
+                    self.light_chain_view.setItem(i, j+3, QTableWidgetItem(letter))
 
-        self.update_property_plot()
+        if self.selected_seqs.get_num_heavy() == 0:
+            self.heavy_chain_view.setColumnCount(15)
+            self.heavy_chain_view.setRowCount(2)
+        else:
+            self.heavy_chain_view.setRowCount(self.selected_seqs.get_num_heavy())
+            heavy_nmbr = self.selected_seqs.get_heavy_numbering()
+            self.heavy_chain_view.setColumnCount(len(heavy_nmbr) + 3)
+            self.heavy_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
+            self.heavy_chain_view.setHorizontalHeaderItem(1, QTableWidgetItem("Percent\nidentity"))
+            self.heavy_chain_view.setHorizontalHeaderItem(2,
+                    QTableWidgetItem("Error message\n(if any)"))
+            for i, nmbr in enumerate(heavy_nmbr):
+                self.heavy_chain_view.setHorizontalHeaderItem(i+3, QTableWidgetItem(nmbr))
+
+            heavy_data = self.selected_seqs.get_heavy_data()
+            for i in range(len(heavy_data[0])):
+                self.heavy_chain_view.setItem(i, 0, QTableWidgetItem(heavy_data[3][i]))
+                self.heavy_chain_view.setItem(i, 1, QTableWidgetItem(heavy_data[1][i]))
+                self.heavy_chain_view.setItem(i, 2, QTableWidgetItem(heavy_data[2][i]))
+                for j, letter in enumerate(heavy_data[0][i]):
+                    self.heavy_chain_view.setItem(i, j+3, QTableWidgetItem(letter))
+
+        self.heavy_chain_view.resizeColumnsToContents()
+        self.light_chain_view.resizeColumnsToContents()
+        self.heavy_chain_view.setStyleSheet("QTableWidget::item { padding: 0px }");
+        #self.heavy_chain_view.setDefaultSectionSize(self.heavy_chain_view.fontMetrics().height()+2)
+
 
 
     def set_imgt_scheme(self):
         """Sets numbering scheme to IMGT."""
         self.scheme = "imgt"
-        self.imgt_select.setChecked(1)
-        self.martin_select.setChecked(0)
-        self.kabat_select.setChecked(0)
+        self.sc_annotator = SingleChainAnnotator(scheme="imgt")
+        self.pc_annotator = PairedChainAnnotator(scheme="imgt")
+        self.vj_tool = VJGeneTool(scheme="imgt")
+        #self.imgt_select.setChecked(1)
+        #self.martin_select.setChecked(0)
+        #self.kabat_select.setChecked(0)
 
     def set_martin_scheme(self):
         """Sets numbering scheme to martin."""
         self.scheme = "martin"
-        self.martin_select.setChecked(1)
-        self.imgt_select.setChecked(0)
-        self.kabat_select.setChecked(0)
+        self.sc_annotator = SingleChainAnnotator(scheme="martin")
+        self.pc_annotator = PairedChainAnnotator(scheme="martin")
+        self.vj_tool = VJGeneTool(scheme="martin")
+        #self.martin_select.setChecked(1)
+        #self.imgt_select.setChecked(0)
+        #self.kabat_select.setChecked(0)
 
     def set_kabat_scheme(self):
         """Sets numbering scheme to Kabat."""
         self.scheme = "kabat"
-        self.kabat_select.setChecked(1)
-        self.martin_select.setChecked(0)
-        self.imgt_select.setChecked(0)
+        self.sc_annotator = SingleChainAnnotator(scheme="kabat")
+        self.pc_annotator = PairedChainAnnotator(scheme="kabat")
+        self.vj_tool = VJGeneTool(scheme="kabat")
+        #self.kabat_select.setChecked(1)
+        #self.martin_select.setChecked(0)
+        #self.imgt_select.setChecked(0)
