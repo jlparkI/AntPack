@@ -5,13 +5,12 @@ from PySide6.QtWidgets import (QMdiSubWindow, QWidget, QGraphicsDropShadowEffect
 
 
 class Delegate(QStyledItemDelegate):
-    def __init__(self, height=None, width=None):
+    def __init__(self, height=None):
         super(Delegate, self).__init__()
         if height is None:
             self._height = 45
         else:
             self._height = height
-        self._width = width
 
     def paint(self, painter, option, index):
         super(Delegate, self).paint(painter, option, index)
@@ -91,3 +90,8 @@ class SideMenuWidget(QWidget):
         self.layout.addWidget(self.listview)
 
         self.setStyleSheet("background: white;")
+
+    def sizeHint(self):
+        size_hint = self.listview.sizeHint()
+        size_hint.setWidth(200)
+        return size_hint
