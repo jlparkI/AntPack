@@ -53,7 +53,7 @@ class AddSequenceDialog(QDialog):
 
         species_label = QLabel("Select species for VJ genes:")
         self.species_menu = QComboBox()
-        self.species_list = ["human", "mouse"]
+        self.species_list = ["none", "human", "mouse"]
         for species in self.species_list:
             self.species_menu.addItem(species)
 

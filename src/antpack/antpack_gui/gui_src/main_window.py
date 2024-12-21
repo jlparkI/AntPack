@@ -3,7 +3,7 @@ import os
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout
 from PySide6.QtWidgets import QTableWidget, QMessageBox, QFileDialog, QTableWidgetItem, QScrollArea
-from PySide6.QtWidgets import QPushButton, QHBoxLayout, QStackedWidget, QSizePolicy, QLabel
+from PySide6.QtWidgets import QPushButton, QHBoxLayout, QStackedWidget, QSizePolicy, QLabel, QComboBox
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QIcon, QAction, QPixmap
 
@@ -74,14 +74,19 @@ class MainWindow(QMainWindow):
         add_seq_button = QPushButton("Add new sequence")
         add_seq_button.clicked.connect(self.seqview_add_sequence)
         top_box_layout.addWidget(add_seq_button)
+
+        table_coloration_label = QLabel("Color sequences by:")
+        self.table_coloration_menu = QComboBox()
+        self.coloration_options = ["CDR or framework", "humanness", "hydrophobicity"]
+        for option in self.coloration_options:
+            self.table_coloration_menu.addItem(option)
+        top_box_layout.addWidget(table_coloration_label)
+        top_box_layout.addWidget(self.table_coloration_menu)
         top_box_layout.addStretch(1)
 
         seq_view_tab1_layout.addLayout(top_box_layout)
         seq_view_tab1_layout.addStretch(1)
         seq_view_tabs.addTab(tab1, "Sequence View")
-        not_added = QLabel()
-        not_added.setPixmap(default_pixmap)
-        seq_view_tabs.addTab(not_added, "Property View")
 
         heavy_light_tabs = QTabWidget()
         seq_view_tab1_layout.addWidget(heavy_light_tabs)
@@ -185,6 +190,14 @@ class MainWindow(QMainWindow):
             self.heavy_chain_view.setRowCount(2)
             self.light_chain_view.setColumnCount(15)
             self.light_chain_view.setRowCount(2)
+            self.heavy_chain_view.horizontalHeader().setStyleSheet("""
+                            QHeaderView::section {padding-left: 20px; border: 0px;
+                                    padding-right: 5px}""")
+            self.heavy_chain_view.horizontalHeader().setStyleSheet("""
+                            QHeaderView::section {padding-left: 20px; border: 0px;
+                                    padding-right: 5px}""")
+            self.heavy_chain_view.resizeColumnsToContents()
+            self.light_chain_view.resizeColumnsToContents()
             return
 
         if self.selected_seqs.get_num_light() == 0:
@@ -208,6 +221,10 @@ class MainWindow(QMainWindow):
                 for j, letter in enumerate(seq):
                     self.light_chain_view.setItem(i, j+3, QTableWidgetItem(letter))
 
+            self.light_chain_view.horizontalHeader().setStyleSheet("""
+                            QHeaderView::section {padding-left: 0px; border: 0px;
+                                    padding-right: 0px}""")
+
         if self.selected_seqs.get_num_heavy() == 0:
             self.heavy_chain_view.setColumnCount(15)
             self.heavy_chain_view.setRowCount(2)
@@ -222,6 +239,10 @@ class MainWindow(QMainWindow):
             for i, nmbr in enumerate(heavy_nmbr):
                 self.heavy_chain_view.setHorizontalHeaderItem(i+3, QTableWidgetItem(nmbr))
 
+            self.heavy_chain_view.horizontalHeader().setStyleSheet("""
+                            QHeaderView::section {padding-left: 0px; border: 0px;
+                                    padding-right: 0px}""")
+
             heavy_data = self.selected_seqs.get_heavy_data()
             for i in range(len(heavy_data[0])):
                 self.heavy_chain_view.setItem(i, 0, QTableWidgetItem(heavy_data[3][i]))
@@ -232,8 +253,6 @@ class MainWindow(QMainWindow):
 
         self.heavy_chain_view.resizeColumnsToContents()
         self.light_chain_view.resizeColumnsToContents()
-        self.heavy_chain_view.setStyleSheet("QTableWidget::item { padding: 0px }");
-        #self.heavy_chain_view.setDefaultSectionSize(self.heavy_chain_view.fontMetrics().height()+2)
 
 
 
