@@ -229,7 +229,7 @@ class TestVJGeneTool(unittest.TestCase):
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
 
-        for alternate_scheme in ["aho", "kabat", "aho"]:
+        for alternate_scheme in ["aho", "kabat", "martin"]:
             alternate_tool = VJGeneTool(scheme=alternate_scheme)
             alternate_aligner = SingleChainAnnotator(scheme=alternate_scheme)
 

@@ -79,13 +79,9 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
         double, std::string, std::string> alignment, std::string sequence,
         std::string species, std::string mode) {
 
-    if (species != "human" && species != "mouse" && species != "alpaca") {
+    if (species != "human" && species != "mouse") {
         throw std::runtime_error(std::string("Species for VJ gene "
-                    "assignment must be one of 'human', 'mouse', 'alpaca'."));
-    }
-    if (species == "alpaca" && std::get<2>(alignment) != "H") {
-        throw std::runtime_error(std::string("If the species is alpaca, "
-                    "only heavy chains should be supplied."));
+                    "assignment must be one of 'human', 'mouse'."));
     }
 
     if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&

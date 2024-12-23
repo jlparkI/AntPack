@@ -41,20 +41,9 @@ class VJMatchCounter {
                 std::string scheme,
                 std::string consensus_filepath);
 
-        /// @brief Assigns v and j genes to the input sequence (which has
-        ///        already been numbered, presumably by AntPack).
-        /// @param alignment A tuple containing the output of AntPack's single
-        ///                  or paired chain annotator.
-        /// @param sequence The sequence as a string. Should not contain gaps.
-        /// @param species The species as a string. One of "human", "mouse",
-        ///                "alpaca".
-        /// @param mode One of "identity" or "evalue"; determines how vj genes
-        ///             are assigned.
-        std::tuple<std::string, std::string, double, double>
-            assign_vj_genes(std::tuple<std::vector<std::string>,
-                double, std::string, std::string> alignment,
-                std::string sequence, std::string species,
-                std::string mode = "identity");
+        std::tuple<std::string, std::string, double, double> assign_vj_genes(std::tuple<std::vector<std::string>,
+                double, std::string, std::string> alignment, std::string sequence,
+                std::string species, std::string mode);
 
         std::string get_vj_gene_sequence(std::string query_name,
                 std::string species);

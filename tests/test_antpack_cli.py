@@ -6,9 +6,8 @@ import os
 import subprocess
 import random
 import gzip
-import numpy as np
 import unittest
-from Bio import SeqIO
+import numpy as np
 from antpack import PairedChainAnnotator, SingleChainAnnotator, VJGeneTool
 
 
@@ -33,7 +32,7 @@ class TestAntPackCLI(unittest.TestCase):
                 fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
 
 
-        _ = subprocess.run(["AntPack", "input_fasta_data.fasta",
+        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
                 "output_data", "imgt", "--paired"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
@@ -86,7 +85,7 @@ class TestAntPackCLI(unittest.TestCase):
                 fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
 
 
-        _ = subprocess.run(["AntPack", "input_fasta_data.fasta", "output_data",
+        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
             "imgt", "--paired", "--vj", "human", "identity"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
@@ -158,7 +157,7 @@ class TestAntPackCLI(unittest.TestCase):
             for i, seq in enumerate(seqs):
                 fhandle.write(f">this is sequence # {i}\n{seq}\n")
 
-        _ = subprocess.run(["AntPack", "input_fasta_data.fasta", "output_data",
+        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
             "imgt"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
@@ -204,7 +203,7 @@ class TestAntPackCLI(unittest.TestCase):
             for i, seq in enumerate(seqs):
                 fhandle.write(f">this is sequence # {i}\n{seq}\n")
 
-        _ = subprocess.run(["AntPack", "input_fasta_data.fasta", "output_data",
+        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
             "imgt", "--vj", "human", "identity"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
