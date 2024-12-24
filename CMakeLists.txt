@@ -44,6 +44,16 @@ execute_process(
 find_package(nanobind CONFIG REQUIRED)
 
 
+# Now add requirements for Qt.
+find_package(Qt6 COMPONENTS Widgets PrintSupport REQUIRED)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+INCLUDE_DIRECTORIES(src/antpack/antpack_gui)
+INCLUDE_DIRECTORIES(${Qt6Widgets_INCLUDE_DIRS})
+
+
+# Link to the Qt Core library
+# target_link_libraries(${SKBUILD_PROJECT_NAME} Qt${QT_VERSION_MAJOR}::Core)
 
 
 nanobind_add_module(
@@ -78,4 +88,25 @@ nanobind_add_module(
 
 )
 
-install(TARGETS antpack_cpp_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
+
+nanobind_add_module(
+  antpack_gui_ext
+
+  # Target the stable ABI for Python 3.12+, which reduces
+  # the number of binary wheels that must be built. This
+  # does nothing on older Python versions
+  STABLE_ABI
+
+  NB_STATIC
+
+    src/antpack/antpack_gui/antpack_gui_ext.cpp
+    src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp
+    src/antpack/antpack_gui/gui_cpp_src/main_window.cpp
+
+)
+
+
+target_link_libraries(antpack_gui_ext PUBLIC PRIVATE Qt6::Widgets Qt6::PrintSupport)
+
+install(TARGETS antpack_cpp_ext antpack_gui_ext
+    LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

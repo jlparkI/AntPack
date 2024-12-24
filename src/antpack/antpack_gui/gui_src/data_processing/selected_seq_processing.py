@@ -4,12 +4,11 @@ from antpack import VJGeneTool
 
 
 
-class SelectedSequenceData:
+class VJComparisonData:
 
 
     def __init__(self, heavy_nmbr, light_nmbr, seq,
-            sc_tool, vj_tool, score_tool,
-            species):
+            sc_tool, vj_tool, species):
         self.full_sequence = seq
 
         self.heavy_seqs = []
@@ -101,10 +100,66 @@ class SelectedSequenceData:
 
 
 
-def process_selected_seq(seq, seq_type,
+class MultiSequenceData:
+
+
+    def __init__(self):
+        self.full_sequence = seq
+
+        self.heavy_seqs = []
+        self.heavy_pid = []
+        self.heavy_err = []
+        self.heavy_nmbr = []
+        self.seq_names = []
+
+        self.light_seqs = []
+        self.light_pid = []
+        self.light_err = []
+        self.light_nmbr = []
+
+
+
+    def get_num_heavy(self):
+        """Returns number of loaded heavy sequences."""
+        return len(self.heavy_seqs)
+
+
+    def get_num_light(self):
+        """Returns number of loaded light sequences."""
+        return len(self.light_seqs)
+
+
+    def get_heavy_data(self):
+        """Returns the lists associated with the heavy chain."""
+        return self.heavy_seqs, self.heavy_pid, self.heavy_err, self.seq_names
+
+    def get_light_data(self):
+        """Returns the lists associated with the light chain."""
+        return self.light_seqs, self.light_pid, self.light_err, self.seq_names
+
+    def get_heavy_numbering(self):
+        """Returns the heavy numbering (for the spreadsheet header)."""
+        return self.heavy_nmbr
+
+    def get_light_numbering(self):
+        """Returns the light numbering (for the spreadsheet header)."""
+        return self.light_nmbr
+
+
+    def add_sequence(self, seq, heavy_numbering, light_numbering):
+        """Adds a sequence which may contain a heavy chain, a light
+        chain or both to the sequence list. Note that unlike the
+        VJ comparison, if a sequence contains no heavy or light
+        chain, we add a blank sequence (so that heavy and light
+        are always the same length)."""
+
+
+
+
+
+def process_for_vj_comparison(seq, seq_type,
         sc_annotator, pc_annotator,
-        scoring_tool, vj_tool,
-        liability_tool, scheme,
+        vj_tool, liability_tool, scheme,
         pid_threshold = 0.7,
         species = "human"):
     """Get numbering and VJ genes for the input
@@ -133,7 +188,6 @@ def process_selected_seq(seq, seq_type,
     if heavy_nmbr is None and light_nmbr is None:
         return None
 
-    ssd = SelectedSequenceData(heavy_nmbr, light_nmbr,
-            seq, sc_annotator, vj_tool, scoring_tool,
-            species)
+    ssd = VJComparisonData(heavy_nmbr, light_nmbr,
+            seq, sc_annotator, vj_tool, species)
     return ssd

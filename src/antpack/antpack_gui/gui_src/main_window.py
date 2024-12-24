@@ -1,10 +1,10 @@
 """Describes the MainWindow class which forms the core of the application."""
 import os
 from PySide6 import QtWidgets
-from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QMenuBar, QFrame
 from PySide6.QtWidgets import QTableWidget, QMessageBox, QFileDialog, QTableWidgetItem, QScrollArea
 from PySide6.QtWidgets import QPushButton, QHBoxLayout, QStackedWidget, QSizePolicy, QLabel, QComboBox
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QAction, QPixmap
 
 from antpack import SingleChainAnnotator, PairedChainAnnotator, SequenceScoringTool
@@ -13,7 +13,6 @@ from antpack import VJGeneTool, LiabilitySearchTool
 from .data_processing.selected_seq_processing import process_selected_seq
 from .custom_widgets.sidebar import SideMenuWidget
 from .dialogs.add_sequence_dialog import AddSequenceDialog
-from .ui_construction.tab_builder import build_menubar
 
 
 class MainWindow(QMainWindow):
@@ -75,13 +74,19 @@ class MainWindow(QMainWindow):
         add_seq_button.clicked.connect(self.seqview_add_sequence)
         top_box_layout.addWidget(add_seq_button)
 
-        table_coloration_label = QLabel("Color sequences by:")
-        self.table_coloration_menu = QComboBox()
-        self.coloration_options = ["CDR or framework", "humanness", "hydrophobicity"]
-        for option in self.coloration_options:
-            self.table_coloration_menu.addItem(option)
-        top_box_layout.addWidget(table_coloration_label)
-        top_box_layout.addWidget(self.table_coloration_menu)
+        vj_compare = QPushButton("Compare single sequence\nwith VJ genes")
+        vj_compare.clicked.connect(self.seqview_compare_with_vj)
+        top_box_layout.addWidget(vj_compare)
+
+        #side_box_layout = QVBoxLayout()
+        #table_coloration_label = QLabel("Color sequences by:")
+        #self.table_coloration_menu = QComboBox()
+        #self.coloration_options = ["CDR or framework", "hydrophobicity"]
+        #for option in self.coloration_options:
+        #    self.table_coloration_menu.addItem(option)
+        #side_box_layout.addWidget(table_coloration_label, Qt.AlignCenter)
+        #side_box_layout.addWidget(self.table_coloration_menu)
+        #top_box_layout.addLayout(side_box_layout)
         top_box_layout.addStretch(1)
 
         seq_view_tab1_layout.addLayout(top_box_layout)
@@ -119,8 +124,31 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
 
         # Next add menu options and the menu bar.
-        self.setMenuBar(build_menubar(self))
+        menu_bar = QMenuBar()
+        file_menu = menu_bar.addMenu("File")
 
+        num_scheme_select = file_menu.addMenu("Select numbering scheme")
+        self.imgt_select = QAction("IMGT", checkable=True)
+        self.imgt_select.triggered.connect(self.set_imgt_scheme)
+        self.imgt_select.setChecked(1)
+        num_scheme_select.addAction(self.imgt_select)
+
+        self.kabat_select = QAction("Kabat", checkable=True)
+        self.kabat_select.triggered.connect(self.set_kabat_scheme)
+        num_scheme_select.addAction(self.kabat_select)
+        self.martin_select = QAction("Martin", checkable=True)
+        self.martin_select.triggered.connect(self.set_martin_scheme)
+        num_scheme_select.addAction(self.martin_select)
+        self.aho_select = QAction("Aho", checkable=True)
+        self.aho_select.triggered.connect(self.set_aho_scheme)
+        num_scheme_select.addAction(self.aho_select)
+
+        quit_command = QAction("Quit", self)
+        quit_command.triggered.connect(self.quit_event)
+        quit_command.setShortcut('Ctrl+Q')
+        file_menu.addAction(quit_command)
+
+        self.setMenuBar(menu_bar)
 
 
 
@@ -176,6 +204,48 @@ class MainWindow(QMainWindow):
                     "punctuation.", QMessageBox.Ok)
 
         self.update_seq_comparison_tabs()
+
+
+
+
+    def seqview_compare_with_vj(self):
+        """Open a dialog box for settings for comparing a
+        sequence with the most similar VJ genes."""
+        self.selected_seqs = None
+
+        dialog = AddSequenceDialog(self)
+        if dialog.exec():
+            seq, seq_type, pid_thresh, species = dialog.get_options()
+            if seq is None:
+                _ = QMessageBox.warning(self, "Sequence not processed",
+                        "The sequence and/or options you "
+                        "entered were not valid.", QMessageBox.Ok)
+                self.update_seq_comparison_tabs()
+                return
+            try:
+                self.selected_seqs = process_selected_seq(seq, seq_type,
+                    self.sc_annotator, self.pc_annotator,
+                    self.scoring_tool, self.vj_tool,
+                    self.liability_tool, self.scheme,
+                    pid_thresh, species)
+            except RuntimeError as e:
+                print(e)
+                # AntPack actually should not generate exceptions for unrecognized
+                # characters -- it will return an error message -- so exceptions
+                # here are unexpected. For now, handle with the default error
+                # message.
+                self.selected_seqs = None
+
+            if self.selected_seqs is None:
+                _ = QMessageBox.warning(self, "Sequence not processed",
+                        "The sequence you entered was rejected "
+                    "by AntPack's numbering tool. Common reasons include: "
+                    "lowercase letters, unrecognized amino acids (X and the "
+                    "typical 20 AAs are allowed but not gaps) and "
+                    "punctuation.", QMessageBox.Ok)
+
+        self.update_seq_comparison_tabs()
+
 
 
 
@@ -259,29 +329,50 @@ class MainWindow(QMainWindow):
     def set_imgt_scheme(self):
         """Sets numbering scheme to IMGT."""
         self.scheme = "imgt"
-        self.sc_annotator = SingleChainAnnotator(scheme="imgt")
-        self.pc_annotator = PairedChainAnnotator(scheme="imgt")
-        self.vj_tool = VJGeneTool(scheme="imgt")
-        #self.imgt_select.setChecked(1)
-        #self.martin_select.setChecked(0)
-        #self.kabat_select.setChecked(0)
+        self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
+        self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
+        self.selected_seqs = None
+        self.imgt_select.setChecked(1)
+        self.martin_select.setChecked(0)
+        self.kabat_select.setChecked(0)
+        self.aho_select.setChecked(0)
+        self.update_seq_comparison_tabs()
+
 
     def set_martin_scheme(self):
         """Sets numbering scheme to martin."""
         self.scheme = "martin"
-        self.sc_annotator = SingleChainAnnotator(scheme="martin")
-        self.pc_annotator = PairedChainAnnotator(scheme="martin")
-        self.vj_tool = VJGeneTool(scheme="martin")
-        #self.martin_select.setChecked(1)
-        #self.imgt_select.setChecked(0)
-        #self.kabat_select.setChecked(0)
+        self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
+        self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
+        self.selected_seqs = None
+        self.martin_select.setChecked(1)
+        self.imgt_select.setChecked(0)
+        self.kabat_select.setChecked(0)
+        self.aho_select.setChecked(0)
+        self.update_seq_comparison_tabs()
+
 
     def set_kabat_scheme(self):
         """Sets numbering scheme to Kabat."""
         self.scheme = "kabat"
-        self.sc_annotator = SingleChainAnnotator(scheme="kabat")
-        self.pc_annotator = PairedChainAnnotator(scheme="kabat")
-        self.vj_tool = VJGeneTool(scheme="kabat")
-        #self.kabat_select.setChecked(1)
-        #self.martin_select.setChecked(0)
-        #self.imgt_select.setChecked(0)
+        self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
+        self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
+        self.selected_seqs = None
+        self.kabat_select.setChecked(1)
+        self.martin_select.setChecked(0)
+        self.imgt_select.setChecked(0)
+        self.aho_select.setChecked(0)
+        self.update_seq_comparison_tabs()
+
+
+    def set_aho_scheme(self):
+        """Sets numbering scheme to aho."""
+        self.scheme = "aho"
+        self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
+        self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
+        self.selected_seqs = None
+        self.kabat_select.setChecked(0)
+        self.martin_select.setChecked(0)
+        self.imgt_select.setChecked(0)
+        self.aho_select.setChecked(1)
+        self.update_seq_comparison_tabs()
