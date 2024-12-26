@@ -30,8 +30,21 @@ project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
+set(Qt6_DIR "C:/Qt/6.8.0/msvc2022_64/lib/cmake/Qt6")
+set(CMAKE_PREFIX_PATH "C:/Qt/6.8.0/msvc2022_64")
+set(Qt6_USE_STATIC_LIBS TRUE)
+set(QT_DEBUG_FIND_PACKAGE ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+# Extremely annoying but for some reason MSVC requires an additional flag
+# to be set.
+if (MSVC)
+    add_compile_options("/Zc:__cplusplus" "/permissive-")
+endif()
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
@@ -45,15 +58,12 @@ find_package(nanobind CONFIG REQUIRED)
 
 
 # Now add requirements for Qt.
-find_package(Qt6 COMPONENTS Widgets PrintSupport REQUIRED)
+find_package(Qt6 COMPONENTS Widgets PrintSupport Core REQUIRED)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 INCLUDE_DIRECTORIES(src/antpack/antpack_gui)
 INCLUDE_DIRECTORIES(${Qt6Widgets_INCLUDE_DIRS})
 
-
-# Link to the Qt Core library
-# target_link_libraries(${SKBUILD_PROJECT_NAME} Qt${QT_VERSION_MAJOR}::Core)
 
 
 nanobind_add_module(
@@ -106,7 +116,24 @@ nanobind_add_module(
 )
 
 
-target_link_libraries(antpack_gui_ext PUBLIC PRIVATE Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(antpack_gui_ext PRIVATE Qt6::Widgets Qt6::PrintSupport Qt6::Gui Qt6::Core)
 
 install(TARGETS antpack_cpp_ext antpack_gui_ext
     LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
+
+
+add_custom_command(TARGET antpack_gui_ext POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> $<TARGET_FILE_DIR:antpack_gui_ext>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> $<TARGET_FILE_DIR:antpack_gui_ext>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> $<TARGET_FILE_DIR:antpack_gui_ext>
+        )
+add_custom_command(TARGET antpack_gui_ext POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> ${CMAKE_INSTALL_BINDIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> ${CMAKE_INSTALL_BINDIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> ${CMAKE_INSTALL_BINDIR}
+        )
+add_custom_command(TARGET antpack_gui_ext POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> ${CMAKE_INSTALL_LIBDIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> ${CMAKE_INSTALL_LIBDIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> ${CMAKE_INSTALL_LIBDIR}
+        )

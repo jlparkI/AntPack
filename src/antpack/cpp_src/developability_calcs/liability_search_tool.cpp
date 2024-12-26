@@ -47,7 +47,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                     "please report."));
     }
 
-    int sequence_length = sequence.length();
+    size_t sequence_length = sequence.length();
     std::vector<std::pair<std::pair<int, int>, std::string>> output;
 
     for (size_t i=0; i < sequence_length; i++) {

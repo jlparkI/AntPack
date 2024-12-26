@@ -2,6 +2,8 @@
 #define IG_NUMBERING_CONSTANTS_INCLUDE_H
 
 
+#include <array>
+
 /*************************************************
  * There are numerous "magic numbers" involved in antibody
  * numbering -- the start and end of the CDRs in each numbering

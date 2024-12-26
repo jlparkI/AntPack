@@ -1,4 +1,5 @@
 // C++ headers
+#include <QMainWindow>
 #include <QApplication>
 
 // Library headers

@@ -1,3 +1,2 @@
 from .single_chain_annotator import SingleChainAnnotator
 from .paired_chain_annotator import PairedChainAnnotator
-from .cterm_finder import PyCTermFinder

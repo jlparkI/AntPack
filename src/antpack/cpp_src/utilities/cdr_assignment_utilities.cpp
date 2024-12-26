@@ -2,6 +2,7 @@
 #include <tuple>
 #include <string>
 #include <vector>
+#include <array>
 #include <stdexcept>
 
 // Library headers
