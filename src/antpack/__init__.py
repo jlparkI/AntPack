@@ -13,6 +13,5 @@ from antpack.antpack_cpp_ext import LiabilitySearchTool
 from .antpack_cli import run_cli_interface
 
 pyside = importlib.util.find_spec("PySide6")
-matplot = importlib.util.find_spec("matplotlib")
-if pyside is not None and matplot is not None:
+if pyside is not None:
     from .antpack_gui.seq_viewer import run_seq_viewer

@@ -1,0 +1,1679 @@
+  Running command pip subprocess to install build dependencies
+  Collecting scikit-build-core>=0.4.3
+    Using cached scikit_build_core-0.10.7-py3-none-any.whl (165 kB)
+  Collecting numpy
+    Using cached numpy-2.2.1-cp310-cp310-manylinux_2_17_x86_64  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Installing backend dependencies: started
+  Installing backend dependencies: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: numpy in /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages (from antpack==0.3.7) (1.26.1)
+Building wheels for collected packages: antpack
+  Building editable for antpack (pyproject.toml): started
+  Building editable for antpack (pyproject.toml): finished with status 'done'
+  Created wheel for antpack: filename=antpack-0.3.7-cp310-cp310-linux_x86_64.whl size=238051 sha256=2fc7c3b2fd475c69fd43df9d550a576f3cb6a7d19f00ee0580cda8e8e37c0cb2
+  Stored in directory: /tmp/pip-ephem-wheel-cache-dwzvjuh8/wheels/c5/4b/df/d67fdcd943eebaf2dab99bbe329b913382ba49b0699b516fc8
+Successfully built antpack
+Installing collected packages: antpack
+  Attempting uninstall: antpack
+    Found existing installation: antpack 0.3.7
+    Uninstalling antpack-0.3.7:
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/AntPack-CLI
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/AntPack-SeqView
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages/__pycache__/_antpack_editable.cpython-310.pyc
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages/_antpack_editable.pth
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages/_antpack_editable.py
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages/antpack-0.3.7.dist-info/
+      Removing file or directory /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages/antpack/
+      Successfully uninstalled antpack-0.3.7
+  changing mode of /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/AntPack-CLI to 775
+  changing mode of /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/AntPack-SeqView to 775
+Successfully installed antpack-0.3.7
+ - New isolated environment /tmp/pip-build-env-zih2fwjl/overlay/lib/python3.10/site-packages/scikit_build_core -> /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/scikit_build_core, clearing cache
+  *** Configuring CMake...
+  2024-12-31 06:49:18,922 - scikit_build_core - INFO - RUN: ninja --version
+  2024-12-31 06:49:18,923 - scikit_build_core - INFO - Ninja version: 1.11.1
+  2024-12-31 06:49:18,956 - scikit_build_core - INFO - RUN: /usr/bin/cmake -S. -Bbuild/cp310-cp310-linux_x86_64 -DCMAKE_BUILD_TYPE:STRING=Release -Cbuild/cp310-cp310-linux_x86_64/CMakeInit.txt -DCMAKE_INSTALL_PREFIX=/tmp/tmpb4us1u45/wheel/platlib -DCMAKE_MAKE_PROGRAM=ninja
+  loading initial cache file build/cp310-cp310-linux_x86_64/CMakeInit.txt
+  -- The CXX compiler identification is GNU 11.4.0
+  -- Detecting CXX compiler ABI info
+  -- Detecting CXX compiler ABI info - done
+  -- Check for working CXX compiler: /usr/bin/x86_64-linux-gnu-g++ - skipped
+  -- Detecting CXX compile features
+  -- Detecting CXX compile features - done
+  -- Found Python: /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3 (found suitable version "3.10.12", minimum required is "3.8") found components: Interpreter Development.Module
+  -- Looking for C++ include pthread.h
+  -- Looking for C++ include pthread.h - found
+  -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+  -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+  -- Found Threads: TRUE
+  -- Performing Test HAVE_STDATOMIC
+  -- Performing Test HAVE_STDATOMIC - Success
+  -- Found WrapAtomic: TRUE
+  -- Found OpenGL: /usr/lib/x86_64-linux-gnu/libOpenGL.so
+  -- Found WrapOpenGL: TRUE
+  -- Could NOT find XKB (missing: XKB_LIBRARY XKB_INCLUDE_DIR) (Required is at least version "0.5.0")
+  -- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR)
+  -- CHECK_INCLUDE_FILE_VAR=pthread.h
+  -- CMAKE_ADDR2LINE=/usr/bin/x86_64-linux-gnu-addr2line
+  -- CMAKE_AR=/usr/bin/x86_64-linux-gnu-ar
+  -- CMAKE_AR=/usr/bin/x86_64-linux-gnu-ar
+  -- CMAKE_AUTOGEN_ORIGIN_DEPENDS=ON
+  -- CMAKE_AUTOMOC=ON
+  -- CMAKE_AUTOMOC_COMPILER_PREDEFINES=ON
+  -- CMAKE_AUTOMOC_MACRO_NAMES=Q_OBJECT;Q_GADGET;Q_NAMESPACE;Q_NAMESPACE_EXPORT
+  -- CMAKE_AUTOMOC_PATH_PREFIX=OFF
+  -- CMAKE_AUTORCC=ON
+  -- CMAKE_AUTOUIC=ON
+  -- CMAKE_BASE_NAME=g++
+  -- CMAKE_BINARY_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64
+  -- CMAKE_BUILD_TOOL=ninja
+  -- CMAKE_BUILD_TYPE=Release
+  -- CMAKE_CFG_INTDIR=.
+  -- CMAKE_COMMAND=/usr/bin/cmake
+  -- CMAKE_COMPILER_IS_GNUCXX=1
+  -- CMAKE_CPACK_COMMAND=/usr/bin/cpack
+  -- CMAKE_CROSSCOMPILING=FALSE
+  -- CMAKE_CTEST_COMMAND=/usr/bin/ctest
+  -- CMAKE_CURRENT_BINARY_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64
+  -- CMAKE_CURRENT_LIST_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack
+  -- CMAKE_CURRENT_LIST_FILE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/CMakeLists.txt
+  -- CMAKE_CURRENT_SOURCE_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack
+  -- CMAKE_CXX11_COMPILE_FEATURES=cxx_std_11;cxx_alias_templates;cxx_alignas;cxx_alignof;cxx_attributes;cxx_auto_type;cxx_constexpr;cxx_decltype;cxx_decltype_incomplete_return_types;cxx_default_function_template_args;cxx_defaulted_functions;cxx_defaulted_move_initializers;cxx_delegating_constructors;cxx_deleted_functions;cxx_enum_forward_declarations;cxx_explicit_conversions;cxx_extended_friend_declarations;cxx_extern_templates;cxx_final;cxx_func_identifier;cxx_generalized_initializers;cxx_inheriting_constructors;cxx_inline_namespaces;cxx_lambdas;cxx_local_type_template_args;cxx_long_long_type;cxx_noexcept;cxx_nonstatic_member_init;cxx_nullptr;cxx_override;cxx_range_for;cxx_raw_string_literals;cxx_reference_qualified_functions;cxx_right_angle_brackets;cxx_rvalue_references;cxx_sizeof_member;cxx_static_assert;cxx_strong_enums;cxx_thread_local;cxx_trailing_return_types;cxx_unicode_literals;cxx_uniform_initialization;cxx_unrestricted_unions;cxx_user_literals;cxx_variadic_macros;cxx_variadic_templates
+  -- CMAKE_CXX11_EXTENSION_COMPILE_OPTION=-std=gnu++11
+  -- CMAKE_CXX11_STANDARD_COMPILE_OPTION=-std=c++11
+  -- CMAKE_CXX11_STANDARD__HAS_FULL_SUPPORT=ON
+  -- CMAKE_CXX14_COMPILE_FEATURES=cxx_std_14;cxx_aggregate_default_initializers;cxx_attribute_deprecated;cxx_binary_literals;cxx_contextual_conversions;cxx_decltype_auto;cxx_digit_separators;cxx_generic_lambdas;cxx_lambda_init_captures;cxx_relaxed_constexpr;cxx_return_type_deduction;cxx_variable_templates
+  -- CMAKE_CXX14_EXTENSION_COMPILE_OPTION=-std=gnu++14
+  -- CMAKE_CXX14_STANDARD_COMPILE_OPTION=-std=c++14
+  -- CMAKE_CXX14_STANDARD__HAS_FULL_SUPPORT=ON
+  -- CMAKE_CXX17_COMPILE_FEATURES=cxx_std_17
+  -- CMAKE_CXX17_EXTENSION_COMPILE_OPTION=-std=gnu++17
+  -- CMAKE_CXX17_STANDARD_COMPILE_OPTION=-std=c++17
+  -- CMAKE_CXX20_COMPILE_FEATURES=cxx_std_20
+  -- CMAKE_CXX20_EXTENSION_COMPILE_OPTION=-std=gnu++20
+  -- CMAKE_CXX20_STANDARD_COMPILE_OPTION=-std=c++20
+  -- CMAKE_CXX23_COMPILE_FEATURES=cxx_std_23
+  -- CMAKE_CXX23_EXTENSION_COMPILE_OPTION=-std=gnu++23
+  -- CMAKE_CXX23_STANDARD_COMPILE_OPTION=-std=c++23
+  -- CMAKE_CXX98_COMPILE_FEATURES=cxx_std_98;cxx_template_template_parameters
+  -- CMAKE_CXX98_EXTENSION_COMPILE_OPTION=-std=gnu++98
+  -- CMAKE_CXX98_STANDARD_COMPILE_OPTION=-std=c++98
+  -- CMAKE_CXX98_STANDARD__HAS_FULL_SUPPORT=ON
+  -- CMAKE_CXX_ABI_COMPILED=TRUE
+  -- CMAKE_CXX_ARCHIVE_APPEND=<CMAKE_AR> q <TARGET> <LINK_FLAGS> <OBJECTS>
+  -- CMAKE_CXX_ARCHIVE_APPEND_IPO="/usr/bin/x86_64-linux-gnu-gcc-ar-11" r <TARGET> <LINK_FLAGS> <OBJECTS>
+  -- CMAKE_CXX_ARCHIVE_CREATE=<CMAKE_AR> qc <TARGET> <LINK_FLAGS> <OBJECTS>
+  -- CMAKE_CXX_ARCHIVE_CREATE_IPO="/usr/bin/x86_64-linux-gnu-gcc-ar-11" cr <TARGET> <LINK_FLAGS> <OBJECTS>
+  -- CMAKE_CXX_ARCHIVE_FINISH=<CMAKE_RANLIB> <TARGET>
+  -- CMAKE_CXX_ARCHIVE_FINISH_IPO="/usr/bin/x86_64-linux-gnu-gcc-ranlib-11" <TARGET>
+  -- CMAKE_CXX_BYTE_ORDER=LITTLE_ENDIAN
+  -- CMAKE_CXX_CL_SHOWINCLUDES_PREFIX=
+  -- CMAKE_CXX_COMPILER=/usr/bin/x86_64-linux-gnu-g++
+  -- CMAKE_CXX_COMPILER=/usr/bin/x86_64-linux-gnu-g++
+  -- CMAKE_CXX_COMPILER_ABI=ELF
+  -- CMAKE_CXX_COMPILER_AR=/usr/bin/x86_64-linux-gnu-gcc-ar-11
+  -- CMAKE_CXX_COMPILER_AR=/usr/bin/x86_64-linux-gnu-gcc-ar-11
+  -- CMAKE_CXX_COMPILER_ARCHITECTURE_ID=
+  -- CMAKE_CXX_COMPILER_ARG1=
+  -- CMAKE_CXX_COMPILER_ENV_VAR=CXX
+  -- CMAKE_CXX_COMPILER_FRONTEND_VARIANT=
+  -- CMAKE_CXX_COMPILER_ID=GNU
+  -- CMAKE_CXX_COMPILER_ID_PLATFORM_CONTENT=#define STRINGIFY_HELPER(X) #X
+  #define STRINGIFY(X) STRINGIFY_HELPER(X)
+
+  /* Identify known platforms by name.  */
+  #if defined(__linux) || defined(__linux__) || defined(linux)
+  # define PLATFORM_ID "Linux"
+
+  #elif defined(__MSYS__)
+  # define PLATFORM_ID "MSYS"
+
+  #elif defined(__CYGWIN__)
+  # define PLATFORM_ID "Cygwin"
+
+  #elif defined(__MINGW32__)
+  # define PLATFORM_ID "MinGW"
+
+  #elif defined(__APPLE__)
+  # define PLATFORM_ID "Darwin"
+
+  #elif defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+  # define PLATFORM_ID "Windows"
+
+  #elif defined(__FreeBSD__) || defined(__FreeBSD)
+  # define PLATFORM_ID "FreeBSD"
+
+  #elif defined(__NetBSD__) || defined(__NetBSD)
+  # define PLATFORM_ID "NetBSD"
+
+  #elif defined(__OpenBSD__) || defined(__OPENBSD)
+  # define PLATFORM_ID "OpenBSD"
+
+  #elif defined(__sun) || defined(sun)
+  # define PLATFORM_ID "SunOS"
+
+  #elif defined(_AIX) || defined(__AIX) || defined(__AIX__) || defined(__aix) || defined(__aix__)
+  # define PLATFORM_ID "AIX"
+
+  #elif defined(__hpux) || defined(__hpux__)
+  # define PLATFORM_ID "HP-UX"
+
+  #elif defined(__HAIKU__)
+  # define PLATFORM_ID "Haiku"
+
+  #elif defined(__BeOS) || defined(__BEOS__) || defined(_BEOS)
+  # define PLATFORM_ID "BeOS"
+
+  #elif defined(__QNX__) || defined(__QNXNTO__)
+  # define PLATFORM_ID "QNX"
+
+  #elif defined(__tru64) || defined(_tru64) || defined(__TRU64__)
+  # define PLATFORM_ID "Tru64"
+
+  #elif defined(__riscos) || defined(__riscos__)
+  # define PLATFORM_ID "RISCos"
+
+  #elif defined(__sinix) || defined(__sinix__) || defined(__SINIX__)
+  # define PLATFORM_ID "SINIX"
+
+  #elif defined(__UNIX_SV__)
+  # define PLATFORM_ID "UNIX_SV"
+
+  #elif defined(__bsdos__)
+  # define PLATFORM_ID "BSDOS"
+
+  #elif defined(_MPRAS) || defined(MPRAS)
+  # define PLATFORM_ID "MP-RAS"
+
+  #elif defined(__osf) || defined(__osf__)
+  # define PLATFORM_ID "OSF1"
+
+  #elif defined(_SCO_SV) || defined(SCO_SV) || defined(sco_sv)
+  # define PLATFORM_ID "SCO_SV"
+
+  #elif defined(__ultrix) || defined(__ultrix__) || defined(_ULTRIX)
+  # define PLATFORM_ID "ULTRIX"
+
+  #elif defined(__XENIX__) || defined(_XENIX) || defined(XENIX)
+  # define PLATFORM_ID "Xenix"
+
+  #elif defined(__WATCOMC__)
+  # if defined(__LINUX__)
+  #  define PLATFORM_ID "Linux"
+
+  # elif defined(__DOS__)
+  #  define PLATFORM_ID "DOS"
+
+  # elif defined(__OS2__)
+  #  define PLATFORM_ID "OS2"
+
+  # elif defined(__WINDOWS__)
+  #  define PLATFORM_ID "Windows3x"
+
+  # elif defined(__VXWORKS__)
+  #  define PLATFORM_ID "VxWorks"
+
+  # else /* unknown platform */
+  #  define PLATFORM_ID
+  # endif
+
+  #elif defined(__INTEGRITY)
+  # if defined(INT_178B)
+  #  define PLATFORM_ID "Integrity178"
+
+  # else /* regular Integrity */
+  #  define PLATFORM_ID "Integrity"
+  # endif
+
+  #else /* unknown platform */
+  # define PLATFORM_ID
+
+  #endif
+
+  /* For windows compilers MSVC and Intel we can determine
+     the architecture of the compiler being used.  This is because
+     the compilers do not have flags that can change the architecture,
+     but rather depend on which compiler is being used
+  */
+  #if defined(_WIN32) && defined(_MSC_VER)
+  # if defined(_M_IA64)
+  #  define ARCHITECTURE_ID "IA64"
+
+  # elif defined(_M_ARM64EC)
+  #  define ARCHITECTURE_ID "ARM64EC"
+
+  # elif defined(_M_X64) || defined(_M_AMD64)
+  #  define ARCHITECTURE_ID "x64"
+
+  # elif defined(_M_IX86)
+  #  define ARCHITECTURE_ID "X86"
+
+  # elif defined(_M_ARM64)
+  #  define ARCHITECTURE_ID "ARM64"
+
+  # elif defined(_M_ARM)
+  #  if _M_ARM == 4
+  #   define ARCHITECTURE_ID "ARMV4I"
+  #  elif _M_ARM == 5
+  #   define ARCHITECTURE_ID "ARMV5I"
+  #  else
+  #   define ARCHITECTURE_ID "ARMV" STRINGIFY(_M_ARM)
+  #  endif
+
+  # elif defined(_M_MIPS)
+  #  define ARCHITECTURE_ID "MIPS"
+
+  # elif defined(_M_SH)
+  #  define ARCHITECTURE_ID "SHx"
+
+  # else /* unknown architecture */
+  #  define ARCHITECTURE_ID ""
+  # endif
+
+  #elif defined(__WATCOMC__)
+  # if defined(_M_I86)
+  #  define ARCHITECTURE_ID "I86"
+
+  # elif defined(_M_IX86)
+  #  define ARCHITECTURE_ID "X86"
+
+  # else /* unknown architecture */
+  #  define ARCHITECTURE_ID ""
+  # endif
+
+  #elif defined(__IAR_SYSTEMS_ICC__) || defined(__IAR_SYSTEMS_ICC)
+  # if defined(__ICCARM__)
+  #  define ARCHITECTURE_ID "ARM"
+
+  # elif defined(__ICCRX__)
+  #  define ARCHITECTURE_ID "RX"
+
+  # elif defined(__ICCRH850__)
+  #  define ARCHITECTURE_ID "RH850"
+
+  # elif defined(__ICCRL78__)
+  #  define ARCHITECTURE_ID "RL78"
+
+  # elif defined(__ICCRISCV__)
+  #  define ARCHITECTURE_ID "RISCV"
+
+  # elif defined(__ICCAVR__)
+  #  define ARCHITECTURE_ID "AVR"
+
+  # elif defined(__ICC430__)
+  #  define ARCHITECTURE_ID "MSP430"
+
+  # elif defined(__ICCV850__)
+  #  define ARCHITECTURE_ID "V850"
+
+  # elif defined(__ICC8051__)
+  #  define ARCHITECTURE_ID "8051"
+
+  # elif defined(__ICCSTM8__)
+  #  define ARCHITECTURE_ID "STM8"
+
+  # else /* unknown architecture */
+  #  define ARCHITECTURE_ID ""
+  # endif
+
+  #elif defined(__ghs__)
+  # if defined(__PPC64__)
+  #  define ARCHITECTURE_ID "PPC64"
+
+  # elif defined(__ppc__)
+  #  define ARCHITECTURE_ID "PPC"
+
+  # elif defined(__ARM__)
+  #  define ARCHITECTURE_ID "ARM"
+
+  # elif defined(__x86_64__)
+  #  define ARCHITECTURE_ID "x64"
+
+  # elif defined(__i386__)
+  #  define ARCHITECTURE_ID "X86"
+
+  # else /* unknown architecture */
+  #  define ARCHITECTURE_ID ""
+  # endif
+
+  #elif defined(__TI_COMPILER_VERSION__)
+  # if defined(__TI_ARM__)
+  #  define ARCHITECTURE_ID "ARM"
+
+  # elif defined(__MSP430__)
+  #  define ARCHITECTURE_ID "MSP430"
+
+  # elif defined(__TMS320C28XX__)
+  #  define ARCHITECTURE_ID "TMS320C28x"
+
+  # elif defined(__TMS320C6X__) || defined(_TMS320C6X)
+  #  define ARCHITECTURE_ID "TMS320C6x"
+
+  # else /* unknown architecture */
+  #  define ARCHITECTURE_ID ""
+  # endif
+
+  #else
+  #  define ARCHITECTURE_ID
+  #endif
+
+  /* Convert integer to decimal digit literals.  */
+  #define DEC(n)                   \
+    ('0' + (((n) / 10000000)%10)), \
+    ('0' + (((n) / 1000000)%10)),  \
+    ('0' + (((n) / 100000)%10)),   \
+    ('0' + (((n) / 10000)%10)),    \
+    ('0' + (((n) / 1000)%10)),     \
+    ('0' + (((n) / 100)%10)),      \
+    ('0' + (((n) / 10)%10)),       \
+    ('0' +  ((n) % 10))
+
+  /* Convert integer to hex digit literals.  */
+  #define HEX(n)             \
+    ('0' + ((n)>>28 & 0xF)), \
+    ('0' + ((n)>>24 & 0xF)), \
+    ('0' + ((n)>>20 & 0xF)), \
+    ('0' + ((n)>>16 & 0xF)), \
+    ('0' + ((n)>>12 & 0xF)), \
+    ('0' + ((n)>>8  & 0xF)), \
+    ('0' + ((n)>>4  & 0xF)), \
+    ('0' + ((n)     & 0xF))
+
+  /* Construct a string literal encoding the version number. */
+  #ifdef COMPILER_VERSION
+  char const* info_version = "INFO" ":" "compiler_version[" COMPILER_VERSION "]";
+
+  /* Construct a string literal encoding the version number components. */
+  #elif defined(COMPILER_VERSION_MAJOR)
+  char const info_version[] = {
+    'I', 'N', 'F', 'O', ':',
+    'c','o','m','p','i','l','e','r','_','v','e','r','s','i','o','n','[',
+    COMPILER_VERSION_MAJOR,
+  # ifdef COMPILER_VERSION_MINOR
+    '.', COMPILER_VERSION_MINOR,
+  #  ifdef COMPILER_VERSION_PATCH
+     '.', COMPILER_VERSION_PATCH,
+  #   ifdef COMPILER_VERSION_TWEAK
+      '.', COMPILER_VERSION_TWEAK,
+  #   endif
+  #  endif
+  # endif
+    ']','\0'};
+  #endif
+
+  /* Construct a string literal encoding the internal version number. */
+  #ifdef COMPILER_VERSION_INTERNAL
+  char const info_version_internal[] = {
+    'I', 'N', 'F', 'O', ':',
+    'c','o','m','p','i','l','e','r','_','v','e','r','s','i','o','n','_',
+    'i','n','t','e','r','n','a','l','[',
+    COMPILER_VERSION_INTERNAL,']','\0'};
+  #elif defined(COMPILER_VERSION_INTERNAL_STR)
+  char const* info_version_internal = "INFO" ":" "compiler_version_internal[" COMPILER_VERSION_INTERNAL_STR "]";
+  #endif
+
+  /* Construct a string literal encoding the version number components. */
+  #ifdef SIMULATE_VERSION_MAJOR
+  char const info_simulate_version[] = {
+    'I', 'N', 'F', 'O', ':',
+    's','i','m','u','l','a','t','e','_','v','e','r','s','i','o','n','[',
+    SIMULATE_VERSION_MAJOR,
+  # ifdef SIMULATE_VERSION_MINOR
+    '.', SIMULATE_VERSION_MINOR,
+  #  ifdef SIMULATE_VERSION_PATCH
+     '.', SIMULATE_VERSION_PATCH,
+  #   ifdef SIMULATE_VERSION_TWEAK
+      '.', SIMULATE_VERSION_TWEAK,
+  #   endif
+  #  endif
+  # endif
+    ']','\0'};
+  #endif
+
+  /* Construct the string literal in pieces to prevent the source from
+     getting matched.  Store it in a pointer rather than an array
+     because some compilers will just produce instructions to fill the
+     array rather than assigning a pointer to a static array.  */
+  char const* info_platform = "INFO" ":" "platform[" PLATFORM_ID "]";
+  char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";
+
+  -- CMAKE_CXX_COMPILER_ID_RUN=1
+  -- CMAKE_CXX_COMPILER_ID_TEST_FLAGS=-c;--c++;--ec++;--target=arm-arm-none-eabi -mcpu=cortex-m3;-c -I__does_not_exist__
+  -- CMAKE_CXX_COMPILER_ID_TOOL_MATCH_INDEX=2
+  -- CMAKE_CXX_COMPILER_ID_TOOL_MATCH_REGEX=
+  Ld[^
+  ]*(
+  [     ]+[^
+  ]*)*
+  [     ]+([^
+  ]+)[^
+  ]*-o[^
+  ]*CompilerIdCXX/(\./)?(CompilerIdCXX.(framework|xctest|build/[^
+  ]+)/)?CompilerIdCXX[
+  \"]
+  -- CMAKE_CXX_COMPILER_ID_VENDORS=IAR
+  -- CMAKE_CXX_COMPILER_ID_VENDOR_REGEX_IAR=IAR .+ Compiler
+  -- CMAKE_CXX_COMPILER_INIT=/usr/bin/x86_64-linux-gnu-g++
+  -- CMAKE_CXX_COMPILER_LIST=/usr/bin/x86_64-linux-gnu-g++
+  -- CMAKE_CXX_COMPILER_LOADED=1
+  -- CMAKE_CXX_COMPILER_NAMES=c++
+  -- CMAKE_CXX_COMPILER_PREDEFINES_COMMAND=/usr/bin/x86_64-linux-gnu-g++;-dM;-E;-c;/usr/share/cmake-3.22/Modules/CMakeCXXCompilerABI.cpp
+  -- CMAKE_CXX_COMPILER_PRODUCED_FILES=a.out
+  -- CMAKE_CXX_COMPILER_PRODUCED_OUTPUT=
+  -- CMAKE_CXX_COMPILER_RANLIB=/usr/bin/x86_64-linux-gnu-gcc-ranlib-11
+  -- CMAKE_CXX_COMPILER_RANLIB=/usr/bin/x86_64-linux-gnu-gcc-ranlib-11
+  -- CMAKE_CXX_COMPILER_SYSROOT=
+  -- CMAKE_CXX_COMPILER_VERSION=11.4.0
+  -- CMAKE_CXX_COMPILER_VERSION_INTERNAL=
+  -- CMAKE_CXX_COMPILER_WORKS=TRUE
+  -- CMAKE_CXX_COMPILER_WRAPPER=
+  -- CMAKE_CXX_COMPILE_FEATURES=cxx_std_98;cxx_template_template_parameters;cxx_std_11;cxx_alias_templates;cxx_alignas;cxx_alignof;cxx_attributes;cxx_auto_type;cxx_constexpr;cxx_decltype;cxx_decltype_incomplete_return_types;cxx_default_function_template_args;cxx_defaulted_functions;cxx_defaulted_move_initializers;cxx_delegating_constructors;cxx_deleted_functions;cxx_enum_forward_declarations;cxx_explicit_conversions;cxx_extended_friend_declarations;cxx_extern_templates;cxx_final;cxx_func_identifier;cxx_generalized_initializers;cxx_inheriting_constructors;cxx_inline_namespaces;cxx_lambdas;cxx_local_type_template_args;cxx_long_long_type;cxx_noexcept;cxx_nonstatic_member_init;cxx_nullptr;cxx_override;cxx_range_for;cxx_raw_string_literals;cxx_reference_qualified_functions;cxx_right_angle_brackets;cxx_rvalue_references;cxx_sizeof_member;cxx_static_assert;cxx_strong_enums;cxx_thread_local;cxx_trailing_return_types;cxx_unicode_literals;cxx_uniform_initialization;cxx_unrestricted_unions;cxx_user_literals;cxx_variadic_macros;cxx_variadic_templates;cxx_std_14;cxx_aggregate_default_initializers;cxx_attribute_deprecated;cxx_binary_literals;cxx_contextual_conversions;cxx_decltype_auto;cxx_digit_separators;cxx_generic_lambdas;cxx_lambda_init_captures;cxx_relaxed_constexpr;cxx_return_type_deduction;cxx_variable_templates;cxx_std_17;cxx_std_20;cxx_std_23
+  -- CMAKE_CXX_COMPILE_OBJECT=<CMAKE_CXX_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>
+  -- CMAKE_CXX_COMPILE_OPTIONS_CREATE_PCH=-x;c++-header;-include;<PCH_HEADER>
+  -- CMAKE_CXX_COMPILE_OPTIONS_EXPLICIT_LANGUAGE=-x;c++
+  -- CMAKE_CXX_COMPILE_OPTIONS_INVALID_PCH=-Winvalid-pch
+  -- CMAKE_CXX_COMPILE_OPTIONS_IPO=-flto;-fno-fat-lto-objects
+  -- CMAKE_CXX_COMPILE_OPTIONS_PIC=-fPIC
+  -- CMAKE_CXX_COMPILE_OPTIONS_PIE=-fPIE
+  -- CMAKE_CXX_COMPILE_OPTIONS_SYSROOT=--sysroot=
+  -- CMAKE_CXX_COMPILE_OPTIONS_USE_PCH=-include;<PCH_HEADER>
+  -- CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY=-fvisibility=
+  -- CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN=-fvisibility-inlines-hidden
+  -- CMAKE_CXX_CREATE_ASSEMBLY_SOURCE=<CMAKE_CXX_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -S <SOURCE> -o <ASSEMBLY_SOURCE>
+  -- CMAKE_CXX_CREATE_PREPROCESSED_SOURCE=<CMAKE_CXX_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -E <SOURCE> > <PREPROCESSED_SOURCE>
+  -- CMAKE_CXX_CREATE_SHARED_LIBRARY=<CMAKE_CXX_COMPILER> <CMAKE_SHARED_LIBRARY_CXX_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>
+  -- CMAKE_CXX_CREATE_SHARED_MODULE=<CMAKE_CXX_COMPILER> <CMAKE_SHARED_LIBRARY_CXX_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>
+  -- CMAKE_CXX_EXTENSIONS_COMPUTED_DEFAULT=ON
+  -- CMAKE_CXX_EXTENSIONS_DEFAULT=ON
+  -- CMAKE_CXX_FLAGS=
+  -- CMAKE_CXX_FLAGS_DEBUG=-g
+  -- CMAKE_CXX_FLAGS_DEBUG_INIT= -g
+  -- CMAKE_CXX_FLAGS_INIT=
+  -- CMAKE_CXX_FLAGS_MINSIZEREL=-Os -DNDEBUG
+  -- CMAKE_CXX_FLAGS_MINSIZEREL_INIT= -Os -DNDEBUG
+  -- CMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG
+  -- CMAKE_CXX_FLAGS_RELEASE_INIT= -O3 -DNDEBUG
+  -- CMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g -DNDEBUG
+  -- CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT= -O2 -g -DNDEBUG
+  -- CMAKE_CXX_IGNORE_EXTENSIONS=inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC
+  -- CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES=/usr/include/c++/11;/usr/include/x86_64-linux-gnu/c++/11;/usr/include/c++/11/backward;/usr/lib/gcc/x86_64-linux-gnu/11/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include
+  -- CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES=/usr/lib/gcc/x86_64-linux-gnu/11;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib
+  -- CMAKE_CXX_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES=
+  -- CMAKE_CXX_IMPLICIT_LINK_LIBRARIES=stdc++;m;gcc_s;gcc;c;gcc_s;gcc
+  -- CMAKE_CXX_INFORMATION_LOADED=1
+  -- CMAKE_CXX_LIBRARY_ARCHITECTURE=x86_64-linux-gnu
+  -- CMAKE_CXX_LINKER_PREFERENCE=30
+  -- CMAKE_CXX_LINKER_PREFERENCE_PROPAGATES=1
+  -- CMAKE_CXX_LINKER_WRAPPER_FLAG=-Wl,
+  -- CMAKE_CXX_LINKER_WRAPPER_FLAG_SEP=,
+  -- CMAKE_CXX_LINK_EXECUTABLE=<CMAKE_CXX_COMPILER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>
+  -- CMAKE_CXX_LINK_OPTIONS_NO_PIE=-no-pie
+  -- CMAKE_CXX_LINK_OPTIONS_PIE=-fPIE;-pie
+  -- CMAKE_CXX_LINK_WHAT_YOU_USE_FLAG=LINKER:--no-as-needed
+  -- CMAKE_CXX_OUTPUT_EXTENSION=.o
+  -- CMAKE_CXX_PLATFORM_ID=Linux
+  -- CMAKE_CXX_SIMULATE_ID=
+  -- CMAKE_CXX_SIMULATE_VERSION=
+  -- CMAKE_CXX_SIZEOF_DATA_PTR=8
+  -- CMAKE_CXX_SOURCE_FILE_EXTENSIONS=C;M;c++;cc;cpp;cxx;m;mm;mpp;CPP;ixx;cppm
+  -- CMAKE_CXX_STANDARD=17
+  -- CMAKE_CXX_STANDARD_COMPUTED_DEFAULT=17
+  -- CMAKE_CXX_STANDARD_DEFAULT=17
+  -- CMAKE_CXX_STANDARD_REQUIRED=True
+  -- CMAKE_CXX_VERBOSE_FLAG=-v
+  -- CMAKE_CXX_XCODE_ARCHS=
+  -- CMAKE_DEPFILE_FLAGS_CXX=-MD -MT <DEP_TARGET> -MF <DEP_FILE>
+  -- CMAKE_DLLTOOL=CMAKE_DLLTOOL-NOTFOUND
+  -- CMAKE_DL_LIBS=dl
+  -- CMAKE_EFFECTIVE_SYSTEM_NAME=Linux
+  -- CMAKE_EXECUTABLE_FORMAT=ELF
+  -- CMAKE_EXECUTABLE_RPATH_LINK_CXX_FLAG=-Wl,-rpath-link,
+  -- CMAKE_EXECUTABLE_RUNTIME_CXX_FLAG=-Wl,-rpath,
+  -- CMAKE_EXECUTABLE_RUNTIME_CXX_FLAG_SEP=:
+  -- CMAKE_EXECUTABLE_SUFFIX=
+  -- CMAKE_EXE_EXPORTS_CXX_FLAG=-Wl,--export-dynamic
+  -- CMAKE_EXE_EXPORTS_C_FLAG=-Wl,--export-dynamic
+  -- CMAKE_EXE_LINKER_FLAGS=
+  -- CMAKE_EXE_LINKER_FLAGS_DEBUG=
+  -- CMAKE_EXE_LINKER_FLAGS_INIT=
+  -- CMAKE_EXE_LINKER_FLAGS_MINSIZEREL=
+  -- CMAKE_EXE_LINKER_FLAGS_RELEASE=
+  -- CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO=
+  -- CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS=-Wl,-Bdynamic
+  -- CMAKE_EXE_LINK_DYNAMIC_C_FLAGS=-Wl,-Bdynamic
+  -- CMAKE_EXE_LINK_STATIC_CXX_FLAGS=-Wl,-Bstatic
+  -- CMAKE_EXE_LINK_STATIC_C_FLAGS=-Wl,-Bstatic
+  -- CMAKE_EXPORT_COMPILE_COMMANDS=
+  -- CMAKE_EXTRA_GENERATOR=
+  -- CMAKE_FILES_DIRECTORY=/CMakeFiles
+  -- CMAKE_FIND_LIBRARY_PREFIXES=lib
+  -- CMAKE_FIND_LIBRARY_SUFFIXES=.so;.a
+  -- CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH
+  -- CMAKE_GENERATOR=Ninja
+  -- CMAKE_GENERATOR_INSTANCE=
+  -- CMAKE_GENERATOR_PLATFORM=
+  -- CMAKE_GENERATOR_TOOLSET=
+  -- CMAKE_HAVE_LIBC_PTHREAD=1
+  -- CMAKE_HAVE_PTHREAD_H=1
+  -- CMAKE_HAVE_THREADS_LIBRARY=1
+  -- CMAKE_HOME_DIRECTORY=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack
+  -- CMAKE_HOST_SYSTEM=Linux-6.8.0-49-generic
+  -- CMAKE_HOST_SYSTEM_NAME=Linux
+  -- CMAKE_HOST_SYSTEM_PROCESSOR=x86_64
+  -- CMAKE_HOST_SYSTEM_VERSION=6.8.0-49-generic
+  -- CMAKE_HOST_UNIX=1
+  -- CMAKE_INCLUDE_FLAG_C=-I
+  -- CMAKE_INCLUDE_FLAG_CXX=-I
+  -- CMAKE_INCLUDE_SYSTEM_FLAG_CXX=-isystem
+  -- CMAKE_INSTALL_DEFAULT_COMPONENT_NAME=Unspecified
+  -- CMAKE_INSTALL_PREFIX=/tmp/tmpb4us1u45/wheel/platlib
+  -- CMAKE_INSTALL_SO_NO_EXE=1
+  -- CMAKE_INTERNAL_PLATFORM_ABI=ELF
+  -- CMAKE_LIBRARY_ARCHITECTURE=x86_64-linux-gnu
+  -- CMAKE_LIBRARY_ARCHITECTURE_REGEX=[a-z0-9_]+(-[a-z0-9_]+)?-linux-gnu[a-z0-9_]*
+  -- CMAKE_LIBRARY_PATH_FLAG=-L
+  -- CMAKE_LIBRARY_PATH_TERMINATOR=
+  -- CMAKE_LINKER=/usr/bin/x86_64-linux-gnu-ld
+  -- CMAKE_LINKER=/usr/bin/x86_64-linux-gnu-ld
+  -- CMAKE_LINK_LIBRARY_FLAG=-l
+  -- CMAKE_LINK_LIBRARY_SUFFIX=
+  -- CMAKE_LINK_WHAT_YOU_USE_CHECK=ldd;-u;-r
+  -- CMAKE_MAJOR_VERSION=3
+  -- CMAKE_MAKE_PROGRAM=ninja
+  -- CMAKE_MATCH_0=
+  -- CMAKE_MATCH_1=
+  -- CMAKE_MATCH_2=
+  -- CMAKE_MATCH_COUNT=0
+  -- CMAKE_MINIMUM_REQUIRED_VERSION=3.16
+  -- CMAKE_MINOR_VERSION=22
+  -- CMAKE_MODULE_LINKER_FLAGS=
+  -- CMAKE_MODULE_LINKER_FLAGS_DEBUG=
+  -- CMAKE_MODULE_LINKER_FLAGS_INIT=
+  -- CMAKE_MODULE_LINKER_FLAGS_MINSIZEREL=
+  -- CMAKE_MODULE_LINKER_FLAGS_RELEASE=
+  -- CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO=
+  -- CMAKE_MODULE_PATH=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/scikit_build_core/resources/find_python;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin
+  -- CMAKE_MODULE_PATH=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/scikit_build_core/resources/find_python;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin;/usr/lib/x86_64-linux-gnu/cmake/Qt6;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules;/usr/lib/x86_64-linux-gnu/cmake/Qt6/3rdparty/kwin
+  -- CMAKE_MT=
+  -- CMAKE_NM=/usr/bin/x86_64-linux-gnu-nm
+  -- CMAKE_OBJCOPY=/usr/bin/x86_64-linux-gnu-objcopy
+  -- CMAKE_OBJDUMP=/usr/bin/x86_64-linux-gnu-objdump
+  -- CMAKE_PARENT_LIST_FILE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/CMakeLists.txt
+  -- CMAKE_PATCH_VERSION=1
+  -- CMAKE_PCH_EXTENSION=.gch
+  -- CMAKE_PCH_PROLOGUE=#pragma GCC system_header
+  -- CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES=/lib;/lib32;/lib64;/usr/lib;/usr/lib32;/usr/lib64
+  -- CMAKE_PLATFORM_INFO_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/3.22.1
+  -- CMAKE_PLATFORM_INFO_INITIALIZED=1
+  -- CMAKE_PLATFORM_USES_PATH_WHEN_NO_SONAME=1
+  -- CMAKE_POSITION_INDEPENDENT_CODE=ON
+  -- CMAKE_PREFIX_PATH=C:/Qt/6.8.0/msvc2022_64
+  -- CMAKE_PREFIX_PATH=C:/Qt/6.8.0/msvc2022_64
+  -- CMAKE_PROJECT_DESCRIPTION=
+  -- CMAKE_PROJECT_HOMEPAGE_URL=
+  -- CMAKE_PROJECT_NAME=antpack
+  -- CMAKE_RANLIB=/usr/bin/x86_64-linux-gnu-ranlib
+  -- CMAKE_RANLIB=/usr/bin/x86_64-linux-gnu-ranlib
+  -- CMAKE_READELF=/usr/bin/x86_64-linux-gnu-readelf
+  -- CMAKE_ROOT=/usr/share/cmake-3.22
+  -- CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS=-shared
+  -- CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS=-shared
+  -- CMAKE_SHARED_LIBRARY_CXX_FLAGS=-fPIC
+  -- CMAKE_SHARED_LIBRARY_C_FLAGS=
+  -- CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS=-rdynamic
+  -- CMAKE_SHARED_LIBRARY_LINK_C_FLAGS=
+  -- CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_CXX_FLAGS=-Wl,-Bdynamic
+  -- CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS=-Wl,-Bdynamic
+  -- CMAKE_SHARED_LIBRARY_LINK_STATIC_CXX_FLAGS=-Wl,-Bstatic
+  -- CMAKE_SHARED_LIBRARY_LINK_STATIC_C_FLAGS=-Wl,-Bstatic
+  -- CMAKE_SHARED_LIBRARY_PREFIX=lib
+  -- CMAKE_SHARED_LIBRARY_RPATH_LINK_CXX_FLAG=-Wl,-rpath-link,
+  -- CMAKE_SHARED_LIBRARY_RPATH_LINK_C_FLAG=-Wl,-rpath-link,
+  -- CMAKE_SHARED_LIBRARY_RPATH_ORIGIN_TOKEN=$ORIGIN
+  -- CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG=-Wl,-rpath,
+  -- CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG_SEP=:
+  -- CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG=-Wl,-rpath,
+  -- CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG_SEP=:
+  -- CMAKE_SHARED_LIBRARY_SONAME_CXX_FLAG=-Wl,-soname,
+  -- CMAKE_SHARED_LIBRARY_SONAME_C_FLAG=-Wl,-soname,
+  -- CMAKE_SHARED_LIBRARY_SUFFIX=.so
+  -- CMAKE_SHARED_LINKER_FLAGS=
+  -- CMAKE_SHARED_LINKER_FLAGS_DEBUG=
+  -- CMAKE_SHARED_LINKER_FLAGS_INIT=
+  -- CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL=
+  -- CMAKE_SHARED_LINKER_FLAGS_RELEASE=
+  -- CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO=
+  -- CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS=-shared
+  -- CMAKE_SHARED_MODULE_CXX_FLAGS=-fPIC
+  -- CMAKE_SHARED_MODULE_LINK_DYNAMIC_CXX_FLAGS=-Wl,-Bdynamic
+  -- CMAKE_SHARED_MODULE_LINK_DYNAMIC_C_FLAGS=-Wl,-Bdynamic
+  -- CMAKE_SHARED_MODULE_LINK_STATIC_CXX_FLAGS=-Wl,-Bstatic
+  -- CMAKE_SHARED_MODULE_LINK_STATIC_C_FLAGS=-Wl,-Bstatic
+  -- CMAKE_SHARED_MODULE_PREFIX=lib
+  -- CMAKE_SHARED_MODULE_SUFFIX=.so
+  -- CMAKE_SIZEOF_VOID_P=8
+  -- CMAKE_SKIP_INSTALL_RPATH=NO
+  -- CMAKE_SKIP_RPATH=NO
+  -- CMAKE_SOURCE_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack
+  -- CMAKE_STATIC_LIBRARY_PREFIX=lib
+  -- CMAKE_STATIC_LIBRARY_SUFFIX=.a
+  -- CMAKE_STATIC_LINKER_FLAGS=
+  -- CMAKE_STATIC_LINKER_FLAGS_DEBUG=
+  -- CMAKE_STATIC_LINKER_FLAGS_MINSIZEREL=
+  -- CMAKE_STATIC_LINKER_FLAGS_RELEASE=
+  -- CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO=
+  -- CMAKE_STRIP=/usr/bin/x86_64-linux-gnu-strip
+  -- CMAKE_SYSTEM=Linux-6.8.0-49-generic
+  -- CMAKE_SYSTEM_INCLUDE_PATH=/usr/include/X11
+  -- CMAKE_SYSTEM_INFO_FILE=Platform/Linux
+  -- CMAKE_SYSTEM_LIBRARY_PATH=/usr/lib/X11
+  -- CMAKE_SYSTEM_LOADED=1
+  -- CMAKE_SYSTEM_NAME=Linux
+  -- CMAKE_SYSTEM_PREFIX_PATH=/usr/local;/usr;/;/usr;/tmp/tmpb4us1u45/wheel/platlib;/usr/X11R6;/usr/pkg;/opt
+  -- CMAKE_SYSTEM_PROCESSOR=x86_64
+  -- CMAKE_SYSTEM_SPECIFIC_INFORMATION_LOADED=1
+  -- CMAKE_SYSTEM_SPECIFIC_INITIALIZE_LOADED=1
+  -- CMAKE_SYSTEM_VERSION=6.8.0-49-generic
+  -- CMAKE_THREAD_LIBS_INIT=
+  -- CMAKE_TWEAK_VERSION=0
+  -- CMAKE_UNAME=/usr/bin/uname
+  -- CMAKE_USE_PTHREADS_INIT=1
+  -- CMAKE_VERBOSE_MAKEFILE=FALSE
+  -- CMAKE_VERSION=3.22.1
+  -- COMPILER_BASENAME=x86_64-linux-gnu-g++
+  -- CONFIG_FILES=
+  -- FIND_PACKAGE_MESSAGE_DETAILS_OpenGL=[/usr/lib/x86_64-linux-gnu/libOpenGL.so][/usr/lib/x86_64-linux-gnu/libGLX.so][/usr/include][c ][v()]
+  -- FIND_PACKAGE_MESSAGE_DETAILS_Python=[/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3][/usr/include/python3.10][cfound components: Interpreter Development.Module ][v3.10.12(3.8)]
+  -- FIND_PACKAGE_MESSAGE_DETAILS_Threads=[TRUE][v()]
+  -- FIND_PACKAGE_MESSAGE_DETAILS_WrapAtomic=[1][v()]
+  -- FIND_PACKAGE_MESSAGE_DETAILS_WrapOpenGL=[ON][v()]
+  -- HAVE_STDATOMIC=1
+  -- MSVC_CXX_ARCHITECTURE_ID=
+  -- NB_ABI=310
+  -- NB_DIR=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind
+  -- NB_OPT=$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>
+  -- NB_OPT_SIZE=$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>
+  -- NB_SOABI=cpython-310-x86_64-linux-gnu
+  -- NB_SOSABI=abi3
+  -- NB_SUFFIX=.cpython-310-x86_64-linux-gnu.so
+  -- NB_SUFFIX_EXT=.so
+  -- NB_SUFFIX_S=.abi3.so
+  -- OPENGL_EGL_INCLUDE_DIR=/usr/include
+  -- OPENGL_EGL_INCLUDE_DIRS=/usr/include
+  -- OPENGL_FOUND=TRUE
+  -- OPENGL_GLU_FOUND=NO
+  -- OPENGL_GLX_INCLUDE_DIR=/usr/include
+  -- OPENGL_INCLUDE_DIR=/usr/include
+  -- OPENGL_INCLUDE_PATH=/usr/include
+  -- OPENGL_LIBRARIES=/usr/lib/x86_64-linux-gnu/libOpenGL.so;/usr/lib/x86_64-linux-gnu/libGLX.so
+  -- OPENGL_LIBRARY=/usr/lib/x86_64-linux-gnu/libOpenGL.so;/usr/lib/x86_64-linux-gnu/libGLX.so
+  -- OPENGL_XMESA_FOUND=NO
+  -- OPENGL_egl_LIBRARY=/usr/lib/x86_64-linux-gnu/libEGL.so
+  -- OPENGL_gl_LIBRARY=
+  -- OPENGL_glu_LIBRARY=OPENGL_glu_LIBRARY-NOTFOUND
+  -- OPENGL_glx_LIBRARY=/usr/lib/x86_64-linux-gnu/libGLX.so
+  -- OPENGL_opengl_LIBRARY=/usr/lib/x86_64-linux-gnu/libOpenGL.so
+  -- OPENGL_xmesa_INCLUDE_DIR=OPENGL_xmesa_INCLUDE_DIR-NOTFOUND
+  -- OUTPUT=Change Dir: /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/CMakeTmp
+
+  Run Build Command(s):ninja cmTC_eb5bb && [1/2] Building CXX object CMakeFiles/cmTC_eb5bb.dir/CheckIncludeFile.cxx.o
+  [2/2] Linking CXX executable cmTC_eb5bb
+
+
+  -- OpenGL_EGL_FOUND=TRUE
+  -- OpenGL_FOUND=TRUE
+  -- OpenGL_GLX_FOUND=TRUE
+  -- OpenGL_GL_PREFERENCE=GLVND
+  -- OpenGL_OpenGL_FOUND=TRUE
+  -- PACKAGE_PREFIX_DIR=/usr
+  -- PKGCONFIG_FOUND=TRUE
+  -- PKG_CONFIG_ARGN=
+  -- PKG_CONFIG_EXECUTABLE=/usr/bin/pkg-config
+  -- PKG_CONFIG_FOUND=TRUE
+  -- PKG_CONFIG_NAMES=pkg-config;pkgconf
+  -- PKG_CONFIG_VERSION=1
+  -- PKG_CONFIG_VERSION_STRING=0.29.2
+  -- PKG_XKB_CFLAGS=
+  -- PKG_XKB_CFLAGS_I=
+  -- PKG_XKB_CFLAGS_OTHER=
+  -- PKG_XKB_FOUND=
+  -- PKG_XKB_INCLUDEDIR=
+  -- PKG_XKB_LIBDIR=
+  -- PKG_XKB_LIBS=
+  -- PKG_XKB_LIBS_L=
+  -- PKG_XKB_LIBS_OTHER=
+  -- PKG_XKB_LIBS_PATHS=
+  -- PKG_XKB_MODULE_NAME=
+  -- PKG_XKB_PREFIX=
+  -- PKG_XKB_STATIC_CFLAGS=
+  -- PKG_XKB_STATIC_CFLAGS_I=
+  -- PKG_XKB_STATIC_CFLAGS_OTHER=
+  -- PKG_XKB_STATIC_LIBDIR=
+  -- PKG_XKB_STATIC_LIBS=
+  -- PKG_XKB_STATIC_LIBS_L=
+  -- PKG_XKB_STATIC_LIBS_OTHER=
+  -- PKG_XKB_STATIC_LIBS_PATHS=
+  -- PKG_XKB_VERSION=
+  -- PKG_XKB_xkbcommon_INCLUDEDIR=
+  -- PKG_XKB_xkbcommon_LIBDIR=
+  -- PKG_XKB_xkbcommon_PREFIX=
+  -- PKG_XKB_xkbcommon_VERSION=
+  -- PRESET_CMAKE_SYSTEM_NAME=FALSE
+  -- PROJECT_BINARY_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64
+  -- PROJECT_DESCRIPTION=
+  -- PROJECT_HOMEPAGE_URL=
+  -- PROJECT_IS_TOP_LEVEL=ON
+  -- PROJECT_NAME=antpack
+  -- PROJECT_SOURCE_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack
+  -- PTHREAD_C_CXX_TEST_SOURCE=#include <pthread.h>
+
+  static void* test_func(void* data)
+  {
+    return data;
+  }
+
+  int main(void)
+  {
+    pthread_t thread;
+    pthread_create(&thread, NULL, test_func, NULL);
+    pthread_detach(thread);
+    pthread_cancel(thread);
+    pthread_join(thread, NULL);
+    pthread_atfork(NULL, NULL, NULL);
+    pthread_exit(NULL);
+
+    return 0;
+  }
+
+  -- PYTHON_EXECUTABLE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3
+  -- PYTHON_FOUND=TRUE
+  -- PYTHON_INCLUDE_DIR=/usr/include/python3.10
+  -- PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.10.so
+  -- PkgConfig_FOUND=TRUE
+  -- Python3_EXECUTABLE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3
+  -- Python3_FIND_REGISTRY=NEVER
+  -- Python3_INCLUDE_DIR=/usr/include/python3.10
+  -- Python3_NumPy_INCLUDE_DIR=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/numpy/_core/include
+  -- Python3_ROOT_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack
+  -- Python_COPYRIGHT=Copyright (c) 2001-2023 Python Software Foundation.
+  All Rights Reserved.
+
+  Copyright (c) 2000 BeOpen.com.
+  All Rights Reserved.
+
+  Copyright (c) 1995-2001 Corporation for National Research Initiatives.
+  All Rights Reserved.
+
+  Copyright (c) 1991-1995 Stichting Mathematisch Centrum, Amsterdam.
+  All Rights Reserved.
+  -- Python_Compiler_FOUND=FALSE
+  -- Python_Development.Embed_FOUND=FALSE
+  -- Python_Development.Module_FOUND=TRUE
+  -- Python_Development.SABIModule_FOUND=FALSE
+  -- Python_Development_FOUND=FALSE
+  -- Python_EXECUTABLE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3
+  -- Python_EXECUTABLE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3
+  -- Python_FIND_REGISTRY=NEVER
+  -- Python_FOUND=TRUE
+  -- Python_INCLUDE_DIR=/usr/include/python3.10
+  -- Python_INCLUDE_DIRS=/usr/include/python3.10
+  -- Python_INTERPRETER_ID=Python
+  -- Python_Interpreter_FOUND=TRUE
+  -- Python_NumPy_FOUND=FALSE
+  -- Python_NumPy_INCLUDE_DIR=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/numpy/_core/include
+  -- Python_ROOT_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack
+  -- Python_SITEARCH=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages
+  -- Python_SITELIB=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages
+  -- Python_SOABI=cpython-310-x86_64-linux-gnu
+  -- Python_SOSABI=abi3
+  -- Python_STDARCH=/usr/lib/python3.10
+  -- Python_STDLIB=/usr/lib/python3.10
+  -- Python_VERSION=3.10.12
+  -- Python_VERSION_MAJOR=3
+  -- Python_VERSION_MINOR=10
+  -- Python_VERSION_PATCH=12
+  -- QT6_INSTALL_ARCHDATA=lib/x86_64-linux-gnu/qt6
+  -- QT6_INSTALL_BINS=lib/qt6/bin
+  -- QT6_INSTALL_CONFIGURATION=/etc/xdg
+  -- QT6_INSTALL_DATA=share/qt6
+  -- QT6_INSTALL_DOCS=share/qt6/doc
+  -- QT6_INSTALL_EXAMPLES=lib/x86_64-linux-gnu/qt6/examples
+  -- QT6_INSTALL_HEADERS=include/x86_64-linux-gnu/qt6
+  -- QT6_INSTALL_LIBEXECS=lib/qt6/libexec
+  -- QT6_INSTALL_LIBS=lib/x86_64-linux-gnu
+  -- QT6_INSTALL_PLUGINS=lib/x86_64-linux-gnu/qt6/plugins
+  -- QT6_INSTALL_PREFIX=/usr
+  -- QT6_INSTALL_QML=lib/x86_64-linux-gnu/qt6/qml
+  -- QT6_INSTALL_TESTS=tests
+  -- QT6_INSTALL_TRANSLATIONS=share/qt6/translations
+  -- QT6_IS_SHARED_LIBS_BUILD=ON
+  -- QT_ADDITIONAL_HOST_PACKAGES_PREFIX_PATH=
+  -- QT_ADDITIONAL_PACKAGES_PREFIX_PATH=
+  -- QT_ALL_MODULES_FOUND_VIA_FIND_PACKAGE=Core;DBus;Gui;Widgets;PrintSupport;Core
+  -- QT_ALL_PLUGIN_TYPES_FOUND_VIA_FIND_PACKAGE=accessiblebridge;platforms;platforms_darwin;xcbglintegrations;platformthemes;platforminputcontexts;generic;iconengines;imageformats;egldeviceintegrations;styles;printsupport
+  -- QT_CMAKE_EXPORT_NAMESPACE=Qt6
+  -- QT_COMPUTED_MIN_CMAKE_VERSION_FOR_USING_QT=3.16
+  -- QT_CONFIGURED_SANITIZER_OPTIONS=
+  -- QT_DEBUG_FIND_PACKAGE=ON
+  -- QT_DEFAULT_IMPORT_CONFIGURATION=NONE
+  -- QT_DEFAULT_MAJOR_VERSION=6
+  -- QT_FEATURE_abstractbutton=ON
+  -- QT_FEATURE_abstractslider=ON
+  -- QT_FEATURE_accessibility=ON
+  -- QT_FEATURE_accessibility_atspi_bridge=ON
+  -- QT_FEATURE_action=ON
+  -- QT_FEATURE_aesni=ON
+  -- QT_FEATURE_alloca=ON
+  -- QT_FEATURE_alloca_h=ON
+  -- QT_FEATURE_alloca_malloc_h=OFF
+  -- QT_FEATURE_android_style_assets=OFF
+  -- QT_FEATURE_animation=ON
+  -- QT_FEATURE_appstore_compliant=OFF
+  -- QT_FEATURE_arm_crc32=OFF
+  -- QT_FEATURE_arm_crypto=OFF
+  -- QT_FEATURE_avx=ON
+  -- QT_FEATURE_avx2=ON
+  -- QT_FEATURE_avx512bw=ON
+  -- QT_FEATURE_avx512cd=ON
+  -- QT_FEATURE_avx512dq=ON
+  -- QT_FEATURE_avx512er=ON
+  -- QT_FEATURE_avx512f=ON
+  -- QT_FEATURE_avx512ifma=ON
+  -- QT_FEATURE_avx512pf=ON
+  -- QT_FEATURE_avx512vbmi=ON
+  -- QT_FEATURE_avx512vl=ON
+  -- QT_FEATURE_backtrace=ON
+  -- QT_FEATURE_buttongroup=ON
+  -- QT_FEATURE_c11=ON
+  -- QT_FEATURE_c99=ON
+  -- QT_FEATURE_calendarwidget=ON
+  -- QT_FEATURE_cborstreamreader=ON
+  -- QT_FEATURE_cborstreamwriter=ON
+  -- QT_FEATURE_checkbox=ON
+  -- QT_FEATURE_clipboard=ON
+  -- QT_FEATURE_clock_gettime=ON
+  -- QT_FEATURE_clock_monotonic=ON
+  -- QT_FEATURE_colordialog=ON
+  -- QT_FEATURE_colornames=ON
+  -- QT_FEATURE_columnview=ON
+  -- QT_FEATURE_combobox=ON
+  -- QT_FEATURE_commandlineparser=ON
+  -- QT_FEATURE_commandlinkbutton=ON
+  -- QT_FEATURE_completer=ON
+  -- QT_FEATURE_concatenatetablesproxymodel=ON
+  -- QT_FEATURE_concurrent=ON
+  -- QT_FEATURE_contextmenu=ON
+  -- QT_FEATURE_cpp_winrt=OFF
+  -- QT_FEATURE_cross_compile=OFF
+  -- QT_FEATURE_cssparser=ON
+  -- QT_FEATURE_cups=ON
+  -- QT_FEATURE_cupsjobwidget=ON
+  -- QT_FEATURE_cursor=ON
+  -- QT_FEATURE_cxx11=ON
+  -- QT_FEATURE_cxx11_future=ON
+  -- QT_FEATURE_cxx14=ON
+  -- QT_FEATURE_cxx17=ON
+  -- QT_FEATURE_cxx17_filesystem=ON
+  -- QT_FEATURE_cxx1z=ON
+  -- QT_FEATURE_cxx20=OFF
+  -- QT_FEATURE_cxx2a=OFF
+  -- QT_FEATURE_datawidgetmapper=ON
+  -- QT_FEATURE_datestring=ON
+  -- QT_FEATURE_datetimeedit=ON
+  -- QT_FEATURE_datetimeparser=ON
+  -- QT_FEATURE_dbus=ON
+  -- QT_FEATURE_dbus_linked=ON
+  -- QT_FEATURE_debug=OFF
+  -- QT_FEATURE_debug_and_release=OFF
+  -- QT_FEATURE_desktopservices=ON
+  -- QT_FEATURE_dial=ON
+  -- QT_FEATURE_dialog=ON
+  -- QT_FEATURE_dialogbuttonbox=ON
+  -- QT_FEATURE_direct2d=OFF
+  -- QT_FEATURE_direct2d1_1=OFF
+  -- QT_FEATURE_directfb=OFF
+  -- QT_FEATURE_directwrite=OFF
+  -- QT_FEATURE_directwrite3=OFF
+  -- QT_FEATURE_dlopen=ON
+  -- QT_FEATURE_dockwidget=ON
+  -- QT_FEATURE_doubleconversion=ON
+  -- QT_FEATURE_draganddrop=ON
+  -- QT_FEATURE_drm_atomic=ON
+  -- QT_FEATURE_dynamicgl=OFF
+  -- QT_FEATURE_easingcurve=ON
+  -- QT_FEATURE_effects=ON
+  -- QT_FEATURE_egl=ON
+  -- QT_FEATURE_egl_x11=ON
+  -- QT_FEATURE_eglfs=ON
+  -- QT_FEATURE_eglfs_brcm=OFF
+  -- QT_FEATURE_eglfs_egldevice=ON
+  -- QT_FEATURE_eglfs_gbm=ON
+  -- QT_FEATURE_eglfs_mali=OFF
+  -- QT_FEATURE_eglfs_openwfd=OFF
+  -- QT_FEATURE_eglfs_rcar=OFF
+  -- QT_FEATURE_eglfs_viv=OFF
+  -- QT_FEATURE_eglfs_viv_wl=OFF
+  -- QT_FEATURE_eglfs_vsp2=OFF
+  -- QT_FEATURE_eglfs_x11=ON
+  -- QT_FEATURE_enable_new_dtags=ON
+  -- QT_FEATURE_errormessage=ON
+  -- QT_FEATURE_etw=OFF
+  -- QT_FEATURE_evdev=ON
+  -- QT_FEATURE_eventfd=ON
+  -- QT_FEATURE_f16c=ON
+  -- QT_FEATURE_filedialog=ON
+  -- QT_FEATURE_filesystemiterator=ON
+  -- QT_FEATURE_filesystemmodel=ON
+  -- QT_FEATURE_filesystemwatcher=ON
+  -- QT_FEATURE_fontcombobox=ON
+  -- QT_FEATURE_fontconfig=ON
+  -- QT_FEATURE_fontdialog=ON
+  -- QT_FEATURE_force_asserts=OFF
+  -- QT_FEATURE_forkfd_pidfd=ON
+  -- QT_FEATURE_formlayout=ON
+  -- QT_FEATURE_framework=OFF
+  -- QT_FEATURE_freetype=ON
+  -- QT_FEATURE_fscompleter=ON
+  -- QT_FEATURE_futimens=ON
+  -- QT_FEATURE_futimes=OFF
+  -- QT_FEATURE_future=ON
+  -- QT_FEATURE_gbm=ON
+  -- QT_FEATURE_gc_binaries=OFF
+  -- QT_FEATURE_gestures=ON
+  -- QT_FEATURE_getauxval=ON
+  -- QT_FEATURE_getentropy=ON
+  -- QT_FEATURE_gif=ON
+  -- QT_FEATURE_glib=ON
+  -- QT_FEATURE_glibc=ON
+  -- QT_FEATURE_graphicseffect=ON
+  -- QT_FEATURE_graphicsview=ON
+  -- QT_FEATURE_groupbox=ON
+  -- QT_FEATURE_gtk3=ON
+  -- QT_FEATURE_gui=ON
+  -- QT_FEATURE_harfbuzz=ON
+  -- QT_FEATURE_highdpiscaling=ON
+  -- QT_FEATURE_hijricalendar=ON
+  -- QT_FEATURE_ico=ON
+  -- QT_FEATURE_icu=ON
+  -- QT_FEATURE_identityproxymodel=ON
+  -- QT_FEATURE_im=ON
+  -- QT_FEATURE_image_heuristic_mask=ON
+  -- QT_FEATURE_image_text=ON
+  -- QT_FEATURE_imageformat_bmp=ON
+  -- QT_FEATURE_imageformat_jpeg=ON
+  -- QT_FEATURE_imageformat_png=ON
+  -- QT_FEATURE_imageformat_ppm=ON
+  -- QT_FEATURE_imageformat_xbm=ON
+  -- QT_FEATURE_imageformat_xpm=ON
+  -- QT_FEATURE_imageformatplugin=ON
+  -- QT_FEATURE_imageio_text_loading=ON
+  -- QT_FEATURE_inotify=ON
+  -- QT_FEATURE_inputdialog=ON
+  -- QT_FEATURE_integrityfb=OFF
+  -- QT_FEATURE_integrityhid=OFF
+  -- QT_FEATURE_intelcet=ON
+  -- QT_FEATURE_islamiccivilcalendar=ON
+  -- QT_FEATURE_itemmodel=ON
+  -- QT_FEATURE_itemviews=ON
+  -- QT_FEATURE_jalalicalendar=ON
+  -- QT_FEATURE_journald=OFF
+  -- QT_FEATURE_jpeg=ON
+  -- QT_FEATURE_keysequenceedit=ON
+  -- QT_FEATURE_kms=ON
+  -- QT_FEATURE_label=ON
+  -- QT_FEATURE_largefile=ON
+  -- QT_FEATURE_lcdnumber=ON
+  -- QT_FEATURE_libinput=ON
+  -- QT_FEATURE_libinput_axis_api=ON
+  -- QT_FEATURE_library=ON
+  -- QT_FEATURE_libudev=ON
+  -- QT_FEATURE_lineedit=ON
+  -- QT_FEATURE_linkat=ON
+  -- QT_FEATURE_linuxfb=ON
+  -- QT_FEATURE_listview=ON
+  -- QT_FEATURE_listwidget=ON
+  -- QT_FEATURE_lttng=OFF
+  -- QT_FEATURE_mainwindow=ON
+  -- QT_FEATURE_mdiarea=ON
+  -- QT_FEATURE_menu=ON
+  -- QT_FEATURE_menubar=ON
+  -- QT_FEATURE_messagebox=ON
+  -- QT_FEATURE_mimetype=ON
+  -- QT_FEATURE_mimetype_database=OFF
+  -- QT_FEATURE_mips_dsp=OFF
+  -- QT_FEATURE_mips_dspr2=OFF
+  -- QT_FEATURE_movie=ON
+  -- QT_FEATURE_mtdev=ON
+  -- QT_FEATURE_multiprocess=ON
+  -- QT_FEATURE_neon=OFF
+  -- QT_FEATURE_network=ON
+  -- QT_FEATURE_opengl=ON
+  -- QT_FEATURE_opengles2=OFF
+  -- QT_FEATURE_opengles3=OFF
+  -- QT_FEATURE_opengles31=OFF
+  -- QT_FEATURE_opengles32=OFF
+  -- QT_FEATURE_openvg=OFF
+  -- QT_FEATURE_pcre2=ON
+  -- QT_FEATURE_pdf=ON
+  -- QT_FEATURE_picture=ON
+  -- QT_FEATURE_pkg_config=ON
+  -- QT_FEATURE_plugin_manifest=ON
+  -- QT_FEATURE_png=ON
+  -- QT_FEATURE_poll_poll=OFF
+  -- QT_FEATURE_poll_pollts=OFF
+  -- QT_FEATURE_poll_ppoll=ON
+  -- QT_FEATURE_poll_select=OFF
+  -- QT_FEATURE_posix_fallocate=ON
+  -- QT_FEATURE_precompile_header=ON
+  -- QT_FEATURE_printdialog=ON
+  -- QT_FEATURE_printer=ON
+  -- QT_FEATURE_printpreviewdialog=ON
+  -- QT_FEATURE_printpreviewwidget=ON
+  -- QT_FEATURE_printsupport=ON
+  -- QT_FEATURE_private_tests=OFF
+  -- QT_FEATURE_process=ON
+  -- QT_FEATURE_processenvironment=ON
+  -- QT_FEATURE_progressbar=ON
+  -- QT_FEATURE_progressdialog=ON
+  -- QT_FEATURE_properties=ON
+  -- QT_FEATURE_proxymodel=ON
+  -- QT_FEATURE_pushbutton=ON
+  -- QT_FEATURE_qqnx_imf=OFF
+  -- QT_FEATURE_qqnx_pps=OFF
+  -- QT_FEATURE_radiobutton=ON
+  -- QT_FEATURE_raster_64bit=ON
+  -- QT_FEATURE_raster_fp=ON
+  -- QT_FEATURE_rdrnd=ON
+  -- QT_FEATURE_rdseed=ON
+  -- QT_FEATURE_reduce_exports=ON
+  -- QT_FEATURE_reduce_relocations=ON
+  -- QT_FEATURE_regularexpression=ON
+  -- QT_FEATURE_relocatable=OFF
+  -- QT_FEATURE_renameat2=OFF
+  -- QT_FEATURE_resizehandler=ON
+  -- QT_FEATURE_rpath=OFF
+  -- QT_FEATURE_rubberband=ON
+  -- QT_FEATURE_scrollarea=ON
+  -- QT_FEATURE_scrollbar=ON
+  -- QT_FEATURE_scroller=ON
+  -- QT_FEATURE_separate_debug_info=OFF
+  -- QT_FEATURE_sessionmanager=ON
+  -- QT_FEATURE_settings=ON
+  -- QT_FEATURE_sha3_fast=ON
+  -- QT_FEATURE_shani=ON
+  -- QT_FEATURE_shared=ON
+  -- QT_FEATURE_sharedmemory=ON
+  -- QT_FEATURE_shortcut=ON
+  -- QT_FEATURE_signaling_nan=ON
+  -- QT_FEATURE_simdAlways=ON
+  -- QT_FEATURE_simulator_and_device=OFF
+  -- QT_FEATURE_sizegrip=ON
+  -- QT_FEATURE_slider=ON
+  -- QT_FEATURE_slog2=OFF
+  -- QT_FEATURE_sortfilterproxymodel=ON
+  -- QT_FEATURE_spinbox=ON
+  -- QT_FEATURE_splashscreen=ON
+  -- QT_FEATURE_splitter=ON
+  -- QT_FEATURE_sql=ON
+  -- QT_FEATURE_sse2=ON
+  -- QT_FEATURE_sse3=ON
+  -- QT_FEATURE_sse4_1=ON
+  -- QT_FEATURE_sse4_2=ON
+  -- QT_FEATURE_ssse3=ON
+  -- QT_FEATURE_stack_protector_strong=OFF
+  -- QT_FEATURE_stackedwidget=ON
+  -- QT_FEATURE_standarditemmodel=ON
+  -- QT_FEATURE_static=OFF
+  -- QT_FEATURE_statusbar=ON
+  -- QT_FEATURE_statustip=ON
+  -- QT_FEATURE_statx=ON
+  -- QT_FEATURE_std_atomic64=ON
+  -- QT_FEATURE_stringlistmodel=ON
+  -- QT_FEATURE_style_android=OFF
+  -- QT_FEATURE_style_fusion=ON
+  -- QT_FEATURE_style_mac=OFF
+  -- QT_FEATURE_style_stylesheet=ON
+  -- QT_FEATURE_style_windows=ON
+  -- QT_FEATURE_style_windowsvista=OFF
+  -- QT_FEATURE_syntaxhighlighter=ON
+  -- QT_FEATURE_syslog=OFF
+  -- QT_FEATURE_system_doubleconversion=ON
+  -- QT_FEATURE_system_freetype=ON
+  -- QT_FEATURE_system_harfbuzz=ON
+  -- QT_FEATURE_system_jpeg=ON
+  -- QT_FEATURE_system_libb2=ON
+  -- QT_FEATURE_system_pcre2=ON
+  -- QT_FEATURE_system_png=ON
+  -- QT_FEATURE_system_textmarkdownreader=ON
+  -- QT_FEATURE_system_xcb_xinput=ON
+  -- QT_FEATURE_system_zlib=ON
+  -- QT_FEATURE_systemsemaphore=ON
+  -- QT_FEATURE_systemtrayicon=ON
+  -- QT_FEATURE_tabbar=ON
+  -- QT_FEATURE_tabletevent=ON
+  -- QT_FEATURE_tableview=ON
+  -- QT_FEATURE_tablewidget=ON
+  -- QT_FEATURE_tabwidget=ON
+  -- QT_FEATURE_temporaryfile=ON
+  -- QT_FEATURE_testlib=ON
+  -- QT_FEATURE_textbrowser=ON
+  -- QT_FEATURE_textdate=ON
+  -- QT_FEATURE_textedit=ON
+  -- QT_FEATURE_texthtmlparser=ON
+  -- QT_FEATURE_textmarkdownreader=ON
+  -- QT_FEATURE_textmarkdownwriter=ON
+  -- QT_FEATURE_textodfwriter=ON
+  -- QT_FEATURE_thread=ON
+  -- QT_FEATURE_threadsafe_cloexec=ON
+  -- QT_FEATURE_timezone=ON
+  -- QT_FEATURE_toolbar=ON
+  -- QT_FEATURE_toolbox=ON
+  -- QT_FEATURE_toolbutton=ON
+  -- QT_FEATURE_tooltip=ON
+  -- QT_FEATURE_translation=ON
+  -- QT_FEATURE_transposeproxymodel=ON
+  -- QT_FEATURE_treeview=ON
+  -- QT_FEATURE_treewidget=ON
+  -- QT_FEATURE_tslib=ON
+  -- QT_FEATURE_tuiotouch=ON
+  -- QT_FEATURE_undocommand=ON
+  -- QT_FEATURE_undogroup=ON
+  -- QT_FEATURE_undostack=ON
+  -- QT_FEATURE_undoview=ON
+  -- QT_FEATURE_use_bfd_linker=OFF
+  -- QT_FEATURE_use_gold_linker=OFF
+  -- QT_FEATURE_use_lld_linker=OFF
+  -- QT_FEATURE_use_mold_linker=OFF
+  -- QT_FEATURE_validator=ON
+  -- QT_FEATURE_vkgen=ON
+  -- QT_FEATURE_vkkhrdisplay=ON
+  -- QT_FEATURE_vnc=ON
+  -- QT_FEATURE_vsp2=OFF
+  -- QT_FEATURE_vulkan=ON
+  -- QT_FEATURE_whatsthis=ON
+  -- QT_FEATURE_wheelevent=ON
+  -- QT_FEATURE_widgets=ON
+  -- QT_FEATURE_widgettextcontrol=ON
+  -- QT_FEATURE_wizard=ON
+  -- QT_FEATURE_xcb=ON
+  -- QT_FEATURE_xcb_egl_plugin=ON
+  -- QT_FEATURE_xcb_glx=ON
+  -- QT_FEATURE_xcb_glx_plugin=ON
+  -- QT_FEATURE_xcb_native_painting=OFF
+  -- QT_FEATURE_xcb_sm=ON
+  -- QT_FEATURE_xcb_xlib=ON
+  -- QT_FEATURE_xkbcommon=ON
+  -- QT_FEATURE_xkbcommon_x11=ON
+  -- QT_FEATURE_xlib=ON
+  -- QT_FEATURE_xml=ON
+  -- QT_FEATURE_xmlstream=ON
+  -- QT_FEATURE_xmlstreamreader=ON
+  -- QT_FEATURE_xmlstreamwriter=ON
+  -- QT_FEATURE_xrender=OFF
+  -- QT_FEATURE_zstd=ON
+  -- QT_SUPPORTED_MIN_CMAKE_VERSION_FOR_USING_QT=3.16
+  -- QT_VISIBILITY_AVAILABLE=TRUE
+  -- Qt6CoreTools_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6CoreTools/Qt6CoreToolsConfig.cmake
+  -- Qt6CoreTools_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6CoreTools/Qt6CoreToolsConfig.cmake
+  -- Qt6CoreTools_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6CoreTools_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6CoreTools
+  -- Qt6CoreTools_FOUND=1
+  -- Qt6CoreTools_TARGETS=Qt6::moc;Qt6::rcc;Qt6::tracegen;Qt6::cmake_automoc_parser;Qt6::qlalr;Qt6::qtpaths;Qt6::androiddeployqt;Qt6::androidtestrunner;Qt6::qmake
+  -- Qt6CoreTools_VERSION=6.2.4
+  -- Qt6CoreTools_VERSION_COUNT=3
+  -- Qt6CoreTools_VERSION_MAJOR=6
+  -- Qt6CoreTools_VERSION_MINOR=2
+  -- Qt6CoreTools_VERSION_PATCH=4
+  -- Qt6CoreTools_VERSION_TWEAK=0
+  -- Qt6Core_COMPILE_DEFINITIONS=QT_CORE_LIB;$<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG>
+  -- Qt6Core_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/Qt6CoreConfig.cmake
+  -- Qt6Core_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/Qt6CoreConfig.cmake
+  -- Qt6Core_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6Core_DEFINITIONS=-DQT_CORE_LIB;-D$<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG>
+  -- Qt6Core_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core
+  -- Qt6Core_FOUND=1
+  -- Qt6Core_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtCore;/usr/include/x86_64-linux-gnu/qt6
+  -- Qt6Core_LIBRARIES=Qt6::Core
+  -- Qt6Core_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4/QtCore
+  -- Qt6Core_VERSION=6.2.4
+  -- Qt6Core_VERSION_COUNT=3
+  -- Qt6Core_VERSION_MAJOR=6
+  -- Qt6Core_VERSION_MINOR=2
+  -- Qt6Core_VERSION_PATCH=4
+  -- Qt6Core_VERSION_TWEAK=0
+  -- Qt6DBusTools_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBusTools/Qt6DBusToolsConfig.cmake
+  -- Qt6DBusTools_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBusTools/Qt6DBusToolsConfig.cmake
+  -- Qt6DBusTools_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6DBusTools_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBusTools
+  -- Qt6DBusTools_FOUND=1
+  -- Qt6DBusTools_TARGETS=Qt6::qdbuscpp2xml;Qt6::qdbusxml2cpp
+  -- Qt6DBusTools_VERSION=6.2.4
+  -- Qt6DBusTools_VERSION_COUNT=3
+  -- Qt6DBusTools_VERSION_MAJOR=6
+  -- Qt6DBusTools_VERSION_MINOR=2
+  -- Qt6DBusTools_VERSION_PATCH=4
+  -- Qt6DBusTools_VERSION_TWEAK=0
+  -- Qt6DBus_COMPILE_DEFINITIONS=QT_DBUS_LIB;QT_CORE_LIB
+  -- Qt6DBus_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBus/Qt6DBusConfig.cmake
+  -- Qt6DBus_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBus/Qt6DBusConfig.cmake
+  -- Qt6DBus_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6DBus_DEFINITIONS=-DQT_DBUS_LIB;-DQT_CORE_LIB
+  -- Qt6DBus_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBus
+  -- Qt6DBus_FOUND=1
+  -- Qt6DBus_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtDBus;/usr/include/x86_64-linux-gnu/qt6;/usr/include/x86_64-linux-gnu/qt6/QtCore
+  -- Qt6DBus_LIBRARIES=Qt6::DBus
+  -- Qt6DBus_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4/QtDBus;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4/QtCore
+  -- Qt6DBus_VERSION=6.2.4
+  -- Qt6DBus_VERSION_COUNT=3
+  -- Qt6DBus_VERSION_MAJOR=6
+  -- Qt6DBus_VERSION_MINOR=2
+  -- Qt6DBus_VERSION_PATCH=4
+  -- Qt6DBus_VERSION_TWEAK=0
+  -- Qt6GuiTools_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools/Qt6GuiToolsConfig.cmake
+  -- Qt6GuiTools_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools/Qt6GuiToolsConfig.cmake
+  -- Qt6GuiTools_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6GuiTools_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools
+  -- Qt6GuiTools_FOUND=1
+  -- Qt6GuiTools_TARGETS=Qt6::qvkgen
+  -- Qt6GuiTools_VERSION=6.2.4
+  -- Qt6GuiTools_VERSION_COUNT=3
+  -- Qt6GuiTools_VERSION_MAJOR=6
+  -- Qt6GuiTools_VERSION_MINOR=2
+  -- Qt6GuiTools_VERSION_PATCH=4
+  -- Qt6GuiTools_VERSION_TWEAK=0
+  -- Qt6Gui_COMPILE_DEFINITIONS=QT_GUI_LIB;QT_CORE_LIB;QT_DBUS_LIB
+  -- Qt6Gui_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui/Qt6GuiConfig.cmake
+  -- Qt6Gui_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui/Qt6GuiConfig.cmake
+  -- Qt6Gui_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6Gui_DEFINITIONS=-DQT_GUI_LIB;-DQT_CORE_LIB;-DQT_DBUS_LIB
+  -- Qt6Gui_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui
+  -- Qt6Gui_FOUND=1
+  -- Qt6Gui_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtGui;/usr/include/x86_64-linux-gnu/qt6;/usr/include/x86_64-linux-gnu/qt6/QtCore;/usr/include/x86_64-linux-gnu/qt6/QtDBus
+  -- Qt6Gui_LIBRARIES=Qt6::Gui
+  -- Qt6Gui_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4/QtGui;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4/QtCore;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4/QtDBus
+  -- Qt6Gui_VERSION=6.2.4
+  -- Qt6Gui_VERSION_COUNT=3
+  -- Qt6Gui_VERSION_MAJOR=6
+  -- Qt6Gui_VERSION_MINOR=2
+  -- Qt6Gui_VERSION_PATCH=4
+  -- Qt6Gui_VERSION_TWEAK=0
+  -- Qt6PrintSupport_COMPILE_DEFINITIONS=QT_PRINTSUPPORT_LIB;QT_CORE_LIB;QT_GUI_LIB;QT_DBUS_LIB;QT_WIDGETS_LIB
+  -- Qt6PrintSupport_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6PrintSupport/Qt6PrintSupportConfig.cmake
+  -- Qt6PrintSupport_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6PrintSupport/Qt6PrintSupportConfig.cmake
+  -- Qt6PrintSupport_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6PrintSupport_DEFINITIONS=-DQT_PRINTSUPPORT_LIB;-DQT_CORE_LIB;-DQT_GUI_LIB;-DQT_DBUS_LIB;-DQT_WIDGETS_LIB
+  -- Qt6PrintSupport_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6PrintSupport
+  -- Qt6PrintSupport_FOUND=1
+  -- Qt6PrintSupport_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtPrintSupport;/usr/include/x86_64-linux-gnu/qt6;/usr/include/x86_64-linux-gnu/qt6/QtCore;/usr/include/x86_64-linux-gnu/qt6/QtGui;/usr/include/x86_64-linux-gnu/qt6/QtDBus;/usr/include/x86_64-linux-gnu/qt6/QtWidgets
+  -- Qt6PrintSupport_LIBRARIES=Qt6::PrintSupport
+  -- Qt6PrintSupport_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtPrintSupport/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtPrintSupport/6.2.4/QtPrintSupport;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4/QtCore;/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4/QtGui;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4/QtDBus;/usr/include/x86_64-linux-gnu/qt6/QtWidgets/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtWidgets/6.2.4/QtWidgets
+  -- Qt6PrintSupport_VERSION=6.2.4
+  -- Qt6PrintSupport_VERSION_COUNT=3
+  -- Qt6PrintSupport_VERSION_MAJOR=6
+  -- Qt6PrintSupport_VERSION_MINOR=2
+  -- Qt6PrintSupport_VERSION_PATCH=4
+  -- Qt6PrintSupport_VERSION_TWEAK=0
+  -- Qt6WidgetsTools_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6WidgetsTools/Qt6WidgetsToolsConfig.cmake
+  -- Qt6WidgetsTools_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6WidgetsTools/Qt6WidgetsToolsConfig.cmake
+  -- Qt6WidgetsTools_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6WidgetsTools_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6WidgetsTools
+  -- Qt6WidgetsTools_FOUND=1
+  -- Qt6WidgetsTools_TARGETS=Qt6::uic
+  -- Qt6WidgetsTools_VERSION=6.2.4
+  -- Qt6WidgetsTools_VERSION_COUNT=3
+  -- Qt6WidgetsTools_VERSION_MAJOR=6
+  -- Qt6WidgetsTools_VERSION_MINOR=2
+  -- Qt6WidgetsTools_VERSION_PATCH=4
+  -- Qt6WidgetsTools_VERSION_TWEAK=0
+  -- Qt6Widgets_COMPILE_DEFINITIONS=QT_WIDGETS_LIB;QT_CORE_LIB;QT_GUI_LIB;QT_DBUS_LIB
+  -- Qt6Widgets_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets/Qt6WidgetsConfig.cmake
+  -- Qt6Widgets_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets/Qt6WidgetsConfig.cmake
+  -- Qt6Widgets_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6Widgets_DEFINITIONS=-DQT_WIDGETS_LIB;-DQT_CORE_LIB;-DQT_GUI_LIB;-DQT_DBUS_LIB
+  -- Qt6Widgets_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets
+  -- Qt6Widgets_FOUND=1
+  -- Qt6Widgets_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtWidgets;/usr/include/x86_64-linux-gnu/qt6;/usr/include/x86_64-linux-gnu/qt6/QtCore;/usr/include/x86_64-linux-gnu/qt6/QtGui;/usr/include/x86_64-linux-gnu/qt6/QtDBus
+  -- Qt6Widgets_LIBRARIES=Qt6::Widgets
+  -- Qt6Widgets_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtWidgets/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtWidgets/6.2.4/QtWidgets;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4/QtCore;/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4/QtGui;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4/QtDBus
+  -- Qt6Widgets_VERSION=6.2.4
+  -- Qt6Widgets_VERSION_COUNT=3
+  -- Qt6Widgets_VERSION_MAJOR=6
+  -- Qt6Widgets_VERSION_MINOR=2
+  -- Qt6Widgets_VERSION_PATCH=4
+  -- Qt6Widgets_VERSION_TWEAK=0
+  -- Qt6_CONFIG=/usr/lib/x86_64-linux-gnu/cmake/Qt6/Qt6Config.cmake
+  -- Qt6_CONSIDERED_CONFIGS=/usr/lib/x86_64-linux-gnu/cmake/Qt6/Qt6Config.cmake
+  -- Qt6_CONSIDERED_VERSIONS=6.2.4
+  -- Qt6_DEPENDENCIES_FOUND=TRUE
+  -- Qt6_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6
+  -- Qt6_FOUND=1
+  -- Qt6_USE_STATIC_LIBS=TRUE
+  -- Qt6_VERSION=6.2.4
+  -- Qt6_VERSION_COUNT=3
+  -- Qt6_VERSION_MAJOR=6
+  -- Qt6_VERSION_MINOR=2
+  -- Qt6_VERSION_PATCH=4
+  -- Qt6_VERSION_TWEAK=0
+  -- RUN_CONFIGURE=ON
+  -- SKBUILD=2
+  -- SKBUILD_CORE_VERSION=0.10.7
+  -- SKBUILD_DATA_DIR=/tmp/tmpb4us1u45/wheel/data
+  -- SKBUILD_HEADERS_DIR=/tmp/tmpb4us1u45/wheel/headers
+  -- SKBUILD_METADATA_DIR=/tmp/tmpb4us1u45/wheel/metadata
+  -- SKBUILD_NULL_DIR=/tmp/tmpb4us1u45/wheel/null
+  -- SKBUILD_PLATLIB_DIR=/tmp/tmpb4us1u45/wheel/platlib
+  -- SKBUILD_PROJECT_NAME=antpack
+  -- SKBUILD_PROJECT_VERSION=0.3.7
+  -- SKBUILD_PROJECT_VERSION_FULL=0.3.7
+  -- SKBUILD_SABI_COMPONENT=
+  -- SKBUILD_SCRIPTS_DIR=/tmp/tmpb4us1u45/wheel/scripts
+  -- SKBUILD_SOABI=cpython-310-x86_64-linux-gnu
+  -- SKBUILD_STATE=editable
+  -- THREADS_FOUND=TRUE
+  -- THREADS_PREFER_PTHREAD_FLAG=TRUE
+  -- Threads_FOUND=TRUE
+  -- UNIX=1
+  -- VULKAN_FOUND=FALSE
+  -- Vulkan_FOUND=FALSE
+  -- Vulkan_GLSLANG_VALIDATOR_EXECUTABLE=Vulkan_GLSLANG_VALIDATOR_EXECUTABLE-NOTFOUND
+  -- Vulkan_GLSLC_EXECUTABLE=Vulkan_GLSLC_EXECUTABLE-NOTFOUND
+  -- Vulkan_INCLUDE_DIR=Vulkan_INCLUDE_DIR-NOTFOUND
+  -- Vulkan_INCLUDE_DIRS=Vulkan_INCLUDE_DIR-NOTFOUND
+  -- Vulkan_LIBRARIES=Vulkan_LIBRARY-NOTFOUND
+  -- Vulkan_LIBRARY=Vulkan_LIBRARY-NOTFOUND
+  -- WRAPATOMIC_FOUND=TRUE
+  -- WRAPOPENGL_FOUND=TRUE
+  -- WRAPVULKANHEADERS_FOUND=FALSE
+  -- WrapAtomic_FOUND=ON
+  -- WrapOpenGL_FOUND=TRUE
+  -- WrapVulkanHeaders_FOUND=FALSE
+  -- XKB_FOUND=FALSE
+  -- XKB_INCLUDE_DIR=XKB_INCLUDE_DIR-NOTFOUND
+  -- XKB_INCLUDE_DIRS=XKB_INCLUDE_DIR-NOTFOUND
+  -- XKB_LIBRARIES=XKB_LIBRARY-NOTFOUND
+  -- XKB_LIBRARY=XKB_LIBRARY-NOTFOUND
+  -- _CMAKE_CUDA_IMPLICIT_INCLUDE_DIRECTORIES_INIT=/usr/include
+  -- _CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES_INIT=/usr/include
+  -- _CMAKE_CXX_IPO_MAY_BE_SUPPORTED_BY_COMPILER=YES
+  -- _CMAKE_CXX_IPO_SUPPORTED_BY_CMAKE=YES
+  -- _CMAKE_CXX_PIE_MAY_BE_SUPPORTED_BY_LINKER=YES
+  -- _CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES_INIT=/usr/include
+  -- _CMAKE_INSTALL_DIR=/usr
+  -- _CMAKE_TOOLCHAIN_LOCATION=/usr/bin
+  -- _CMAKE_TOOLCHAIN_PREFIX=x86_64-linux-gnu-
+  -- _DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6PrintSupport
+  -- _INCLUDED_FILE=/usr/share/cmake-3.22/Modules/Platform/Linux-GNU-CXX.cmake
+  -- _INCLUDED_SYSTEM_INFO_FILE=/usr/share/cmake-3.22/Modules/Platform/Linux.cmake
+  -- _IN_TC=0
+  -- _PKG_CONFIG_FAILURE_MESSAGE=
+  -- _PKG_CONFIG_VERSION_ERROR=
+  -- _Python_ABIFLAGS=
+  -- _Python_ARCH=64
+  -- _Python_ARCH2=64
+  -- _Python_CACHED_VARS=_Python_EXECUTABLE;_Python_INTERPRETER_PROPERTIES;_Python_INCLUDE_DIR
+  -- _Python_CMAKE_ROLE=PROJECT
+  -- _Python_Compiler_REASON_FAILURE=
+  -- _Python_DEVELOPMENT_MODULE_SIGNATURE=cfd4c336b015b7146071f34cb83167c4
+  -- _Python_Development_REASON_FAILURE=
+  -- _Python_EXECUTABLE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/bin/python3
+  -- _Python_EXECUTABLE_USABLE=TRUE
+  -- _Python_FIND_DEVELOPMENT_ARTIFACTS=INCLUDE_DIR
+  -- _Python_FIND_DEVELOPMENT_MODULE_ARTIFACTS=INCLUDE_DIR
+  -- _Python_FIND_FRAMEWORK=FIRST
+  -- _Python_FIND_IMPLEMENTATIONS=CPython
+  -- _Python_FIND_REGISTRY=NEVER
+  -- _Python_FIND_STRATEGY=LOCATION
+  -- _Python_FIND_UNVERSIONED_NAMES=LAST
+  -- _Python_FIND_VERSIONS=3.10
+  -- _Python_FIND_VIRTUALENV=FIRST
+  -- _Python_INCLUDE_DIR=/usr/include/python3.10
+  -- _Python_INCLUDE_NAMES=Python.h
+  -- _Python_INC_ABI=
+  -- _Python_INC_VERSION=3.10.12
+  -- _Python_INC_VERSION_MAJOR=3
+  -- _Python_INC_VERSION_MINOR=10
+  -- _Python_INC_VERSION_PATCH=12
+  -- _Python_INTERPRETER_PROPERTIES=Python;3;10;12;64;;cpython-310-x86_64-linux-gnu;abi3;/usr/lib/python3.10;/usr/lib/python3.10;/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages;/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages
+  -- _Python_INTERPRETER_SIGNATURE=d6f51cc90facb093b11b90c4232b338c
+  -- _Python_IRON_PYTHON_COMPILER_ARCH_FLAGS=/platform:x64
+  -- _Python_IRON_PYTHON_COMPILER_NAMES=ipyc.exe
+  -- _Python_IRON_PYTHON_INTERPRETER_NAMES=ipy.exe
+  -- _Python_IRON_PYTHON_PATH_SUFFIXES=net45;net40;bin
+  -- _Python_LIBPATHS=/usr/lib/python3.10;/usr/lib/python3.10;/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages;/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack/lib/python3.10/site-packages
+  -- _Python_LOOKUP_POLICY=NEW
+  -- _Python_NumPy_REASON_FAILURE=
+  -- _Python_PYPY_EXECUTABLE_PATH_SUFFIXES=bin
+  -- _Python_PYPY_INCLUDE_PATH_SUFFIXES=lib/pypy3/include;pypy3/include;libexec/include;include
+  -- _Python_PYPY_LIBRARY_PATH_SUFFIXES=lib;libs;bin
+  -- _Python_PYPY_LIB_NAMES=pypy3-c
+  -- _Python_PYPY_NAMES=pypy3
+  -- _Python_REGISTRY_VIEW=
+  -- _Python_REQUIRED_VARS=Python_EXECUTABLE;Python_INCLUDE_DIRS
+  -- _Python_REQUIRED_VERSION_MAJOR=3
+  -- _Python_RESULT=0
+  -- _Python_SIGNATURE=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/venv_antpack:CPython:LOCATION:LAST::
+  -- _Python_VERSION=3.10.12
+  -- _Python_VERSIONS=3;10;12
+  -- _Python_VERSION_MAJOR=3
+  -- _Python_VERSION_MINOR=10
+  -- _Python_VERSION_PATCH=12
+  -- _Qt6CTestMacros=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/Qt6CTestMacros.cmake
+  -- _Qt6CoreConfigDir=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core
+  -- _Qt6Core_MODULE_DEPENDENCIES=
+  -- _Qt6Core_OWN_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtCore;/usr/include/x86_64-linux-gnu/qt6
+  -- _Qt6Core_OWN_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtCore/6.2.4/QtCore
+  -- _Qt6DBus_MODULE_DEPENDENCIES=Core;CorePrivate
+  -- _Qt6DBus_OWN_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtDBus;/usr/include/x86_64-linux-gnu/qt6
+  -- _Qt6DBus_OWN_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtDBus/6.2.4/QtDBus
+  -- _Qt6Gui_MODULE_DEPENDENCIES=Core;CorePrivate;DBus
+  -- _Qt6Gui_OWN_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtGui;/usr/include/x86_64-linux-gnu/qt6
+  -- _Qt6Gui_OWN_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtGui/6.2.4/QtGui
+  -- _Qt6PrintSupport_MODULE_DEPENDENCIES=Core;Gui;Widgets;CorePrivate;GuiPrivate;WidgetsPrivate
+  -- _Qt6PrintSupport_OWN_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtPrintSupport;/usr/include/x86_64-linux-gnu/qt6
+  -- _Qt6PrintSupport_OWN_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtPrintSupport/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtPrintSupport/6.2.4/QtPrintSupport
+  -- _Qt6Widgets_MODULE_DEPENDENCIES=Core;Gui;CorePrivate;GuiPrivate
+  -- _Qt6Widgets_OWN_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtWidgets;/usr/include/x86_64-linux-gnu/qt6
+  -- _Qt6Widgets_OWN_PRIVATE_INCLUDE_DIRS=/usr/include/x86_64-linux-gnu/qt6/QtWidgets/6.2.4;/usr/include/x86_64-linux-gnu/qt6/QtWidgets/6.2.4/QtWidgets
+  -- _Qt6_COMPONENT_PATH=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/..
+  -- _SET_CMAKE_CXX_COMPILER_ARCHITECTURE_ID=
+  -- _SET_CMAKE_CXX_COMPILER_SYSROOT=
+  -- __COMPILER_CMAKE_COMMON_COMPILER_MACROS=1
+  -- __COMPILER_GNU=1
+  -- __LINUX_COMPILER_GNU=1
+  -- __Python_INTERPRETER_SIGNATURE=d6f51cc90facb093b11b90c4232b338c
+  -- __UNIX_PATHS_INCLUDED=1
+  -- __gcc_hints=/usr/bin
+  -- __lto_flags=-flto;-fno-fat-lto-objects
+  -- __pch_header_C=c-header
+  -- __pch_header_CXX=c++-header
+  -- __pch_header_OBJC=objective-c-header
+  -- __pch_header_OBJCXX=objective-c++-header
+  -- __pkg_config_checked_PKG_XKB=1
+  -- __qt_CoreTools_tool_deps=
+  -- __qt_Core_components=
+  -- __qt_Core_find_dependency_paths=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/..;/usr/lib/x86_64-linux-gnu/cmake
+  -- __qt_Core_is_optional=FALSE
+  -- __qt_Core_optional_components=
+  -- __qt_Core_pkg=Qt6CoreTools
+  -- __qt_Core_target_deps=
+  -- __qt_Core_third_party_deps=WrapAtomic\;FALSE\;\;\;
+  -- __qt_Core_tool_deps=Qt6CoreTools\;6.2.4
+  -- __qt_Core_version=6.2.4
+  -- __qt_DBusTools_pkg=Qt6CoreTools
+  -- __qt_DBusTools_tool_deps=Qt6CoreTools\;6.2.4
+  -- __qt_DBusTools_version=6.2.4
+  -- __qt_DBus_find_dependency_paths=/usr/lib/x86_64-linux-gnu/cmake/Qt6DBus/..;/usr/lib/x86_64-linux-gnu/cmake
+  -- __qt_DBus_pkg=Qt6DBusTools
+  -- __qt_DBus_target_deps=Qt6Core\;6.2.4
+  -- __qt_DBus_third_party_deps=
+  -- __qt_DBus_tool_deps=Qt6DBusTools\;6.2.4
+  -- __qt_DBus_version=6.2.4
+  -- __qt_GuiTools_pkg=Qt6CoreTools
+  -- __qt_GuiTools_tool_deps=Qt6CoreTools\;6.2.4
+  -- __qt_GuiTools_version=6.2.4
+  -- __qt_Gui_components=
+  -- __qt_Gui_find_dependency_paths=/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui/..;/usr/lib/x86_64-linux-gnu/cmake
+  -- __qt_Gui_is_optional=TRUE
+  -- __qt_Gui_optional_components=
+  -- __qt_Gui_pkg=Qt6GuiTools
+  -- __qt_Gui_target_deps=Qt6Core\;6.2.4;Qt6DBus\;6.2.4
+  -- __qt_Gui_third_party_deps=WrapOpenGL\;FALSE\;\;\;;XKB\;TRUE\;0.5.0\;\;;WrapVulkanHeaders\;TRUE\;\;\;
+  -- __qt_Gui_tool_deps=Qt6GuiTools\;6.2.4
+  -- __qt_Gui_version=6.2.4
+  -- __qt_PrintSupport_find_dependency_paths=/usr/lib/x86_64-linux-gnu/cmake/Qt6PrintSupport/..;/usr/lib/x86_64-linux-gnu/cmake
+  -- __qt_PrintSupport_target_deps=Qt6Core\;6.2.4;Qt6Gui\;6.2.4;Qt6Widgets\;6.2.4
+  -- __qt_PrintSupport_third_party_deps=
+  -- __qt_PrintSupport_tool_deps=
+  -- __qt_WidgetsTools_pkg=Qt6GuiTools
+  -- __qt_WidgetsTools_tool_deps=Qt6CoreTools\;6.2.4;Qt6GuiTools\;6.2.4
+  -- __qt_WidgetsTools_version=6.2.4
+  -- __qt_Widgets_find_dependency_paths=/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets/..;/usr/lib/x86_64-linux-gnu/cmake
+  -- __qt_Widgets_pkg=Qt6WidgetsTools
+  -- __qt_Widgets_target_deps=Qt6Core\;6.2.4;Qt6Gui\;6.2.4
+  -- __qt_Widgets_third_party_deps=
+  -- __qt_Widgets_tool_deps=Qt6WidgetsTools\;6.2.4
+  -- __qt_Widgets_version=6.2.4
+  -- __qt_components=
+  -- __qt_core_macros_module_base_dir=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core
+  -- __qt_find_package_args=Threads
+  -- __qt_imported_location=/usr/lib/qt6/bin/qdbusxml2cpp
+  -- __qt_internal_set_up_cmake_minimum_required_version_already_done=TRUE
+  -- __qt_is_optional=FALSE
+  -- __qt_message=
+  Package: Threads
+  -- __qt_optional_components=
+  -- __qt_pkg=Threads
+  -- __qt_pkg_names=Qt6DBus
+  -- __qt_sanitizer_options_set=TRUE
+  -- __qt_third_party_deps=Threads\;FALSE\;\;\;
+  -- __qt_use_no_default_path_for_qt_packages=NO_DEFAULT_PATH
+  -- __qt_version=
+  -- __version_x=11
+  -- __version_x_y=11.4
+  -- _expectedTarget=
+  -- _fsDefaultPkgTypeIsSet=0
+  -- _fsPkgTypeIsSet=0
+  -- _fsReqPkgTypesIsSet=0
+  -- _imp_target=0
+  -- _imp_target_global=0
+  -- _import_prefix=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core
+  -- _no_cmake_environment_path=0
+  -- _no_cmake_path=0
+  -- _pkg_check_modules_cnt=1
+  -- _pkg_check_modules_exist_query=--print-errors;--short-errors;--exists;xkbcommon
+  -- _pkg_check_modules_failed=1
+  -- _pkg_check_modules_list=xkbcommon
+  -- _pkg_check_modules_packages=xkbcommon
+  -- _pkg_check_modules_pkg_name=xkbcommon
+  -- _pkg_is_required=0
+  -- _pkg_is_silent=1
+  -- _pkg_modules=xkbcommon
+  -- _pkgconfig_error=No package 'xkbcommon' found
+  -- _pkgconfig_retval=1
+  -- _qt_6_config_cmake_dir=/usr/lib/x86_64-linux-gnu/cmake/Qt6
+  -- _qt_additional_host_packages_prefix_paths=
+  -- _qt_additional_host_packages_root_paths=
+  -- _qt_additional_packages_prefix_paths=
+  -- _qt_cmake_dir=/usr/lib/x86_64-linux-gnu/cmake
+  -- _qt_import_prefix=/usr/lib/x86_64-linux-gnu/cmake/Qt6
+  -- _qt_module_plugin_types=_qt_module_plugin_types-NOTFOUND
+  -- _qt_module_target_type=SHARED_LIBRARY
+  -- _target=
+  -- antpack_BINARY_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64
+  -- antpack_DESCRIPTION=
+  -- antpack_HOMEPAGE_URL=
+  -- antpack_IS_TOP_LEVEL=ON
+  -- antpack_SOURCE_DIR=/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack
+  -- atomic_test_sources=#include <atomic>
+  #include <cstdint>
+
+  void test(volatile std::atomic<std::int64_t> &a)
+  {
+      std::int64_t v = a.load(std::memory_order_acquire);
+      while (!a.compare_exchange_strong(v, v + 1,
+                                        std::memory_order_acq_rel,
+                                        std::memory_order_acquire)) {
+          v = a.exchange(v - 1);
+      }
+      a.store(v + 1, std::memory_order_release);
+  }
+
+  int main(int, char **)
+  {
+      void *ptr = (void*)0xffffffc0; // any random pointer
+      test(*reinterpret_cast<std::atomic<std::int64_t> *>(ptr));
+      return 0;
+  }
+  -- cmake_fd_alreadyTransitive=TRUE
+  -- f=
+  -- file=
+  -- lang=
+  -- nanobind_CONFIG=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/cmake/nanobind-config.cmake
+  -- nanobind_CONSIDERED_CONFIGS=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/cmake/nanobind-config.cmake
+  -- nanobind_CONSIDERED_VERSIONS=2.4.0
+  -- nanobind_DIR=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/cmake
+  -- nanobind_FOUND=1
+  -- nanobind_ROOT=/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/cmake
+  -- nanobind_VERSION=2.4.0
+  -- nanobind_VERSION_COUNT=3
+  -- nanobind_VERSION_MAJOR=2
+  -- nanobind_VERSION_MINOR=4
+  -- nanobind_VERSION_PATCH=0
+  -- nanobind_VERSION_TWEAK=0
+  -- target=
+  -- type=
+  -- val=0
+  -- Configuring done
+  -- Generating done
+  -- Build files have been written to: /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64
+  *** Building project with Ninja...
+  2024-12-31 06:49:19,477 - scikit_build_core - INFO - RUN: /usr/bin/cmake --build build/cp310-cp310-linux_x86_64 -v
+  [1/36] cd /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 && /usr/bin/cmake -E cmake_autogen /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/nanobind-static_autogen.dir/AutogenInfo.json Release && /usr/bin/cmake -E touch /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/timestamp && /usr/bin/cmake -E cmake_transform_depfile Ninja gccdepfile /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/deps /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/d/49c2933066247572ab28e6ddf9303bd92936e2422439058a4bc504af2c99b997.d
+  [2/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/nanobind-static_autogen/mocs_compilation.cpp.o -MF CMakeFiles/nanobind-static.dir/nanobind-static_autogen/mocs_compilation.cpp.o.d -o CMakeFiles/nanobind-static.dir/nanobind-static_autogen/mocs_compilation.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/mocs_compilation.cpp
+  [3/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_static_property.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_static_property.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_static_property.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_static_property.cpp
+  [4/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/implicit.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/implicit.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/implicit.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/implicit.cpp
+  [5/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/trampoline.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/trampoline.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/trampoline.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/trampoline.cpp
+  [6/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/error.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/error.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/error.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/error.cpp
+  [7/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/common.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/common.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/common.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/common.cpp
+  [8/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_internals.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_internals.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_internals.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_internals.cpp
+  [9/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_ndarray.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_ndarray.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_ndarray.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_ndarray.cpp
+  [10/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_enum.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_enum.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_enum.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_enum.cpp
+  [11/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_func.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_func.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_func.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_func.cpp
+  [12/36] /usr/bin/x86_64-linux-gnu-g++ -DNB_COMPACT_ASSERTIONS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/nanobind-static_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/ext/robin_map/include -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -ffunction-sections -fdata-sections -fno-strict-aliasing -std=gnu++17 -MD -MT CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_type.cpp.o -MF CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_type.cpp.o.d -o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_type.cpp.o -c /tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_type.cpp
+  [13/36] : && /usr/bin/cmake -E rm -f libnanobind-static.a && /usr/bin/x86_64-linux-gnu-ar qc libnanobind-static.a  CMakeFiles/nanobind-static.dir/nanobind-static_autogen/mocs_compilation.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_internals.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_func.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_type.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_enum.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_ndarray.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/nb_static_property.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/common.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/error.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/trampoline.cpp.o CMakeFiles/nanobind-static.dir/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/src/implicit.cpp.o && /usr/bin/x86_64-linux-gnu-ranlib libnanobind-static.a && :
+  [14/36] cd /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 && /usr/bin/cmake -E cmake_autogen /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/antpack_cpp_ext_autogen.dir/AutogenInfo.json Release && /usr/bin/cmake -E touch /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/timestamp && /usr/bin/cmake -E cmake_transform_depfile Ninja gccdepfile /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/deps /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/d/72146111e62ce00ece3d061fbe5759aa0e8da2536578cbcfc22185662260f2ab.d
+  [15/36] cd /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 && /usr/bin/cmake -E cmake_autogen /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/antpack_gui_ext_autogen.dir/AutogenInfo.json Release && /usr/bin/cmake -E touch /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/timestamp && /usr/bin/cmake -E cmake_transform_depfile Ninja gccdepfile /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/deps /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/CMakeFiles/d/dc0c5166bf5ef72804a3c595c6ff1e2501d3c5b1aefc357e7062ca52f2fa6066.d
+  [16/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/antpack_cpp_ext_autogen/mocs_compilation.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/antpack_cpp_ext_autogen/mocs_compilation.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/antpack_cpp_ext_autogen/mocs_compilation.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/mocs_compilation.cpp
+  [17/36] /usr/bin/x86_64-linux-gnu-g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -Dantpack_gui_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtPrintSupport -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -fPIC -std=gnu++17 -MD -MT CMakeFiles/antpack_gui_ext.dir/antpack_gui_ext_autogen/mocs_compilation.cpp.o -MF CMakeFiles/antpack_gui_ext.dir/antpack_gui_ext_autogen/mocs_compilation.cpp.o.d -o CMakeFiles/antpack_gui_ext.dir/antpack_gui_ext_autogen/mocs_compilation.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/mocs_compilation.cpp
+  [18/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp
+  [19/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
+  [20/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp
+  [21/36] /usr/bin/x86_64-linux-gnu-g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -Dantpack_gui_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtPrintSupport -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -fPIC -std=gnu++17 -MD -MT CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/antpack_gui_ext.cpp.o -MF CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/antpack_gui_ext.cpp.o.d -o CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/antpack_gui_ext.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui/antpack_gui_ext.cpp
+  [22/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp
+  [23/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp
+  [24/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
+  [25/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp
+  [26/36] /usr/bin/x86_64-linux-gnu-g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -Dantpack_gui_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtPrintSupport -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -fPIC -std=gnu++17 -MD -MT CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/main_window.cpp.o -MF CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/main_window.cpp.o.d -o CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/main_window.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui/gui_cpp_src/main_window.cpp
+  [27/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/ig_aligner.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/ig_aligner.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/ig_aligner.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/annotator_classes/ig_aligner.cpp
+  [28/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp
+  [29/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/utilities.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/utilities.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/utilities.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/utilities/utilities.cpp
+  [30/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp
+  [31/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp
+  [32/36] /usr/bin/x86_64-linux-gnu-g++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -Dantpack_gui_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_gui_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -isystem /usr/include/x86_64-linux-gnu/qt6/QtWidgets -isystem /usr/include/x86_64-linux-gnu/qt6 -isystem /usr/include/x86_64-linux-gnu/qt6/QtCore -isystem /usr/include/x86_64-linux-gnu/qt6/QtGui -isystem /usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -isystem /usr/include/x86_64-linux-gnu/qt6/QtPrintSupport -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -fPIC -std=gnu++17 -MD -MT CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp.o -MF CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp.o.d -o CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp
+  [33/36] : && /usr/bin/x86_64-linux-gnu-g++ -fPIC -O3 -DNDEBUG  -Wl,-s -Wl,--gc-sections -shared  -o antpack_gui_ext.cpython-310-x86_64-linux-gnu.so CMakeFiles/antpack_gui_ext.dir/antpack_gui_ext_autogen/mocs_compilation.cpp.o CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/antpack_gui_ext.cpp.o CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp.o CMakeFiles/antpack_gui_ext.dir/src/antpack/antpack_gui/gui_cpp_src/main_window.cpp.o  libnanobind-static.a  /usr/lib/x86_64-linux-gnu/libQt6PrintSupport.so.6.2.4  /usr/lib/x86_64-linux-gnu/libQt6Widgets.so.6.2.4  /usr/lib/x86_64-linux-gnu/libQt6Gui.so.6.2.4  /usr/lib/x86_64-linux-gnu/libGLX.so  /usr/lib/x86_64-linux-gnu/libOpenGL.so  /usr/lib/x86_64-linux-gnu/libQt6Core.so.6.2.4 && cd /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 && /usr/bin/cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libQt6Core.so.6.2.4 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 && /usr/bin/cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libQt6Gui.so.6.2.4 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64 && /usr/bin/cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libQt6Widgets.so.6.2.4 /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64
+  [34/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/consensus_file_utilities.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/consensus_file_utilities.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/consensus_file_utilities.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
+  [35/36] /usr/bin/x86_64-linux-gnu-g++ -Dantpack_cpp_ext_EXPORTS -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/build/cp310-cp310-linux_x86_64/antpack_cpp_ext_autogen/include -I/ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/antpack_gui -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtDBus -I/usr/include/python3.10 -I/tmp/pip-build-env-d5xhg7xl/overlay/lib/python3.10/site-packages/nanobind/include -O3 -DNDEBUG -fPIC -fvisibility=hidden -fno-stack-protector -Os -ffunction-sections -fdata-sections -std=gnu++17 -MD -MT CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/ant_ext.cpp.o -MF CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/ant_ext.cpp.o.d -o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/ant_ext.cpp.o -c /ssd1/Documents/Wang_Lab_Projects/antibody_toolkit/AntPack/src/antpack/cpp_src/ant_ext.cpp
+  [36/36] : && /usr/bin/x86_64-linux-gnu-g++ -fPIC -O3 -DNDEBUG  -Wl,-s -Wl,--gc-sections -shared  -o antpack_cpp_ext.cpython-310-x86_64-linux-gnu.so CMakeFiles/antpack_cpp_ext.dir/antpack_cpp_ext_autogen/mocs_compilation.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/ant_ext.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/ig_aligner.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/utilities.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/consensus_file_utilities.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp.o CMakeFiles/antpack_cpp_ext.dir/src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp.o  libnanobind-static.a && :
+  *** Installing project into wheel...
+  2024-12-31 06:49:21,795 - scikit_build_core - INFO - RUN: /usr/bin/cmake --install build/cp310-cp310-linux_x86_64 --prefix /tmp/tmpb4us1u45/wheel/platlib --strip
+  -- Install configuration: "Release"
+  -- Installing: /tmp/tmpb4us1u45/wheel/platlib/antpack/antpack_cpp_ext.cpython-310-x86_64-linux-gnu.so
+  -- Installing: /tmp/tmpb4us1u45/wheel/platlib/antpack/antpack_gui_ext.cpython-310-x86_64-linux-gnu.so
+  *** Making editable...
+  2024-12-31 06:49:21,806 - scikit_build_core - INFO - Discovered Python package at src/antpack
+  *** Created antpack-0.3.7-cp310-cp310-linux_x86_64.whl

@@ -1,6 +1,41 @@
 """Contains tools for processing a selected seq (i.e. numbering
 it, finding adjacent VJ genes and prepping for presentation)."""
-from antpack import VJGeneTool
+
+
+
+def process_for_vj_comparison(seq, seq_type,
+        sc_annotator, pc_annotator,
+        vj_tool, pid_threshold = 0.7,
+        species = "human"):
+    """Get numbering and VJ genes for the input
+    sequence. If necessary determine its type.
+    Calls to this function should always be
+    wrapped in try-except since invalid entries
+    (e.g. non amino acid letters) may trigger
+    an exception."""
+    heavy_nmbr, light_nmbr = None, None
+
+    if seq_type == "single":
+        nmbr = sc_annotator.analyze_seq(seq)
+        if nmbr[1] >= pid_threshold:
+            if nmbr[2] == "H":
+                heavy_nmbr = nmbr
+            else:
+                light_nmbr = nmbr
+    else:
+        heavy_nmbr, light_nmbr = pc_annotator.analyze_seq(seq)
+        if heavy_nmbr[1] < pid_threshold:
+            heavy_nmbr = None
+        if light_nmbr[1] < pid_threshold:
+            light_nmbr = None
+
+    if heavy_nmbr is None and light_nmbr is None:
+        return None
+
+    ssd = VJComparisonData(heavy_nmbr, light_nmbr,
+            seq, sc_annotator, vj_tool, species)
+    return ssd
+
 
 
 
@@ -104,38 +139,41 @@ class MultiSequenceData:
 
 
     def __init__(self):
-        self.full_sequence = seq
+        self.heavy_full_sequences = []
+        self.light_full_sequences = []
 
         self.heavy_seqs = []
         self.heavy_pid = []
         self.heavy_err = []
         self.heavy_nmbr = []
-        self.seq_names = []
+        self.heavy_align = []
+        self.heavy_seq_names = []
 
         self.light_seqs = []
         self.light_pid = []
         self.light_err = []
+        self.light_align = []
         self.light_nmbr = []
-
+        self.light_seq_names = []
 
 
     def get_num_heavy(self):
         """Returns number of loaded heavy sequences."""
-        return len(self.heavy_seqs)
+        return len(self.heavy_align)
 
 
     def get_num_light(self):
         """Returns number of loaded light sequences."""
-        return len(self.light_seqs)
+        return len(self.light_align)
 
 
     def get_heavy_data(self):
         """Returns the lists associated with the heavy chain."""
-        return self.heavy_seqs, self.heavy_pid, self.heavy_err, self.seq_names
+        return self.heavy_seqs, self.heavy_pid, self.heavy_err, self.heavy_seq_names
 
     def get_light_data(self):
         """Returns the lists associated with the light chain."""
-        return self.light_seqs, self.light_pid, self.light_err, self.seq_names
+        return self.light_seqs, self.light_pid, self.light_err, self.light_seq_names
 
     def get_heavy_numbering(self):
         """Returns the heavy numbering (for the spreadsheet header)."""
@@ -146,48 +184,49 @@ class MultiSequenceData:
         return self.light_nmbr
 
 
-    def add_sequence(self, seq, heavy_numbering, light_numbering):
+    def add_selected_sequence(self, seq, sc_annotator, pc_annotator, seq_type,
+            pid_threshold, seq_name):
         """Adds a sequence which may contain a heavy chain, a light
         chain or both to the sequence list. Note that unlike the
         VJ comparison, if a sequence contains no heavy or light
         chain, we add a blank sequence (so that heavy and light
         are always the same length)."""
+        heavy_nmbr, light_nmbr = None, None
 
+        if seq_type == "single":
+            nmbr = sc_annotator.analyze_seq(seq)
+            if nmbr[1] >= pid_threshold:
+                if nmbr[2] == "H":
+                    heavy_nmbr = nmbr
+                else:
+                    light_nmbr = nmbr
+        else:
+            heavy_nmbr, light_nmbr = pc_annotator.analyze_seq(seq)
+            if heavy_nmbr[1] < pid_threshold:
+                heavy_nmbr = None
+            if light_nmbr[1] < pid_threshold:
+                light_nmbr = None
 
+        if heavy_nmbr is None and light_nmbr is None:
+            return "no chains found"
 
+        if heavy_nmbr is not None:
+            self.heavy_pid.append(heavy_nmbr[1])
+            self.heavy_err.append(heavy_nmbr[3])
+            self.heavy_align.append(heavy_nmbr)
+            self.heavy_full_sequences.append(seq)
+            self.heavy_seq_names.append(seq_name)
+        if light_nmbr is not None:
+            self.light_pid.append(light_nmbr[1])
+            self.light_err.append(light_nmbr[3])
+            self.light_align.append(light_nmbr)
+            self.light_full_sequences.append(seq)
+            self.light_seq_names.append(seq_name)
 
-
-def process_for_vj_comparison(seq, seq_type,
-        sc_annotator, pc_annotator,
-        vj_tool, liability_tool, scheme,
-        pid_threshold = 0.7,
-        species = "human"):
-    """Get numbering and VJ genes for the input
-    sequence. If necessary determine its type.
-    Calls to this function should always be
-    wrapped in try-except since invalid entries
-    (e.g. non amino acid letters) may trigger
-    an exception."""
-    heavy_nmbr, light_nmbr = None, None
-    
-
-    if seq_type == "single":
-        nmbr = sc_annotator.analyze_seq(seq)
-        if nmbr[1] >= pid_threshold:
-            if nmbr[2] == "H":
-                heavy_nmbr = nmbr
-            else:
-                light_nmbr = nmbr
-    else:
-        heavy_nmbr, light_nmbr = pc_annotator.analyze_seq(seq)
-        if heavy_nmbr[1] < pid_threshold:
-            heavy_nmbr = None
-        if light_nmbr[1] < pid_threshold:
-            light_nmbr = None
-
-    if heavy_nmbr is None and light_nmbr is None:
+        if len(self.heavy_align) > 0:
+            self.heavy_nmbr, self.heavy_seqs = \
+                pc_annotator.build_msa(self.heavy_full_sequences, self.heavy_align)
+        if len(self.light_align) > 0:
+            self.light_nmbr, self.light_seqs = \
+                    pc_annotator.build_msa(self.light_full_sequences, self.light_align)
         return None
-
-    ssd = VJComparisonData(heavy_nmbr, light_nmbr,
-            seq, sc_annotator, vj_tool, species)
-    return ssd

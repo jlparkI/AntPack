@@ -1,3 +1,9 @@
+// Note that this code is intended to set up the GUI as 
+// a C++ extension and is not yet fully implemented since
+// the build process will need some significant updtes
+// to make this work. This is therefore in development
+// at this time.
+
 // C++ headers
 #include <string>
 

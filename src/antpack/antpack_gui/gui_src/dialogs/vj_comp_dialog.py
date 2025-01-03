@@ -1,17 +1,17 @@
-"""Dialog box to add a sequence to the sequence viewer."""
+"""Dialog box to find VJ genes for an input sequence."""
 from PySide6.QtWidgets import QDialog, QRadioButton, QVBoxLayout
 from PySide6.QtWidgets import QLabel, QDialogButtonBox, QLineEdit, QComboBox
 from PySide6.QtGui import QAction
 
 
 
-class AddSequenceDialog(QDialog):
+class VJComparisonDialog(QDialog):
     """Selects the sequence type (paired or not)."""
 
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.setWindowTitle("Add and view a sequence:")
+        self.setWindowTitle("Enter a sequence to see VJ genes:")
         self.setMinimumWidth(500)
 
         buttons = (
@@ -51,6 +51,15 @@ class AddSequenceDialog(QDialog):
         self.layout.addWidget(pid_edit_label)
         self.layout.addWidget(self.pid_edit)
 
+        species_label = QLabel("Select species for VJ genes:")
+        self.species_menu = QComboBox()
+        self.species_list = ["human", "mouse"]
+        for species in self.species_list:
+            self.species_menu.addItem(species)
+
+        self.layout.addWidget(species_label)
+        self.layout.addWidget(self.species_menu)
+
         self.setLayout(self.layout)
 
 
@@ -61,20 +70,24 @@ class AddSequenceDialog(QDialog):
         selected once the dialog has run."""
         seq_text = self.line_edit.text()
         if len(seq_text) == 0:
-            return None, None, None
+            return None, None, None, None
+
+        species = self.species_list[self.species_menu.currentIndex()]
+        if species not in ("human", "mouse"):
+            return None, None, None, None
 
         pid_thresh = self.pid_edit.text()
         try:
             pid_thresh = float(pid_thresh)
         except:
-            return None, None, None
+            return None, None, None, None
 
         if pid_thresh < 0 or pid_thresh > 1:
-            return None, None, None
+            return None, None, None, None
 
         button_choice = "paired"
         for button_choice, button in zip(("paired", "single", "unknown"),
                 self.paired_radio_buttons):
             if button.isChecked():
                 break
-        return seq_text, button_choice, pid_thresh
+        return seq_text, button_choice, pid_thresh, species

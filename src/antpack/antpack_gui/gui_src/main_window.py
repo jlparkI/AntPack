@@ -10,9 +10,11 @@ from PySide6.QtGui import QIcon, QAction, QPixmap
 from antpack import SingleChainAnnotator, PairedChainAnnotator, SequenceScoringTool
 from antpack import VJGeneTool, LiabilitySearchTool
 
-from .data_processing.selected_seq_processing import process_selected_seq
+from .data_processing.selected_seq_processing import process_for_vj_comparison
+from .data_processing.selected_seq_processing import MultiSequenceData, VJComparisonData
 from .custom_widgets.sidebar import SideMenuWidget
 from .dialogs.add_sequence_dialog import AddSequenceDialog
+from .dialogs.vj_comp_dialog import VJComparisonDialog
 
 
 class MainWindow(QMainWindow):
@@ -31,7 +33,6 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        self.dataset = None
         self.selected_seqs = None
 
         self.scheme = "imgt"
@@ -61,7 +62,7 @@ class MainWindow(QMainWindow):
         self.sidebar.listview.selectionModel().selectionChanged.connect(self.tab_select)
         sidebar_layout.addWidget(self.sidebar)
 
-        # Next, create the single sequence viewer. This will have two tabs,
+        # Next, create the simple sequence viewer. This will have two tabs,
         # one of which is for sequence comparison and one of which is
         # for plotting.
         seq_view_tabs = QTabWidget()
@@ -78,15 +79,9 @@ class MainWindow(QMainWindow):
         vj_compare.clicked.connect(self.seqview_compare_with_vj)
         top_box_layout.addWidget(vj_compare)
 
-        #side_box_layout = QVBoxLayout()
-        #table_coloration_label = QLabel("Color sequences by:")
-        #self.table_coloration_menu = QComboBox()
-        #self.coloration_options = ["CDR or framework", "hydrophobicity"]
-        #for option in self.coloration_options:
-        #    self.table_coloration_menu.addItem(option)
-        #side_box_layout.addWidget(table_coloration_label, Qt.AlignCenter)
-        #side_box_layout.addWidget(self.table_coloration_menu)
-        #top_box_layout.addLayout(side_box_layout)
+        clear_seqs = QPushButton("Clear sequences")
+        clear_seqs.clicked.connect(self.clear_sequences)
+        top_box_layout.addWidget(clear_seqs)
         top_box_layout.addStretch(1)
 
         seq_view_tab1_layout.addLayout(top_box_layout)
@@ -170,32 +165,38 @@ class MainWindow(QMainWindow):
         """Open the add sequence dialog box and if user does not
         cancel, add a sequence. Either way, update the seq compare
         and the properties windows."""
-        self.selected_seqs = None
+        if self.selected_seqs is not None:
+            if isinstance(self.selected_seqs, VJComparisonData):
+                _ = QMessageBox.warning(self, "Sequence not processed",
+                    "You are currently viewing a VJ gene sequence comparison. "
+                    "You must clear this before using the Add Sequence "
+                    "option.", QMessageBox.Ok)
 
         dialog = AddSequenceDialog(self)
         if dialog.exec():
-            seq, seq_type, pid_thresh, species = dialog.get_options()
+            seq, seq_type, pid_thresh = dialog.get_options()
             if seq is None:
                 _ = QMessageBox.warning(self, "Sequence not processed",
                         "The sequence and/or options you "
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+            if self.selected_seqs is None:
+                self.selected_seqs = MultiSequenceData()
+            err = ""
+            seq_name = str(self.selected_seqs.get_total_Adde,
+                self.selected_seqs.get_num_light()))
             try:
-                self.selected_seqs = process_selected_seq(seq, seq_type,
-                    self.sc_annotator, self.pc_annotator,
-                    self.scoring_tool, self.vj_tool,
-                    self.liability_tool, self.scheme,
-                    pid_thresh, species)
+                err = self.selected_seqs.add_selected_sequence(seq, self.sc_annotator,
+                        self.pc_annotator, seq_type, pid_thresh, seq_name)
             except RuntimeError as e:
                 print(e)
                 # AntPack actually should not generate exceptions for unrecognized
                 # characters -- it will return an error message -- so exceptions
-                # here are unexpected. For now, handle with the default error
-                # message.
-                self.selected_seqs = None
+                # here are unexpected and very unlikely. Just in case, though,
+                # handle with the default error message.
 
-            if self.selected_seqs is None:
+            if err is not None:
                 _ = QMessageBox.warning(self, "Sequence not processed",
                         "The sequence you entered was rejected "
                     "by AntPack's numbering tool. Common reasons include: "
@@ -211,9 +212,21 @@ class MainWindow(QMainWindow):
     def seqview_compare_with_vj(self):
         """Open a dialog box for settings for comparing a
         sequence with the most similar VJ genes."""
-        self.selected_seqs = None
+        if self.selected_seqs is not None:
+            _ = QMessageBox.warning(self, "Sequence not processed",
+                    "Before finding VJ genes for a sequence and "
+                    "comparing it with those genes, you must "
+                    "first clear the sequnce viewer.", QMessageBox.Ok)
+            return
+        if self.scheme != "imgt":
+            _ = QMessageBox.warning(self, "Sequence not processed",
+                    "Alignments with germline genes in the GUI tool "
+                    "are currently supported only using IMGT numbering.",
+                    QMessageBox.Ok)
+            return
 
-        dialog = AddSequenceDialog(self)
+
+        dialog = VJComparisonDialog(self)
         if dialog.exec():
             seq, seq_type, pid_thresh, species = dialog.get_options()
             if seq is None:
@@ -223,17 +236,15 @@ class MainWindow(QMainWindow):
                 self.update_seq_comparison_tabs()
                 return
             try:
-                self.selected_seqs = process_selected_seq(seq, seq_type,
+                self.selected_seqs = process_for_vj_comparison(seq, seq_type,
                     self.sc_annotator, self.pc_annotator,
-                    self.scoring_tool, self.vj_tool,
-                    self.liability_tool, self.scheme,
-                    pid_thresh, species)
+                    self.vj_tool, pid_thresh, species)
             except RuntimeError as e:
                 print(e)
                 # AntPack actually should not generate exceptions for unrecognized
                 # characters -- it will return an error message -- so exceptions
-                # here are unexpected. For now, handle with the default error
-                # message.
+                # here are unexpected and very unlikely. Just in case, though,
+                # handle with the default error message.
                 self.selected_seqs = None
 
             if self.selected_seqs is None:
@@ -270,6 +281,8 @@ class MainWindow(QMainWindow):
             self.light_chain_view.resizeColumnsToContents()
             return
 
+        # Light chain
+
         if self.selected_seqs.get_num_light() == 0:
             self.light_chain_view.setColumnCount(15)
             self.light_chain_view.setRowCount(2)
@@ -282,18 +295,21 @@ class MainWindow(QMainWindow):
             self.light_chain_view.setHorizontalHeaderItem(2,
                     QTableWidgetItem("Error message\n(if any)"))
             for i, nmbr in enumerate(light_nmbr):
-                self.light_chain_view.setHorizontalHeaderItem(i+3, nmbr)
-            light_data = self.selected_seqs.get_light_data()
-            for i, (seq, pid, err, descrip) in enumerate(zip(light_data)):
-                self.light_chain_view.setItem(i, 0, QTableWidgetItem(descrip))
-                self.light_chain_view.setItem(i, 1, QTableWidgetItem(pid))
-                self.light_chain_view.setItem(i, 2, QTableWidgetItem(err))
-                for j, letter in enumerate(seq):
-                    self.light_chain_view.setItem(i, j+3, QTableWidgetItem(letter))
+                self.light_chain_view.setHorizontalHeaderItem(i+3, QTableWidgetItem(nmbr))
 
             self.light_chain_view.horizontalHeader().setStyleSheet("""
                             QHeaderView::section {padding-left: 0px; border: 0px;
                                     padding-right: 0px}""")
+
+            light_data = self.selected_seqs.get_light_data()
+            for i in range(len(light_data[0])):
+                self.light_chain_view.setItem(i, 0, QTableWidgetItem(light_data[3][i]))
+                self.light_chain_view.setItem(i, 1, QTableWidgetItem(light_data[1][i]))
+                self.light_chain_view.setItem(i, 2, QTableWidgetItem(light_data[2][i]))
+                for j, letter in enumerate(light_data[0][i]):
+                    self.light_chain_view.setItem(i, j+3, QTableWidgetItem(letter))
+
+        # Heavy chain
 
         if self.selected_seqs.get_num_heavy() == 0:
             self.heavy_chain_view.setColumnCount(15)
@@ -326,17 +342,22 @@ class MainWindow(QMainWindow):
 
 
 
+    def clear_sequences(self):
+        """Clears the currently entered sequences."""
+        self.selected_seqs = None
+        self.update_seq_comparison_tabs()
+
+
     def set_imgt_scheme(self):
         """Sets numbering scheme to IMGT."""
         self.scheme = "imgt"
         self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
         self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
-        self.selected_seqs = None
         self.imgt_select.setChecked(1)
         self.martin_select.setChecked(0)
         self.kabat_select.setChecked(0)
         self.aho_select.setChecked(0)
-        self.update_seq_comparison_tabs()
+        self.clear_sequences()
 
 
     def set_martin_scheme(self):
@@ -344,12 +365,11 @@ class MainWindow(QMainWindow):
         self.scheme = "martin"
         self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
         self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
-        self.selected_seqs = None
         self.martin_select.setChecked(1)
         self.imgt_select.setChecked(0)
         self.kabat_select.setChecked(0)
         self.aho_select.setChecked(0)
-        self.update_seq_comparison_tabs()
+        self.clear_sequences()
 
 
     def set_kabat_scheme(self):
@@ -357,12 +377,11 @@ class MainWindow(QMainWindow):
         self.scheme = "kabat"
         self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
         self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
-        self.selected_seqs = None
         self.kabat_select.setChecked(1)
         self.martin_select.setChecked(0)
         self.imgt_select.setChecked(0)
         self.aho_select.setChecked(0)
-        self.update_seq_comparison_tabs()
+        self.clear_sequences()
 
 
     def set_aho_scheme(self):
@@ -370,9 +389,8 @@ class MainWindow(QMainWindow):
         self.scheme = "aho"
         self.sc_annotator = SingleChainAnnotator(scheme=self.scheme)
         self.pc_annotator = PairedChainAnnotator(scheme=self.scheme)
-        self.selected_seqs = None
         self.kabat_select.setChecked(0)
         self.martin_select.setChecked(0)
         self.imgt_select.setChecked(0)
         self.aho_select.setChecked(1)
-        self.update_seq_comparison_tabs()
+        self.clear_sequences()

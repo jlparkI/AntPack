@@ -1,4 +1,5 @@
 include(CheckLanguage)
+include(GNUInstallDirs)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 cmake_minimum_required(VERSION 3.18)
@@ -29,11 +30,7 @@ endif()
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
-
-set(Qt6_DIR "C:/Qt/6.8.0/msvc2022_64/lib/cmake/Qt6")
-set(CMAKE_PREFIX_PATH "C:/Qt/6.8.0/msvc2022_64")
-set(Qt6_USE_STATIC_LIBS TRUE)
-set(QT_DEBUG_FIND_PACKAGE ON)
+#set(QT_DEBUG_FIND_PACKAGE ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -58,11 +55,11 @@ find_package(nanobind CONFIG REQUIRED)
 
 
 # Now add requirements for Qt.
-find_package(Qt6 COMPONENTS Widgets PrintSupport Core REQUIRED)
+#find_package(Qt6 COMPONENTS Widgets PrintSupport Core REQUIRED)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 INCLUDE_DIRECTORIES(src/antpack/antpack_gui)
-INCLUDE_DIRECTORIES(${Qt6Widgets_INCLUDE_DIRS})
+#INCLUDE_DIRECTORIES(${Qt6Widgets_INCLUDE_DIRS})
 
 
 
@@ -97,43 +94,24 @@ nanobind_add_module(
     src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
 
 )
+#nanobind_add_module(
+#  antpack_gui_ext
+#
+#  # Target the stable ABI for Python 3.12+, which reduces
+#  # the number of binary wheels that must be built. This
+#  # does nothing on older Python versions
+#  STABLE_ABI
+#
+#  NB_STATIC
+#
+#    src/antpack/antpack_gui/antpack_gui_ext.cpp
+#    src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp
+#    src/antpack/antpack_gui/gui_cpp_src/main_window.cpp
+#
+#)
+#
+#
+#target_link_libraries(antpack_gui_ext PRIVATE Qt6::Widgets Qt6::PrintSupport Qt6::Gui Qt6::Core)
 
-
-nanobind_add_module(
-  antpack_gui_ext
-
-  # Target the stable ABI for Python 3.12+, which reduces
-  # the number of binary wheels that must be built. This
-  # does nothing on older Python versions
-  STABLE_ABI
-
-  NB_STATIC
-
-    src/antpack/antpack_gui/antpack_gui_ext.cpp
-    src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp
-    src/antpack/antpack_gui/gui_cpp_src/main_window.cpp
-
-)
-
-
-target_link_libraries(antpack_gui_ext PRIVATE Qt6::Widgets Qt6::PrintSupport Qt6::Gui Qt6::Core)
-
-install(TARGETS antpack_cpp_ext antpack_gui_ext
+install(TARGETS antpack_cpp_ext
     LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
-
-
-add_custom_command(TARGET antpack_gui_ext POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> $<TARGET_FILE_DIR:antpack_gui_ext>
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> $<TARGET_FILE_DIR:antpack_gui_ext>
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> $<TARGET_FILE_DIR:antpack_gui_ext>
-        )
-add_custom_command(TARGET antpack_gui_ext POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> ${CMAKE_INSTALL_BINDIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> ${CMAKE_INSTALL_BINDIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> ${CMAKE_INSTALL_BINDIR}
-        )
-add_custom_command(TARGET antpack_gui_ext POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> ${CMAKE_INSTALL_LIBDIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> ${CMAKE_INSTALL_LIBDIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> ${CMAKE_INSTALL_LIBDIR}
-        )
