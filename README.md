@@ -15,7 +15,6 @@ There are quite a few features we plan to add to AntPack --
 this survey will help us decide which we should prioritize /
 which should come first.
 
-
 ## What's new in v0.3.7
 
 v0.3.7 contains some minor improvements to the API,
@@ -43,6 +42,8 @@ For now, you can use the GUI to add and align / compare some arbitrary
 number of paired and/or single chain sequences. You
 can also retrieve the VJ gene assignments for an input sequence
 and see an alignment of your input sequence with those genes.
+
+![alt text](https://github.com/jlparkI/AntPack/docs/images/multiseq1.png)
 
 The command line interface is useful for some fairly standard
 analyses of moderate-large datasets, while the more powerful
@@ -147,3 +148,8 @@ mixture models may be all you need.
 [bioRxiv: https://doi.org/10.1101/2024.01.27.577555](https://www.biorxiv.org/content/10.1101/2024.01.27.577555v1)
 
 or the final paper in [Bioinformatics.](https://academic.oup.com/bioinformatics/article/40/5/btae278/7656770)
+
+#### Acknowledgements
+
+The authors & maintainers gratefully acknowledge the contributions of
+Japanese artist Yusuke Kamiyamane for the creation of the Fugue icon set.
