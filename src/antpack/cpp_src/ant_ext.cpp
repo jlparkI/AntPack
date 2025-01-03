@@ -358,7 +358,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         of kmers common in heavy and light chains. The DNA sequence must consist
         of only A, C, T, G and N (any codon containing N will be translated
         to X, which is an allowed letter in the AntPack numbering tools) and
-        should be uppercase letters only. If you know which reading frame and/or
+        should be uppercase letters. If you know which reading frame and/or
         complement the mAb sequence is in, it is generally faster to use
         translate_dna_known_rf instead, since it does not check multiple
         reading frames as this function does.

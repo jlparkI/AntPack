@@ -34,11 +34,11 @@ than ANARCI or AbNum but is not open source and is still relatively slow.
 
 In initial testing on about 1600 chains from PDB (see the links at the
 github repo for more), AntPack is > 50x faster than ANARCI and > 25x faster
-than AbRSA, taking < 0.4 seconds to align the same number of sequences that
+than AbRSA, taking < 0.2 seconds to align the same number of sequences that
 take > 35 seconds on ANARCI.
 
 ``SingleChainAnnotator`` and ``PairedChainAnnotator`` contain functionality
-for numbering sequences that likely contain a single chain (heavy or light) or
-two paired chains (heavy and light). They also contain functionality for
+for numbering sequences that may contain a single chain (heavy or light) or
+up to two paired chains (heavy and light). They also contain functionality for
 easily converting a list of numbered sequences into a fixed-length MSA
 which is convenient for many kinds of analysis.

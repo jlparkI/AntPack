@@ -31,24 +31,30 @@ experimental GUI which we plan to expand considerably
 in upcoming versions. You can quickly launch the GUI from
 the terminal by typing:
 ```
-AntPack-SeqView
+AntPack-GUI
 ```
+
+whereas to run the command line interface use:
+```
+AntPack-CLI
+```
+
 For now, you can use the GUI to add and align / compare some arbitrary
 number of paired and/or single chain sequences. You
 can also retrieve the VJ gene assignments for an input sequence
 and see an alignment of your input sequence with those genes.
 
 The command line interface is useful for some fairly standard
-analyses of moderate-large datasets, while the Python API is
-useful for building your own workflows and pipelines. The GUI
-(at least right now) is mostly useful for a fast analysis of a few
+analyses of moderate-large datasets, while the more powerful
+Python API is useful for building your own workflows and pipelines.
+The GUI (at least right now) is mostly useful for a fast analysis of a few
 sequences that you want to examine quickly without needing to
 start a Jupyter notebook and write code.
 
 ## Coming soon
 
 We're planning to continue improving AntPack's numbering capabilities
-and fixing "edge cases" so that we keep improving speed and results.
+and fixing "edge cases" so that we keep improving speed and quality.
 We're also looking at adding support for TCR sequences, at least for
 numbering. We plan to extensively expand the GUI. We're also planning to link
 AntPack to a searchable online database of human antibody sequences
