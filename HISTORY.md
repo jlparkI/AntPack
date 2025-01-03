@@ -1,3 +1,14 @@
+### Version 0.3.7
+Add sensible defaults to build_msa and assign_vj_genes.
+Added support for DNA sequences by adding tools to determine
+the correct reading frame and forward / reverse complement
+for a DNA sequence and translate it to AA. Rewrote the API
+for the liability search tool to simplify it. Added an
+experimental basic GUI for comparing an arbitrary number
+of sequences and for comparing a given sequence with the
+closest assigned VJ genes. Added support for germline / VJ
+gene assignment for llamas (heavy chain only).
+
 ### Version 0.3.6.1
 Bug fixes (the rare substr error). Added option to build msa to
 add unobserved positions. Rewrote algorithm for paired chain annotator

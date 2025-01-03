@@ -29,9 +29,18 @@ endif()
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+#set(QT_DEBUG_FIND_PACKAGE ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+#set(CMAKE_AUTOUIC ON)
+#set(CMAKE_AUTOMOC ON)
+#set(CMAKE_AUTORCC ON)
+# Extremely annoying but for some reason MSVC requires an additional flag
+# to be set.
+if (MSVC)
+    add_compile_options("/Zc:__cplusplus" "/permissive-")
+endif()
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
@@ -43,6 +52,13 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
+
+# Now add requirements for Qt.
+#find_package(Qt6 COMPONENTS Widgets PrintSupport Core REQUIRED)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+INCLUDE_DIRECTORIES(src/antpack/antpack_gui)
+#INCLUDE_DIRECTORIES(${Qt6Widgets_INCLUDE_DIRS})
 
 
 
@@ -61,12 +77,40 @@ nanobind_add_module(
     src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp
     src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp
     src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp
+
     src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp
+
+    src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp
+
+    src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp
+
     src/antpack/cpp_src/utilities/utilities.cpp
+    src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
+    src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
+    src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp
+
     src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp
     src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
-    src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
 
 )
+#nanobind_add_module(
+#  antpack_gui_ext
+#
+#  # Target the stable ABI for Python 3.12+, which reduces
+#  # the number of binary wheels that must be built. This
+#  # does nothing on older Python versions
+#  STABLE_ABI
+#
+#  NB_STATIC
+#
+#    src/antpack/antpack_gui/antpack_gui_ext.cpp
+#    src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp
+#    src/antpack/antpack_gui/gui_cpp_src/main_window.cpp
+#
+#)
+#
+#
+#target_link_libraries(antpack_gui_ext PRIVATE Qt6::Widgets Qt6::PrintSupport Qt6::Gui Qt6::Core)
 
-install(TARGETS antpack_cpp_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
+install(TARGETS antpack_cpp_ext
+    LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

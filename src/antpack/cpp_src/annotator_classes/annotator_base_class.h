@@ -55,7 +55,7 @@ class AnnotatorBaseClassCpp {
             build_msa(std::vector<std::string> sequences,
             std::vector<std::tuple<std::vector<std::string>,
             double, std::string, std::string>> annotations,
-            bool add_unobserved_positions);
+            bool add_unobserved_positions = false);
 
         /// @brief Takes an input sequence and corresponding numbering
         ///        and trims it so that gaps at the c- and n-terminals
@@ -91,11 +91,7 @@ class AnnotatorBaseClassCpp {
 
  protected:
         std::string scheme;
-
         std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
-        std::unordered_map<std::string, std::vector<int>> cdr_breakpoints;
-        const std::array<std::string, 7> cdr_region_labels {{"fmwk1", "cdr1",
-            "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"}};
 };
 
 }  // namespace NumberingTools

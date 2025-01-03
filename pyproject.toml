@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "antpack"
 readme = "README.md"
-version = "0.3.6.1"
+version = "0.3.7"
 authors = [
     {name = "Jonathan Parkinson", email = "jlparkinson1@gmail.com"},
 ]
@@ -20,7 +20,8 @@ dependencies = [
 
 
 [project.scripts]
-AntPack = "antpack:run_cli_interface"
+AntPack-CLI = "antpack:run_cli_interface"
+AntPack-GUI = "antpack:run_seq_viewer"
 
 
 [project.urls]

@@ -8,7 +8,8 @@ there are some other tools that can generate a
 probability for each possible recombination scenario. For
 a detailed analysis, especially for repertoire data, these
 tools may be better. If you just want to get the most similar
-V and J genes to your amino acid sequence, AntPack works fine.
+V and J genes to your amino acid sequence, AntPack can do
+this easily.
 
 To do this, use the VJGeneTool. The tool can tell you the
 name of the most similar V and J genes for an input sequence.
@@ -22,7 +23,9 @@ vj genes.
 Many tools try to assign a *single* V-gene and J-gene. In general
 this is not necessarily correct -- it is not uncommon to find
 situations where more than one V-gene and J-gene have the same
-percent identity or very similar e-values. In these cases, AntPack
+percent identity or very similar e-values. There are also
+some germline genes that have different DNA sequences but the
+same AA sequence. In these cases, AntPack
 returns a list of the v-genes and j-genes that achieved the same
 (or essentially equivalent) score, delimited or separated by the
 character "_".

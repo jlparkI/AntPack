@@ -599,6 +599,19 @@ int build_msa_utility(std::vector<std::string> &sequences,
         }
     }
 
+    // Check that there ARE position codes (other than '-', which is
+    // ignored). We used to raise an exception if there were no
+    // position codes but for the GUI and some user applications this
+    // may be undesirable, so if this occurs, we now just return empty
+    // lists.
+    if (all_position_codes.size() == 0) {
+        for (size_t i=0; i < sequences.size(); i++) {
+            std::string empty_string = "";
+            aligned_seqs.push_back(empty_string);
+        }
+        return VALID_SEQUENCE;
+    }
+
     // If the user has requested addition of unobserved position codes,
     // add any as appropriate for the scheme. We have hard-coded the
     // expected positions for each scheme here, which is...not great...

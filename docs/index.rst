@@ -10,14 +10,15 @@ modeling / ML for antibodies, using amino acid sequences
   Installation and licensing <installation>
 
 
-Using AntPack from Python vs from the command line
-====================================================
+Using AntPack from Python, the command line or as a GUI
+========================================================
 
 .. toctree::
   :maxdepth: 1
 
-   AntPack command line and Python APIs <api_background>
+   AntPack command line, Python and GUI tools <api_background>
 
+   Using the GUI: a tutorial <gui_tutorial>
 
 Antibody Numbering
 =====================
@@ -28,6 +29,8 @@ Antibody Numbering
    How antibody numbering in AntPack works <numbering_background>
 
    Antibody numbering <numbering_tutorial>
+
+   Using DNA sequences <dna_sequence_tutorial>
 
    Numbering example <numbering_example>
 

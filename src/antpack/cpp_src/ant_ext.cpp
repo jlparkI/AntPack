@@ -15,6 +15,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/unordered_set.h>
 
 // Project headers
 #include "annotator_classes/single_chain_annotator.h"
@@ -24,16 +25,21 @@
 #include "annotator_classes/prefiltering_tool.h"
 #include "vj_assignment/vj_match_counter.h"
 #include "humanness_calcs/responsibility_calcs.h"
+#include "dna_read_handling/dna_sequence_handling.h"
 #include "utilities/utilities.h"
+#include "developability_calcs/liability_search_tool.h"
 
 namespace nb = nanobind;
 
-NB_MODULE(antpack_cpp_ext, m){
-    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m, "AnnotatorBaseClassCpp")
+
+NB_MODULE(antpack_cpp_ext, m) {
+    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m,
+            "AnnotatorBaseClassCpp")
         .def(nb::init<std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
         .def("sort_position_codes",
                 &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
+                nb::arg("position_code_list"),
      R"(
         Takes an input list of position codes for a specified scheme and
         sorts them. This is useful since for some schemes (e.g. IMGT)
@@ -47,6 +53,8 @@ NB_MODULE(antpack_cpp_ext, m){
         Returns:
             sorted_codes (list): A list of sorted position codes.)")
         .def("build_msa", &NumberingTools::AnnotatorBaseClassCpp::build_msa,
+                nb::arg("sequences"), nb::arg("annotations"),
+                nb::arg("add_unobserved_positions") = false,
      R"(
         Builds a multiple sequence alignment using a list of sequences
         and a corresponding list of tuples output by analyze_seq or
@@ -73,6 +81,7 @@ NB_MODULE(antpack_cpp_ext, m){
             aligned_seqs (list): A list of strings -- the input sequences all aligned
                 to form an MSA.)")
         .def("assign_cdr_labels", &NumberingTools::AnnotatorBaseClassCpp::assign_cdr_labels,
+                nb::arg("alignment"),
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
@@ -93,6 +102,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 "fmwk1", "fmwk2", "fmwk3", "fmwk4", "cdr1", "cdr2", "cdr3" or "-".
                 This list will be of the same length as the input alignment.)")
         .def("trim_alignment", &NumberingTools::AnnotatorBaseClassCpp::trim_alignment,
+                nb::arg("sequence"), nb::arg("alignment"),
      R"(
         Takes as input a sequence and a tuple produced by
         analyze_seq and trims off any gap regions at the end
@@ -123,6 +133,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
         .def("analyze_seq", &NumberingTools::SingleChainAnnotatorCpp::analyze_seq,
+                nb::arg("sequence"),
      R"(
         Numbers and scores a single input sequence. A list of
         outputs from this function can be passed to build_msa
@@ -141,6 +152,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.)")
         .def("analyze_seqs", &NumberingTools::SingleChainAnnotatorCpp::analyze_seqs,
+                nb::arg("sequences"),
      R"(
         Numbers and scores a list of input sequences. The outputs
         can be passed to other functions like build_msa, trim_alignment,
@@ -168,6 +180,7 @@ NB_MODULE(antpack_cpp_ext, m){
         .def(nb::init<std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
         .def("analyze_seq", &NumberingTools::PairedChainAnnotatorCpp::analyze_seq,
+                nb::arg("sequence"),
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
         assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
@@ -191,6 +204,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 sequence. A low percent identity or an error message may indicate a problem
                 with the input sequence. The error_message is "" unless some error occurred.)")
         .def("analyze_seqs", &NumberingTools::PairedChainAnnotatorCpp::analyze_seqs,
+                nb::arg("sequences"),
      R"(
         Extracts and numbers the variable chain regions from a list of sequences
         assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
@@ -215,6 +229,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 with an input sequence. Each error message is "" unless some error
                 occurred for that sequence.)");
 
+
     nb::class_<VJAssignment::VJMatchCounter>(m, "VJMatchCounter")
         .def(nb::init<std::map<std::string, std::vector<std::string>>,
                 std::map<std::string, std::vector<std::string>>,
@@ -222,6 +237,8 @@ NB_MODULE(antpack_cpp_ext, m){
                 std::string, std::string>() )
         .def("assign_vj_genes",
                 &VJAssignment::VJMatchCounter::assign_vj_genes,
+                nb::arg("alignment"), nb::arg("sequence"),
+                nb::arg("species"), nb::arg("mode") = "identity",
      R"(
         Assigns V and J genes for a sequence which has already been
         numbered, preferably by AntPack but potentially by some other
@@ -230,22 +247,22 @@ NB_MODULE(antpack_cpp_ext, m){
         used for numbering is the same used for the VJGeneTool.
 
         Args:
-            sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
-                X is also allowed but should be used sparingly.
             alignment (tuple): A tuple containing (numbering,
                 percent_identity, chain_name, error_message). This tuple
                 is what you will get as output if you pass sequences to
                 the analyze_seq method of SingleChainAnnotator
                 or PairedChainAnnotator.
-            species (str): Currently must be one of 'human', 'mouse'.
+            sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
+                X is also allowed but should be used sparingly.
+            species (str): Currently must be one of 'human', 'mouse', 'alpaca'.
             mode (str): One of 'identity', 'evalue'. If 'identity' the highest
                 percent identity sequence(s) are identified. If 'evalue' the
                 lowest e-value (effectively best BLOSUM score) sequence(s)
                 are identified.
 
         Returns:
-            v_gene (str): The closest V-gene name(s), as measured by sequence identity.
-            j_gene (str): The closest J-gene name(s), as measured by sequence identity.
+            v_gene (str): The closest V-gene name(s).
+            j_gene (str): The closest J-gene name(s).
             v_pident (float): If mode is 'identity', the number of positions at which
                 the numbered sequence matches the v-gene divided by the total number of
                 non-blank positions in the v-gene. If mode is 'evalue', the best BLOSUM
@@ -266,6 +283,7 @@ NB_MODULE(antpack_cpp_ext, m){
                 are separated by ' ' in the output.)") 
         .def("get_vj_gene_sequence",
                 &VJAssignment::VJMatchCounter::get_vj_gene_sequence,
+                nb::arg("vj_gene_name"), nb::arg("species"),
      R"(
         Retrieves the amino acid sequence of a specified V or J
         gene, if it is in the latest version of the specified
@@ -274,9 +292,9 @@ NB_MODULE(antpack_cpp_ext, m){
         sequences are (if needed).
 
         Args:
-            vj_gene_name (str): A valid V or J gene name, as generated
+            query_name (str): A valid V or J gene name, as generated
                 by for example assign_sequence.
-            species (str): One of 'human', 'mouse'.
+            species (str): One of 'human', 'mouse', 'alpaca'.
 
         Returns:
             sequence (str): The amino acid sequence of the V or J gene
@@ -284,9 +302,115 @@ NB_MODULE(antpack_cpp_ext, m){
                 match anything, None is returned.)")
         .def("get_seq_lists", &VJAssignment::VJMatchCounter::get_seq_lists);
 
+
+
+    nb::class_<LiabilitySearch::LiabilitySearchToolCpp>(m,
+            "LiabilitySearchTool")
+        .def(nb::init<>() )
+        .def("analyze_seq",
+                &LiabilitySearch::LiabilitySearchToolCpp::analyze_seq,
+                nb::arg("sequence"), nb::arg("alignment"),
+                nb::arg("scheme"),
+     R"(
+        Searches for some common motifs which may correspond to possible
+        development liabilities. Note that this may sometimes be a false positive;
+        the presence of a possible N-glycosylation motif, for example, does
+        not guarantee that N-glycosylation will occur. It does however identify
+        sites where there is a risk.
+
+        Args:
+            sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
+                X is also allowed but should be used sparingly.
+            alignment (tuple): A tuple containing (numbering,
+                percent_identity, chain_name, error_message). This tuple
+                is what you will get as output if you pass sequences to
+                the analyze_seq method of SingleChainAnnotator
+                or PairedChainAnnotator.
+            scheme (str): The numbering scheme. One of 'aho', 'imgt', 'kabat'
+                or 'martin'. It is very important to use the same scheme
+                that was used to number the sequence; using some other scheme
+                may lead to incorrect motif identification.
+
+        Returns:
+            liabilities (list): A list of tuples. The first element of each
+                tuple is a 2-tuple of (starting position, ending position)
+                numbered with the start of the sequence as 0, indicating the
+                start and end of the liability. The second element of each tuple
+                is a string describing the type of liability found. If the list
+                is empty, no liabilities were found. If sequence numbering fails,
+                the list contains a single tuple indicating the cause of the failure.
+                (This can occur if the expected cysteines in the chain are not present
+                at the expected positions, which is also a liability.) )");
+
+
+
+    nb::class_<DNASequenceTools::DNASeqTranslatorCpp>(m, "DNASeqTranslatorCpp")
+        .def(nb::init<std::unordered_set<std::string> >() )
+        .def("translate_dna_unknown_rf",
+            &DNASequenceTools::DNASeqTranslatorCpp::translate_dna_unknown_rf,
+            nb::arg("sequence"), nb::arg("check_reverse_complement") = false,
+     R"(
+        Converts a DNA sequence to protein when the reading frame is unknown
+        and/or the antibody sequence may be in the forward or reverse complement.
+        This function checks each possible reading frame (and if indicated the
+        possible reading frames in the reverse complement) to see which is most
+        likely to contain the mAb sequence based on the presence / absence
+        of kmers common in heavy and light chains. The DNA sequence must consist
+        of only A, C, T, G and N (any codon containing N will be translated
+        to X, which is an allowed letter in the AntPack numbering tools) and
+        should be uppercase letters. If you know which reading frame and/or
+        complement the mAb sequence is in, it is generally faster to use
+        translate_dna_known_rf instead, since it does not check multiple
+        reading frames as this function does.
+
+        CAUTION: The amino acid sequence generated by this function may contain
+        stop codons, which are currently rejected by AntPack numbering tools.
+        You may want to check output sequences for the presence of stop codons.
+
+        Args:
+            sequence (str): An uppercase sequence containing A, C, G and T.
+                N is also allowed but should be used sparingly.
+            check_reverse_complement (bool): If True, the reverse complement
+                is also checked for a possible heavy / light chain.
+
+        Returns:
+            translated_seq (str): The function checks the possible reading frames
+                and reverse complement (if indicated) for kmers common in heavy /
+                light chains and returns the translated AA sequence corresponding
+                to the best match found.)")
+        .def("translate_dna_known_rf",
+            &DNASequenceTools::DNASeqTranslatorCpp::translate_dna_known_rf,
+            nb::arg("sequence"), nb::arg("reading_frame") = 0,
+            nb::arg("reverse_complement") = false,
+     R"(
+        Converts a DNA sequence to protein when the reading frame is known
+        and it is known whether the sequence is in the forward or reverse
+        complement. This function translates the input sequence using the
+        reading frame and complement you specify. This is faster than
+        unknown_rf, but unknown_rf may be more useful in situations (e.g.
+        PacBio reads) where you do not know the reading frame and forward or
+        reverse complement position.
+
+        CAUTION: The amino acid sequence generated by this function may contain
+        stop codons, which are currently rejected by AntPack numbering tools.
+        You may want to check output sequences for the presence of stop codons.
+
+        Args:
+            sequence (str): An uppercase sequence containing A, C, G and T.
+                N is also allowed but should be used sparingly.
+            reading_frame (int): One of 0, 1, or 2. Indicates how many positions
+                forward to "slide" before starting translation.
+            reverse_complement (bool): If True, the reverse complement is
+                translated instead of the forward complement.
+
+        Returns:
+            translated_seq (str): The translated AA sequence from the input.)");
+
+
     m.def("getProbsCExt", &HumannessCalculations::getProbsCExt,
             nb::call_guard<nb::gil_scoped_release>());
-    m.def("mask_terminal_deletions", &HumannessCalculations::mask_terminal_deletions,
+    m.def("mask_terminal_deletions",
+            &HumannessCalculations::mask_terminal_deletions,
             nb::call_guard<nb::gil_scoped_release>());
     m.def("getProbsCExt_masked", &HumannessCalculations::getProbsCExt_masked,
             nb::call_guard<nb::gil_scoped_release>());

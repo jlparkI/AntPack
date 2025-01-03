@@ -17,7 +17,7 @@ class TestVJGeneTool(unittest.TestCase):
         vj_tool = VJGeneTool()
         vgene, jgene, vident, jident = vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
-                "AYAYAYA", "human", "identity")
+                "AYAYAYA", "human")
         self.assertTrue(vident==0)
         self.assertTrue(jident==0)
         self.assertTrue(vgene=="")
@@ -26,12 +26,22 @@ class TestVJGeneTool(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
-                "AYA", "platypus", "identity")
+                "AYA", "platypus")
 
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
                 "AYA", "human", "robot")
+
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "L", ""),
+                "AYA", "alpaca")
+
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "K", ""),
+                "AYA", "alpaca", "identity")
 
 
 
@@ -41,6 +51,9 @@ class TestVJGeneTool(unittest.TestCase):
         vj_tool = VJGeneTool()
         seq = vj_tool.get_vj_gene_sequence("IGHV2-26*01", "human")
         self.assertTrue(seq == "QVTLKESGP-VLVKPTETLTLTCTVSGFSLS--NARMGVSWIRQPPGKALEWLAHIFSN---DEKSYSTSLK-SRLTISKDTSKSQVVLTMTNMDPVDTATYYCARI---------------------")
+
+        seq = vj_tool.get_vj_gene_sequence("IGHV1-1*01", "alpaca")
+        self.assertTrue(seq == "QVQLVQPGA-ELRKPGALLKVSCKASGYTF----TSYYIDWVRQAPGQGLGWVGRIDPE--DGGTNYAQKFQ-GRVTLTADTSTSTAYVELSSLRSEDTAVCYCVR----------------------")
 
         seq = vj_tool.get_vj_gene_sequence("cow", "human")
         self.assertTrue(seq == "")
@@ -71,7 +84,7 @@ class TestVJGeneTool(unittest.TestCase):
             fmt_seq = prep_sequence(seq, alignment)
 
             vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
-                    seq, "human", "identity")
+                    seq, "human")
 
             gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
 
@@ -216,7 +229,7 @@ class TestVJGeneTool(unittest.TestCase):
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
 
-        for alternate_scheme in ["aho", "kabat", "aho"]:
+        for alternate_scheme in ["aho", "kabat", "martin"]:
             alternate_tool = VJGeneTool(scheme=alternate_scheme)
             alternate_aligner = SingleChainAnnotator(scheme=alternate_scheme)
 
