@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QV
 from PySide6.QtWidgets import QTableWidget, QMessageBox, QFileDialog, QTableWidgetItem, QScrollArea
 from PySide6.QtWidgets import QPushButton, QHBoxLayout, QStackedWidget, QSizePolicy, QLabel, QComboBox
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QAction, QPixmap
+from PySide6.QtGui import QIcon, QAction, QPixmap, QColor, QBrush
 
 from antpack import SingleChainAnnotator, PairedChainAnnotator, SequenceScoringTool
 from antpack import VJGeneTool, LiabilitySearchTool
@@ -288,13 +288,19 @@ class MainWindow(QMainWindow):
         else:
             self.light_chain_view.setRowCount(self.selected_seqs.get_num_light())
             light_nmbr = self.selected_seqs.get_light_numbering()
+            light_labels = self.sc_annotator.assign_cdr_labels((light_nmbr, 1, "L", ""))
+
             self.light_chain_view.setColumnCount(len(light_nmbr) + 3)
             self.light_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
             self.light_chain_view.setHorizontalHeaderItem(1, QTableWidgetItem("Percent\nidentity"))
             self.light_chain_view.setHorizontalHeaderItem(2,
                     QTableWidgetItem("Error message\n(if any)"))
-            for i, nmbr in enumerate(light_nmbr):
-                self.light_chain_view.setHorizontalHeaderItem(i+3, QTableWidgetItem(nmbr))
+            for i, (nmbr, label) in enumerate(zip(light_nmbr, light_labels)):
+                if label.startswith("cdr"):
+                    widget = QTableWidgetItem(nmbr + "\n__")
+                else:
+                    widget = QTableWidgetItem(nmbr)
+                self.light_chain_view.setHorizontalHeaderItem(i+3, widget)
 
             self.light_chain_view.horizontalHeader().setStyleSheet("""
                             QHeaderView::section {padding-left: 0px; border: 0px;
@@ -316,13 +322,19 @@ class MainWindow(QMainWindow):
         else:
             self.heavy_chain_view.setRowCount(self.selected_seqs.get_num_heavy())
             heavy_nmbr = self.selected_seqs.get_heavy_numbering()
+            heavy_labels = self.sc_annotator.assign_cdr_labels((heavy_nmbr, 1, "H", ""))
+
             self.heavy_chain_view.setColumnCount(len(heavy_nmbr) + 3)
             self.heavy_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
             self.heavy_chain_view.setHorizontalHeaderItem(1, QTableWidgetItem("Percent\nidentity"))
             self.heavy_chain_view.setHorizontalHeaderItem(2,
                     QTableWidgetItem("Error message\n(if any)"))
-            for i, nmbr in enumerate(heavy_nmbr):
-                self.heavy_chain_view.setHorizontalHeaderItem(i+3, QTableWidgetItem(nmbr))
+            for i, (nmbr, label) in enumerate(zip(heavy_nmbr, heavy_labels)):
+                if label.startswith("cdr"):
+                    widget = QTableWidgetItem(nmbr + "\n__")
+                else:
+                    widget = QTableWidgetItem(nmbr)
+                self.heavy_chain_view.setHorizontalHeaderItem(i+3, widget)
 
             self.heavy_chain_view.horizontalHeader().setStyleSheet("""
                             QHeaderView::section {padding-left: 0px; border: 0px;

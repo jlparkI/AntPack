@@ -292,7 +292,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         sequences are (if needed).
 
         Args:
-            vj_gene_name (str): A valid V or J gene name, as generated
+            query_name (str): A valid V or J gene name, as generated
                 by for example assign_sequence.
             species (str): One of 'human', 'mouse', 'alpaca'.
 

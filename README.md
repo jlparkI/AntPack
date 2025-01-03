@@ -48,16 +48,24 @@ start a Jupyter notebook and write code.
 ## Coming soon
 
 We're planning to continue improving AntPack's numbering capabilities
-and fixing "edge cases" for better results. We plan to extensively
-expand the GUI. We're also planning to link AntPack to a searchable
-online database of human antibody sequences and add tools for fast
-sequence clustering and stability prediction -- coming soon.
+and fixing "edge cases" so that we keep improving speed and results.
+We're also looking at adding support for TCR sequences, at least for
+numbering. We plan to extensively expand the GUI. We're also planning to link
+AntPack to a searchable online database of human antibody sequences
+and add tools for fast sequence clustering and stability prediction --
+coming soon.
 
 ## Installation
 
 The only required dependency is numpy. If you want to run the GUI,
-however, there are two additional dependencies you'll need to install:
+however, there are two additional dependencies you'll need to install
+(in future versions these dependencies may no longer be needed):
+```
+pip install pyside6 qt_material
+```
 
+If you don't plan to use the GUI, you don't need those dependencies.
+Either way, to install antpack run:
 ```
 pip install antpack
 ```

@@ -3,9 +3,14 @@ Installation
 
 The only required dependency is numpy which is automatically installed.
 If you want to run the GUI, however, you have to install two additional
-optional dependencies
+optional dependencies:::
 
-To install it, type:::
+  pip install pyside6 qt_material
+
+If you don't want to use the GUI these dependencies are not needed. These
+dependencies may no longer be required in future.
+
+To install AntPack, type:::
 
   pip install antpack
 
@@ -27,8 +32,8 @@ Licensing
 ===========
 
 AntPack is licensed under a reasonably permissive open-source license,
-so that you are free to use it for your own data analysis regardless of
-whether you are working on academic research or industrial R&D.
+so that you are free to use it for your own data analysis in any manner you like
+regardless of whether you are working on academic research or industrial R&D.
 Note that under the terms of the license however you cannot use AntPack
 to build closed-source software that you plan to sell -- if you use AntPack
 to build software for distribution the software must also be open-source, must include

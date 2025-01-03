@@ -21,7 +21,7 @@ dependencies = [
 
 [project.scripts]
 AntPack-CLI = "antpack:run_cli_interface"
-AntPack-SeqView = "antpack:run_seq_viewer"
+AntPack-GUI = "antpack:run_seq_viewer"
 
 
 [project.urls]
