@@ -1,5 +1,4 @@
 include(CheckLanguage)
-include(GNUInstallDirs)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 cmake_minimum_required(VERSION 3.18)
@@ -34,9 +33,9 @@ find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
+#set(CMAKE_AUTOUIC ON)
+#set(CMAKE_AUTOMOC ON)
+#set(CMAKE_AUTORCC ON)
 # Extremely annoying but for some reason MSVC requires an additional flag
 # to be set.
 if (MSVC)
