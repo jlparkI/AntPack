@@ -139,22 +139,20 @@ class MultiSequenceData:
 
 
     def __init__(self):
-        self.heavy_full_sequences = []
-        self.light_full_sequences = []
+        self.full_sequences = []
+        self.seq_names = []
 
         self.heavy_seqs = []
         self.heavy_pid = []
         self.heavy_err = []
         self.heavy_nmbr = []
         self.heavy_align = []
-        self.heavy_seq_names = []
 
         self.light_seqs = []
         self.light_pid = []
         self.light_err = []
         self.light_align = []
         self.light_nmbr = []
-        self.light_seq_names = []
 
 
     def get_num_heavy(self):
@@ -169,11 +167,11 @@ class MultiSequenceData:
 
     def get_heavy_data(self):
         """Returns the lists associated with the heavy chain."""
-        return self.heavy_seqs, self.heavy_pid, self.heavy_err, self.heavy_seq_names
+        return self.heavy_seqs, self.heavy_pid, self.heavy_err, self.seq_names
 
     def get_light_data(self):
         """Returns the lists associated with the light chain."""
-        return self.light_seqs, self.light_pid, self.light_err, self.light_seq_names
+        return self.light_seqs, self.light_pid, self.light_err, self.seq_names
 
     def get_heavy_numbering(self):
         """Returns the heavy numbering (for the spreadsheet header)."""
@@ -210,23 +208,31 @@ class MultiSequenceData:
         if heavy_nmbr is None and light_nmbr is None:
             return "no chains found"
 
+        self.full_sequences.append(seq)
+        self.seq_names.append(seq_name)
+
         if heavy_nmbr is not None:
             self.heavy_pid.append(heavy_nmbr[1])
             self.heavy_err.append(heavy_nmbr[3])
             self.heavy_align.append(heavy_nmbr)
-            self.heavy_full_sequences.append(seq)
-            self.heavy_seq_names.append(seq_name)
+        else:
+            self.heavy_pid.append(0)
+            self.heavy_err.append("")
+            self.heavy_align.append( (['-' for l in seq], 0.,
+                "H", "") )
+
         if light_nmbr is not None:
             self.light_pid.append(light_nmbr[1])
             self.light_err.append(light_nmbr[3])
             self.light_align.append(light_nmbr)
-            self.light_full_sequences.append(seq)
-            self.light_seq_names.append(seq_name)
+        else:
+            self.light_pid.append(0)
+            self.light_err.append("")
+            self.light_align.append( (['-' for l in seq], 0.,
+                "L", "") )
 
-        if len(self.heavy_align) > 0:
-            self.heavy_nmbr, self.heavy_seqs = \
-                pc_annotator.build_msa(self.heavy_full_sequences, self.heavy_align)
-        if len(self.light_align) > 0:
-            self.light_nmbr, self.light_seqs = \
-                    pc_annotator.build_msa(self.light_full_sequences, self.light_align)
+        self.heavy_nmbr, self.heavy_seqs = \
+                pc_annotator.build_msa(self.full_sequences, self.heavy_align)
+        self.light_nmbr, self.light_seqs = \
+                    pc_annotator.build_msa(self.full_sequences, self.light_align)
         return None

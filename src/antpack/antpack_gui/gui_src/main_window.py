@@ -85,11 +85,11 @@ class MainWindow(QMainWindow):
         top_box_layout.addStretch(1)
 
         seq_view_tab1_layout.addLayout(top_box_layout)
-        seq_view_tab1_layout.addStretch(1)
         seq_view_tabs.addTab(tab1, "Sequence View")
 
         heavy_light_tabs = QTabWidget()
         seq_view_tab1_layout.addWidget(heavy_light_tabs)
+        seq_view_tab1_layout.addStretch(1)
 
         self.heavy_chain_view = QTableWidget()
         self.light_chain_view = QTableWidget()
@@ -184,8 +184,7 @@ class MainWindow(QMainWindow):
             if self.selected_seqs is None:
                 self.selected_seqs = MultiSequenceData()
             err = ""
-            seq_name = str(self.selected_seqs.get_total_Adde,
-                self.selected_seqs.get_num_light()))
+            seq_name = str(self.selected_seqs.get_num_light())
             try:
                 err = self.selected_seqs.add_selected_sequence(seq, self.sc_annotator,
                         self.pc_annotator, seq_type, pid_thresh, seq_name)
@@ -267,9 +266,9 @@ class MainWindow(QMainWindow):
         self.light_chain_view.clear()
 
         if self.selected_seqs is None:
-            self.heavy_chain_view.setColumnCount(15)
+            self.heavy_chain_view.setColumnCount(30)
             self.heavy_chain_view.setRowCount(2)
-            self.light_chain_view.setColumnCount(15)
+            self.light_chain_view.setColumnCount(30)
             self.light_chain_view.setRowCount(2)
             self.heavy_chain_view.horizontalHeader().setStyleSheet("""
                             QHeaderView::section {padding-left: 20px; border: 0px;
@@ -284,7 +283,7 @@ class MainWindow(QMainWindow):
         # Light chain
 
         if self.selected_seqs.get_num_light() == 0:
-            self.light_chain_view.setColumnCount(15)
+            self.light_chain_view.setColumnCount(30)
             self.light_chain_view.setRowCount(2)
         else:
             self.light_chain_view.setRowCount(self.selected_seqs.get_num_light())
@@ -312,7 +311,7 @@ class MainWindow(QMainWindow):
         # Heavy chain
 
         if self.selected_seqs.get_num_heavy() == 0:
-            self.heavy_chain_view.setColumnCount(15)
+            self.heavy_chain_view.setColumnCount(30)
             self.heavy_chain_view.setRowCount(2)
         else:
             self.heavy_chain_view.setRowCount(self.selected_seqs.get_num_heavy())

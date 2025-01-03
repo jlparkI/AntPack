@@ -1,6 +1,10 @@
 Installation
 ================
 
+The only required dependency is numpy which is automatically installed.
+If you want to run the GUI, however, you have to install two additional
+optional dependencies
+
 To install it, type:::
 
   pip install antpack

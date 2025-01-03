@@ -8,45 +8,55 @@ and making more improvements periodically. We will try to avoid breaking
 changes but nonetheless recommend checking the docs after you install
 a new version to be sure the component you are using is unaffected.
 
+### Are there specific features / changes you'd like to see in AntPack?
 
-## What's new in v0.3.6
+If so, feel free to take our short [anonymous user survey!](https://www.surveymonkey.com/r/FWQJKZS)
+There are quite a few features we plan to add to AntPack --
+this survey will help us decide which we should prioritize /
+which should come first.
 
-v0.3.6 incorporates a couple of bug fixes and some improvements to
-the command line tool. It's also about 2x faster than the previous
-version. On an Intel-i7-13700K, the time taken to number 3500
-sequences for different tools was as follows:
 
-| Tool     | Time (s)        |
-| -------- | --------------- |
-| ANARCI   | 45    +/- 1     |
-| AntPack  | 0.18  +/- 0.01  |
-| AbRSA    | 13.02 +-/ 0.01  |
+## What's new in v0.3.7
 
-Previous versions of AntPack achieved about 0.35 seconds. Finally,
-in previous versions you had to know whether the sequences you
-were using were single or paired. AntPack still has the
-SingleChainAnnotator and PairedChainAnnotator *but* PairedChainAnnotator
-has been made more flexible and better at dealing with
-single chains, so if your input data contains both paired and single
-chains, it's ok to default to using PairedChainAnnotator. (SingleChain
-will be much faster, so if you know you're dealing with single chains
-only, always use SingleChainAnnotator instead.) You can also use
-SingleChainAnnotator on chains that may be single or paired; if you
-set it to look for a specific chain type (e.g. heavy), it will
-extract that chain from paired sequences.
+v0.3.7 contains some minor improvements to the API,
+specifically for `build_msa`, `assign_vj_genes` and
+the liability search tool. It also adds support for
+DNA sequences in the form of a tool that determines
+the correct reading frame and forward / reverse complement
+for an input DNA sequence and translates it to AAs
+(this is faster than aligning to / numbering the
+DNA sequence). We've added support for llama germline
+gene assignment (VHH only). Finally, we've added an
+experimental GUI which we plan to expand considerably
+in upcoming versions. You can quickly launch the GUI from
+the terminal by typing:
+```
+AntPack-SeqView
+```
+For now, you can use the GUI to add and align / compare some arbitrary
+number of paired and/or single chain sequences. You
+can also retrieve the VJ gene assignments for an input sequence
+and see an alignment of your input sequence with those genes.
+
+The command line interface is useful for some fairly standard
+analyses of moderate-large datasets, while the Python API is
+useful for building your own workflows and pipelines. The GUI
+(at least right now) is mostly useful for a fast analysis of a few
+sequences that you want to examine quickly without needing to
+start a Jupyter notebook and write code.
 
 ## Coming soon
 
-We're adding a GUI that can be launched with a single command
-from the terminal / Windows command line so that AntPack can be
-used either as a command line tool, a Python library or a GUI,
-depending on your needs and what you're comfortable with.
-
-We're also planning to link AntPack to a searchable online database of
-human antibody sequences and add tools for fast sequence clustering
-and stability prediction -- coming soon.
+We're planning to continue improving AntPack's numbering capabilities
+and fixing "edge cases" for better results. We plan to extensively
+expand the GUI. We're also planning to link AntPack to a searchable
+online database of human antibody sequences and add tools for fast
+sequence clustering and stability prediction -- coming soon.
 
 ## Installation
+
+The only required dependency is numpy. If you want to run the GUI,
+however, there are two additional dependencies you'll need to install:
 
 ```
 pip install antpack
@@ -55,10 +65,6 @@ pip install antpack
 AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8,
 so installation should be very straightforward. A source distribution is also available
 (C++17) in case there is any need to compile from source.
-
-The only required dependency is numpy. In future, to use the
-GUI there will be a couple of additional optional dependencies
-(although this is not added yet).
 
 ## Capabilities
 
@@ -75,9 +81,10 @@ framework regions.
 
 #### V / J genes
 
-Identifying the most similar human V / J gene sequences is useful for a variety of
-purposes. AntPack provides tools for determining which human V and J gene sequences
-are most similar to the variable region chain provided as input.
+Identifying the most similar human/mouse/llama V / J gene sequences is useful
+for a variety of purposes. AntPack provides tools for determining which human
+V and J gene sequences are most similar to the variable region chain provided
+as input.
 
 
 #### Humanness and developability
@@ -103,20 +110,20 @@ Still, these kinds of alerts can be useful for making yourself aware of potentia
 developability issues.
 
 
-#### Licensing
+### Licensing
 
 AntPack is licensed under a GPL license, which means that you are free to
-use it for your own data analysis irrespective of whether you work on
-academic research or industrial R&D / QC.
+use it for your own data analysis in any manner you like irrespective of
+whether you work on academic research or industrial R&D / QC.
 
-If you are writing software intended for sale / distribution, however,
+If you are writing software intended for sale & distribution, however,
 any software you create that uses AntPack must also be open-source, must
 use the GPL license and must acknowledge AntPack appropriately. If you
 are interested in using AntPack in a closed-source software product,
 please contact us to obtain a version of AntPack licensed for this use.
 
 
-#### Citing this work
+### Citing this work
 
 If using AntPack in research intended for publication, please cite
 either the preprint:
