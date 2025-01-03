@@ -41,8 +41,9 @@ AntPack-CLI
 For now, you can use the GUI to add and align / compare some arbitrary
 number of paired and/or single chain sequences. You
 can also retrieve the VJ gene assignments for an input sequence
-and see an alignment of your input sequence
-![with those genes.](https://github.com/jlparkI/AntPack/docs/images/multiseq1.png)
+and see an alignment of your input sequence with those genes.
+
+![gui_example](https://github.com/jlparkI/AntPack/blob/main/docs/images/multiseq1.png)
 
 The command line interface is useful for some fairly standard
 analyses of moderate-large datasets, while the more powerful
