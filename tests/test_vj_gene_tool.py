@@ -55,8 +55,35 @@ class TestVJGeneTool(unittest.TestCase):
         seq = vj_tool.get_vj_gene_sequence("IGHV1-1*01", "alpaca")
         self.assertTrue(seq == "QVQLVQPGA-ELRKPGALLKVSCKASGYTF----TSYYIDWVRQAPGQGLGWVGRIDPE--DGGTNYAQKFQ-GRVTLTADTSTSTAYVELSSLRSEDTAVCYCVR----------------------")
 
+        seq = vj_tool.get_vj_gene_sequence("IGHV1S26*01", "rabbit")
+        self.assertTrue(seq == "Q-SVKESEG-GLFKPTDTLTLTCTVSGFSL----SSYAISWVRQAPGNGLEWIGIINSY---GSTYYASWAK-SRSTITRNTNENTVTLKMTSLTAADTATYFCAR----------------------")
+
         seq = vj_tool.get_vj_gene_sequence("cow", "human")
         self.assertTrue(seq == "")
+
+
+    def test_species_recognition(self):
+        """Make sure that expected species are all recognized."""
+        vj_tool = VJGeneTool()
+        test_heavy = "QVQLLESGGGLVQPGGSLRLSCAASGFTFSTAAMSWVRQAPGKGLEWVSGISGSGSSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARELSYLYSGYYFDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVAVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALAAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK"
+        test_light = "DIELSQSPAILSASPGEKVTMTCRASSSVSYMHWYQQKPGSSPKPWIYAPSNLASGVPARFSGSGSGTSYSLTISRVEAEDAATYYCQQWSFNPPTFGAGTKLEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC"
+
+        sc_annotator = SingleChainAnnotator()
+        heavy_annotation = sc_annotator.analyze_seq(test_heavy)
+        light_annotation = sc_annotator.analyze_seq(test_light)
+
+        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "human")
+        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "mouse")
+        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "rabbit")
+        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "alpaca")
+
+        _ = vj_tool.assign_vj_genes(light_annotation, test_light, "human")
+        _ = vj_tool.assign_vj_genes(light_annotation, test_light, "mouse")
+        _ = vj_tool.assign_vj_genes(light_annotation, test_light, "rabbit")
+
+        # If we've made it to this point without hitting an exception, test
+        # has passed.
+        self.assertTrue(1==1)
 
 
     def test_percent_ident_calc(self):

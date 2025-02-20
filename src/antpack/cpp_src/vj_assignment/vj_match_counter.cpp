@@ -1,4 +1,7 @@
+#include <memory>
+
 #include "vj_match_counter.h"
+
 
 namespace VJAssignment {
 
@@ -79,9 +82,14 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
         double, std::string, std::string> alignment, std::string sequence,
         std::string species, std::string mode) {
 
-    if (species != "human" && species != "mouse") {
+    if (species != "human" && species != "mouse"
+            && species != "alpaca" && species != "rabbit") {
         throw std::runtime_error(std::string("Species for VJ gene "
                     "assignment must be one of 'human', 'mouse'."));
+    }
+    if (species == "alpaca" && std::get<2>(alignment) != "H") {
+        throw std::runtime_error(std::string("For alpacas, only heavy "
+                    "chain sequences are allowed."));
     }
 
     if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&
@@ -399,13 +407,15 @@ int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &se
         std::vector<char> trimmed_seq_vector;
         int exstart, exend;
 
-        // The only circumstance that could cause trim_alignment_utility to return
-        // an error is already checked for by caller.
-        int err_code = SequenceUtilities::trim_alignment_utility(sequence, alignment, trimmed_numbering,
+        // The only circumstance that could cause trim_alignment_utility
+        // to return an error is already checked for by caller.
+        int err_code = SequenceUtilities::trim_alignment_utility(sequence,
+                alignment, trimmed_numbering,
                 exstart, exend, trimmed_seq_vector);
-        std::string trimmed_seq(trimmed_seq_vector.begin(), trimmed_seq_vector.end()); 
+        std::string trimmed_seq(trimmed_seq_vector.begin(),
+                trimmed_seq_vector.end());
 
-        auto queryAsIdx = std::make_unique<int[]>( trimmed_seq.length() );
+        auto queryAsIdx = std::make_unique<int[]>(trimmed_seq.length());
         std::vector<std::string> imgt_numbering;
         std::string errorMessage = "";
         double percent_identity = -1;
@@ -422,24 +432,24 @@ int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &se
             this->h_aligner->align(trimmed_seq,
                     queryAsIdx.get(), imgt_numbering, percent_identity,
                     errorMessage);
-        }
-        else if (std::get<2>(alignment) == "K") {
+        } else if (std::get<2>(alignment) == "K") {
             this->k_aligner->align(trimmed_seq,
                     queryAsIdx.get(), imgt_numbering, percent_identity,
                     errorMessage);
-        }
-        else if (std::get<2>(alignment) == "L") {
+        } else if (std::get<2>(alignment) == "L") {
             this->l_aligner->align(trimmed_seq,
                     queryAsIdx.get(), imgt_numbering, percent_identity,
                     errorMessage);
         }
+
         if (imgt_numbering.size() != trimmed_seq.length())
             return INVALID_SEQUENCE;
 
         for (size_t i=0; i < trimmed_seq.length(); i++) {
             if (this->essential_imgt_map.find(imgt_numbering[i]) !=
                     this->essential_imgt_map.end())
-                prepped_sequence.at(std::stoi(imgt_numbering[i]) - 1) = sequence[i];
+                prepped_sequence.at(std::stoi(imgt_numbering[i]) - 1) =
+                    sequence[i];
         }
     }
     return VALID_SEQUENCE;
