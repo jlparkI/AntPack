@@ -76,17 +76,17 @@ class AnnotatorBaseClassCpp {
             std::string> alignment);
 
         /// @brief Assigns cdr labels to an input sequence.
-        /// @param alignment A four-element tuple containing
-        ///        the numbering, the percent identity, the chain
-        ///        type and the error message. This tuple is generated
-        ///        / returned by the analyze_seq methods of child classes.
-        /// @param cdr_scheme One of 'aho', 'imgt', 'kabat' or 'martin'.
+        /// @param numbering A list of numbering codes valid for the
+        ///        scheme specified when the class was created. This is
+        ///        the first element of the tuple returned by 'analyze_seq'.
+        /// @param chain A valid chain ('H', 'K', 'L'). 'K' and 'L' are treated
+        ///        as equivalent.
         /// @return Returns a vector of strings '-', 'fmwk1', 'cdr1',
         ///         'fmwk2', 'cdr2' etc. to indicate the region to which
         ///         each position belongs.
         std::vector<std::string>
-            assign_cdr_labels(std::tuple<std::vector<std::string>,
-               double, std::string, std::string> alignment);
+            assign_cdr_labels(std::vector<std::string> numbering,
+                    std::string chain);
 
 
  protected:

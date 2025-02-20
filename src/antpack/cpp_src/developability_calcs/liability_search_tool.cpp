@@ -38,7 +38,8 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
     // exception, which if this is used within the Nanobind wrapper will get
     // passed back to Python.
     std::vector<std::string> cdr_labeling;
-    SequenceUtilities::assign_cdr_labels(alignment, cdr_labeling,
+    SequenceUtilities::assign_cdr_labels(std::get<0>(alignment),
+            std::get<2>(alignment), cdr_labeling,
             scheme);
 
     if (cdr_labeling.size() != sequence.length()) {

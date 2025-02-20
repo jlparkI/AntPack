@@ -81,7 +81,7 @@ NB_MODULE(antpack_cpp_ext, m) {
             aligned_seqs (list): A list of strings -- the input sequences all aligned
                 to form an MSA.)")
         .def("assign_cdr_labels", &NumberingTools::AnnotatorBaseClassCpp::assign_cdr_labels,
-                nb::arg("alignment"),
+                nb::arg("numbering"), nb::arg("chain"),
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
@@ -91,11 +91,15 @@ NB_MODULE(antpack_cpp_ext, m) {
         the annotator is constructed.
 
         Args:
-            alignment (tuple): A tuple containing (numbering,
-                percent_identity, chain_name, error_message). This tuple
-                is what you will get as output if you pass sequences to
-                the analyze_seq method of SingleChainAnnotator
-                or PairedChainAnnotator.
+            numbering (list): A list containing valid codes for the scheme that was
+                selected when this object was created. If you pass a sequence to
+                the analyze_seq method of SingleChainAnnotator or PairedChainAnnotator,
+                the numbering will be the first element of the tuple that is returned
+                (or the first element of both tuples for PairedChainAnnotator).
+            chain (str): A valid chain (e.g. 'H', 'K', 'L'). The assigned chain is the
+                third element of the tuple returned by analyze_seq. For this function
+                only, 'K' and 'L' are equivalent since they both refer to a light chain,
+                so if your chain is light you can supply either for the same result.
 
         Returns:
             region_labels (list): A list of strings, each of which is one of

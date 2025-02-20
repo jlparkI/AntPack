@@ -16,13 +16,16 @@ namespace SequenceUtilities {
 
 
 
-/// @brief Assigns cdr labels to a previously constructed alignment.
-/// @param alignment An alignment output by SingleChainAnnotator or
-///        PairedChainAnnotator.
+/// @brief Assigns cdr labels to an input sequence.
+/// @param numbering A list of numbering codes valid for the
+///        scheme specified when the class was created. This is
+///        the first element of the tuple returned by 'analyze_seq'.
+/// @param chain A valid chain ('H', 'K', 'L'). 'K' and 'L' are treated
+///        as equivalent.
 /// @param cdr_labels A vector in which the output will be stored.
 /// @param scheme The scheme -- one of 'imgt', 'aho', 'martin', 'kabat'.
-void assign_cdr_labels(const std::tuple<std::vector<std::string>,
-        double, std::string, std::string> &alignment,
+void assign_cdr_labels(const std::vector<std::string> &numbering,
+        const std::string &chain,
         std::vector<std::string> &cdr_labeling,
         const std::string &scheme) {
     std::array<int, 6> current_breakpoints;
@@ -35,31 +38,29 @@ void assign_cdr_labels(const std::tuple<std::vector<std::string>,
             "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"};
 
     if (scheme == "imgt") {
-        if (std::get<2>(alignment) == "H" || std::get<2>(alignment) == "L" ||
-                std::get<2>(alignment) == "K")
+        if (chain == "H" || chain == "L" || chain == "K")
             current_breakpoints = NumberingTools::IMGT_CDR_BREAKPOINTS;
         else
             throw std::runtime_error(std::string("Unrecognized chain or "
                         "scheme supplied."));
     } else if (scheme == "martin") {
-        if (std::get<2>(alignment) == "H")
+        if (chain == "H")
             current_breakpoints = NumberingTools::MARTIN_HEAVY_CDR_BREAKPOINTS;
-        else if (std::get<2>(alignment) == "L" || std::get<2>(alignment) == "K")
+        else if (chain == "L" || chain == "K")
             current_breakpoints = NumberingTools::MARTIN_LIGHT_CDR_BREAKPOINTS;
         else
             throw std::runtime_error(std::string("Unrecognized chain or "
                         "scheme supplied."));
     } else if (scheme == "kabat") {
-        if (std::get<2>(alignment) == "H")
+        if (chain == "H")
             current_breakpoints = NumberingTools::KABAT_HEAVY_CDR_BREAKPOINTS;
-        else if (std::get<2>(alignment) == "L" || std::get<2>(alignment) == "K")
+        else if (chain == "L" || chain == "K")
             current_breakpoints = NumberingTools::KABAT_LIGHT_CDR_BREAKPOINTS;
         else
             throw std::runtime_error(std::string("Unrecognized chain or "
                         "scheme supplied."));
     } else if (scheme == "aho") {
-        if (std::get<2>(alignment) == "H" || std::get<2>(alignment) == "L" ||
-                std::get<2>(alignment) == "K")
+        if (chain == "H" || chain == "L" || chain == "K")
             current_breakpoints = NumberingTools::AHO_CDR_BREAKPOINTS;
         else
             throw std::runtime_error(std::string("Unrecognized chain or "
@@ -69,8 +70,8 @@ void assign_cdr_labels(const std::tuple<std::vector<std::string>,
     next_breakpoint = current_breakpoints.at(current_token);
     current_label = cdr_region_labels[current_token];
 
-    for (size_t i=0; i < std::get<0>(alignment).size(); i++) {
-        if (std::get<0>(alignment).at(i) == "-") {
+    for (size_t i=0; i < numbering.size(); i++) {
+        if (numbering.at(i) == "-") {
             cdr_labeling.push_back("-");
             continue;
         }
@@ -80,7 +81,7 @@ void assign_cdr_labels(const std::tuple<std::vector<std::string>,
         // so this will not happen unless
         // the user has passed some altered / corrupted input.
         try {
-            numeric_portion = std::stoi(std::get<0>(alignment)[i]);
+            numeric_portion = std::stoi(numbering[i]);
         }
         catch (...) {
             throw std::runtime_error(std::string("An invalid position "

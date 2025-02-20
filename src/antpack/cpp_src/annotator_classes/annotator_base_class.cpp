@@ -102,11 +102,9 @@ std::tuple<std::string, std::vector<std::string>, int, int>
 /// Wraps the assign_cdr_labels function in SequenceUtilities
 /// for access by Python callers.
 std::vector<std::string> AnnotatorBaseClassCpp::assign_cdr_labels(
-        std::tuple<std::vector<std::string>, 
-               double, std::string, std::string> alignment) {
-
+        std::vector<std::string> numbering, std::string chain) {
     std::vector<std::string> cdr_labeling;
-    SequenceUtilities::assign_cdr_labels(alignment,
+    SequenceUtilities::assign_cdr_labels(numbering, chain,
             cdr_labeling, this->scheme);
     return cdr_labeling;
 }
