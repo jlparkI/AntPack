@@ -72,18 +72,21 @@ class TestVJGeneTool(unittest.TestCase):
         heavy_annotation = sc_annotator.analyze_seq(test_heavy)
         light_annotation = sc_annotator.analyze_seq(test_light)
 
-        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "human")
-        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "mouse")
-        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "rabbit")
-        _ = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "alpaca")
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "human")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "mouse")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "rabbit")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "alpaca")
+        self.assertTrue(assn[0] != '')
 
-        _ = vj_tool.assign_vj_genes(light_annotation, test_light, "human")
-        _ = vj_tool.assign_vj_genes(light_annotation, test_light, "mouse")
-        _ = vj_tool.assign_vj_genes(light_annotation, test_light, "rabbit")
-
-        # If we've made it to this point without hitting an exception, test
-        # has passed.
-        self.assertTrue(1==1)
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light, "human")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light, "mouse")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light, "rabbit")
+        self.assertTrue(assn[0] != '')
 
 
     def test_percent_ident_calc(self):
