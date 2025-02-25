@@ -288,7 +288,7 @@ class MainWindow(QMainWindow):
         else:
             self.light_chain_view.setRowCount(self.selected_seqs.get_num_light())
             light_nmbr = self.selected_seqs.get_light_numbering()
-            light_labels = self.sc_annotator.assign_cdr_labels((light_nmbr, 1, "L", ""))
+            light_labels = self.sc_annotator.assign_cdr_labels(light_nmbr, "L")
 
             self.light_chain_view.setColumnCount(len(light_nmbr) + 3)
             self.light_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
@@ -322,7 +322,7 @@ class MainWindow(QMainWindow):
         else:
             self.heavy_chain_view.setRowCount(self.selected_seqs.get_num_heavy())
             heavy_nmbr = self.selected_seqs.get_heavy_numbering()
-            heavy_labels = self.sc_annotator.assign_cdr_labels((heavy_nmbr, 1, "H", ""))
+            heavy_labels = self.sc_annotator.assign_cdr_labels(heavy_nmbr, "H")
 
             self.heavy_chain_view.setColumnCount(len(heavy_nmbr) + 3)
             self.heavy_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
