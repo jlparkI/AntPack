@@ -151,7 +151,7 @@ def save_consensus_array(consensus_list, chain_type, constants = imgt_dp, scheme
         if position in conserved_positions:
             key_array[i,20] = shared_dp.HIGHLY_CONSERVED_BONUS
 
-    np.save(f"{scheme.upper()}_CONSENSUS_{chain_type}.npy", key_array)
+    np.save(f"{scheme.upper()}_CONSENSUS_{chain_type}.npy", key_array, allow_pickle=False)
 
 
 
@@ -185,4 +185,4 @@ def save_cterm_finder_array(consensus_list, chain_type):
         #possible amino acid that could be present at that position.
         key_array[i,20] = key_array[i,:20].max()
 
-    np.save(f"CTERMFINDER_CONSENSUS_{chain_type}.npy", key_array)
+    np.save(f"CTERMFINDER_CONSENSUS_{chain_type}.npy", key_array, allow_pickle=False)
