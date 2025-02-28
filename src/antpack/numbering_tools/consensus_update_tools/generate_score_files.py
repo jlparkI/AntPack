@@ -13,7 +13,7 @@ from ..constants import all_scheme_default_params as shared_dp
 
 def build_consensus_files():
     fdir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(fdir, "..", "consensus_data")
+    data_path = os.path.join(fdir, "..", "consensus_data", "mabs")
     cdir = os.getcwd()
 
     for scheme_name in ["kabat", "martin", "imgt", "ctermfinder", "aho"]:
