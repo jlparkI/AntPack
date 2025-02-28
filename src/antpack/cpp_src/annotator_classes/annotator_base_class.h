@@ -6,12 +6,10 @@
 #include <array>
 #include <string>
 #include <utility>
-#include <memory>
 #include <tuple>
 #include <unordered_map>
 
 // Project headers
-#include "prefiltering_tool.h"
 #include "numbering_constants.inc"
 #include "../utilities/utilities.h"
 
@@ -23,9 +21,7 @@ namespace NumberingTools {
 
 class AnnotatorBaseClassCpp {
  public:
-        AnnotatorBaseClassCpp(std::string scheme,
-                std::string consensus_filepath,
-                std::unordered_map<std::string, size_t> nterm_kmers);
+        AnnotatorBaseClassCpp(std::string scheme);
 
         /// @brief Sorts a list of position codes, respecting the
         ///        rules of the numbering scheme.
@@ -91,7 +87,6 @@ class AnnotatorBaseClassCpp {
 
  protected:
         std::string scheme;
-        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
 };
 
 }  // namespace NumberingTools

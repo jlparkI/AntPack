@@ -14,13 +14,8 @@
 namespace NumberingTools {
 
 
-AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme,
-        std::string consensus_filepath,
-        std::unordered_map<std::string, size_t> nterm_kmers):
+AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme):
     scheme(scheme) {
-    this->boundary_finder = std::make_unique
-        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
-                nterm_kmers);
 }
 
 
@@ -41,10 +36,11 @@ std::vector<std::string> AnnotatorBaseClassCpp::sort_position_codes(
         if (code != "-")
             cleanedCodes.push_back(code);
     }
-    if (!SequenceUtilities::sort_position_codes_utility(cleanedCodes, this->scheme,
-            sortedCodes)) {
-        throw std::runtime_error(std::string("One or more of the supplied position "
-                    "codes is invalid given the specified scheme."));
+    if (!SequenceUtilities::sort_position_codes_utility(cleanedCodes,
+                this->scheme, sortedCodes)) {
+        throw std::runtime_error(std::string("One or more of the "
+                    "supplied position codes is invalid given the "
+                    "specified scheme."));
     }
     return sortedCodes;
 }

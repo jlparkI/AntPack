@@ -5,12 +5,14 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <memory>
 #include <unordered_map>
 
 // Library headers
 #include <nanobind/ndarray.h>
 
 // Project headers
+#include "prefiltering_tool.h"
 #include "annotator_base_class.h"
 #include "../utilities/utilities.h"
 #include "ig_aligner.h"
@@ -54,6 +56,7 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
  protected:
         std::vector<std::string> chains;
         std::string scheme;
+        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
 
         std::vector<NumberingTools::IGAligner> scoring_tools;
 };

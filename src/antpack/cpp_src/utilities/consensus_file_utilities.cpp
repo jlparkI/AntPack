@@ -8,14 +8,15 @@
 
 
 
-// Reads a specially formatted text file into a vector of vectors of strings.
-// Each entry in the outer vector is a vector of amino acids allowed at that
-// position. Note that an empty vector at a given position indicates any AA is
-// tolerated at that position. Therefore, if a '-' is found at a given postiion,
-// assume any AA is tolerated there.
+/// @brief Reads a specially formatted text file into a
+/// vector of vectors of strings. Each entry in the outer
+/// vector is a vector of amino acids allowed at that
+/// position. Note that an empty vector at a given position
+/// indicates any AA is tolerated at that position. Therefore,
+/// if a '-' is found at a given postiion, assume any AA is
+/// tolerated there.
 int cnpy::read_consensus_file(std::filesystem::path consFPath,
         std::vector<std::vector<std::string>> &consensusAAs) {
-
     if (!std::filesystem::exists(consFPath))
         return INVALID_CONSENSUS_FILE;
 
@@ -26,7 +27,7 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
     std::string currentLine;
 
     while (std::getline(file, currentLine)) {
-        if (currentLine.at(0) == '#'){
+        if (currentLine.at(0) == '#') {
             readNow = true;
             continue;
         }

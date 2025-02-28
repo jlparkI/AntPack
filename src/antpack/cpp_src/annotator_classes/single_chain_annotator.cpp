@@ -9,7 +9,7 @@
 
 // Project headers
 #include "single_chain_annotator.h"
-
+#include "prefiltering_tool.h"
 
 
 
@@ -28,10 +28,14 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
             std::string scheme, std::string consensus_filepath,
             std::unordered_map<std::string, size_t> nterm_kmers
 ):
-    AnnotatorBaseClassCpp(scheme, consensus_filepath, nterm_kmers),
+    AnnotatorBaseClassCpp(scheme),
     chains(chains),
     scheme(scheme)
 {
+    this->boundary_finder = std::make_unique
+        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
+                nterm_kmers);
+
     // Note that exceptions thrown here go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
     if (chains.size() < 1 || chains.size() > 3) {

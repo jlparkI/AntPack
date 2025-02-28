@@ -84,6 +84,7 @@ nanobind_add_module(
 
     src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp
 
+    src/antpack/cpp_src/utilities/gzstream.cpp
     src/antpack/cpp_src/utilities/utilities.cpp
     src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
     src/antpack/cpp_src/utilities/consensus_file_utilities.cpp

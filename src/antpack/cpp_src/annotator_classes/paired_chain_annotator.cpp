@@ -3,20 +3,27 @@
 
 // C++ headers
 #include <memory>
+#include <tuple>
+#include <utility>
 
 // Project headers
+#include "prefiltering_tool.h"
 #include "paired_chain_annotator.h"
 
 
 
-namespace NumberingTools{
+namespace NumberingTools {
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
-        std::string scheme, std::string consensus_filepath,
-        std::unordered_map<std::string, size_t> nterm_kmers
-        ):
-    AnnotatorBaseClassCpp(scheme, consensus_filepath, nterm_kmers),
-    scheme(scheme) {
+    std::string scheme, std::string consensus_filepath,
+    std::unordered_map<std::string, size_t> nterm_kmers
+    ):
+AnnotatorBaseClassCpp(scheme),
+scheme(scheme) {
+
+    this->boundary_finder = std::make_unique
+        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
+                nterm_kmers);
 
     std::vector<std::string> chains = {"K", "L"};
     this->light_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>

@@ -48,6 +48,8 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
             analyzer;
 
+        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
+
         /// @brief Pads the alignment represented by the input
         ///        so it is the same length as the sequence.
         std::vector<std::string> pad_alignment(
