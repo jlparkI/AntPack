@@ -1,5 +1,20 @@
-#ifndef VJ_MATCH_COUNTER_HEADER_H
-#define VJ_MATCH_COUNTER_HEADER_H
+/* Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#ifndef SRC_ANTPACK_CPP_SRC_VJ_ASSIGNMENT_VJ_MATCH_COUNTER_H_
+#define SRC_ANTPACK_CPP_SRC_VJ_ASSIGNMENT_VJ_MATCH_COUNTER_H_
 
 // C++ headers
 #include <nanobind/nanobind.h>
@@ -21,16 +36,17 @@
 
 namespace nb = nanobind;
 
+
+
+namespace VJAssignment {
+
 // The input sequence must have this length in order to be
 // considered. Caller should already have extracted the IMGT
 // standard positions which are all that is used for VJ
 // assignment.
-#define REQUIRED_SEQUENCE_LENGTH 128
-#define VALID_SEQUENCE 1
-#define INVALID_SEQUENCE 0
-
-
-namespace VJAssignment{
+static const int REQUIRED_SEQUENCE_LENGTH = 2;
+static const int VALID_SEQUENCE = 1;
+static const int INVALID_SEQUENCE = 0;
 
 class VJMatchCounter {
  public:
@@ -54,7 +70,7 @@ class VJMatchCounter {
  protected:
         std::map<std::string, std::vector<std::string>> gene_seqs;
         std::map<std::string, std::vector<std::string>> gene_names;
-        nb::ndarray<double, nb::shape<22,22>, nb::device::cpu,
+        nb::ndarray<double, nb::shape<22, 22>, nb::device::cpu,
             nb::c_contig> blosum_matrix;
         std::string scheme;
 
@@ -80,10 +96,10 @@ class VJMatchCounter {
                 char gene_type);
 
         int prep_sequence(std::string &prepped_sequence, std::string &sequence,
-                std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment);
-
+               std::tuple<std::vector<std::string>,
+               double, std::string, std::string> &alignment);
 };
 
 }  // namespace VJAssignment
 
-#endif
+#endif  // SRC_ANTPACK_CPP_SRC_VJ_ASSIGNMENT_VJ_MATCH_COUNTER_H_

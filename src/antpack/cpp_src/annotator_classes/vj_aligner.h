@@ -1,4 +1,8 @@
-/* The IGAligner runs a highly efficient profile alignment for mAb sequences.
+/* The VJAligner class handles alignment of an input sequence by
+ * finding the most appropriate V and J genes from a list then
+ * using custom preconstructed scoring matrices. This is different
+ * from IGAligner, which aligns to a profile (not individual VJ
+ * genes).
  * Copyright (C) 2025 Jonathan Parkinson
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,8 +18,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef SRC_ANTPACK_CPP_SRC_ANNOTATOR_CLASSES_IG_ALIGNER_H_
-#define SRC_ANTPACK_CPP_SRC_ANNOTATOR_CLASSES_IG_ALIGNER_H_
+
+
+#ifndef SRC_ANTPACK_CPP_SRC_ANNOTATOR_CLASSES_VJ_ALIGNER_H_
+#define SRC_ANTPACK_CPP_SRC_ANNOTATOR_CLASSES_VJ_ALIGNER_H_
 
 // C++ headers
 #include <vector>
@@ -39,23 +45,13 @@
 
 namespace nb = nanobind;
 
-namespace NumberingTools{
-
-// Codes for the pathways that can link a score
-// to the best-scoring parent.
-static constexpr int LEFT_TRANSFER = 1;
-static constexpr int UP_TRANSFER = 2;
-static constexpr int DIAGONAL_TRANSFER = 0;
-
-// The columns of the score matrix that are accessed for gap penalties.
-static constexpr int QUERY_GAP_COLUMN = 21;
-static constexpr int TEMPLATE_GAP_COLUMN = 22;
+namespace NumberingTools {
 
 
 
-class IGAligner {
+class VJAligner {
  public:
-        IGAligner(std::string consensus_filepath,
+        VJAligner(std::string consensus_filepath,
             std::string chain_name, std::string scheme);
 
 

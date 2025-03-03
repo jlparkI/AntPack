@@ -1,5 +1,28 @@
+/* Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+// C++ headers
 #include <memory>
+#include <tuple>
+#include <vector>
+#include <string>
+#include <map>
 
+// Library headers
+
+// Project headers
 #include "vj_match_counter.h"
 
 
@@ -120,11 +143,15 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
         vgene_dict_finder = this->gene_seqs.find(vkey);
     std::map<std::string, std::vector<std::string>>::iterator
         jgene_dict_finder = this->gene_seqs.find(jkey);
-        
-    if (vname_dict_finder == gene_names.end() || jname_dict_finder == gene_names.end()
-            || vgene_dict_finder == gene_seqs.end() || jgene_dict_finder == gene_seqs.end()) {
-        throw std::runtime_error(std::string("There was an error in the construction of the "
-                    "vj gene tool; necessary gene databases were not found. Please report."));
+
+    if (vname_dict_finder == gene_names.end() ||
+            jname_dict_finder == gene_names.end() ||
+            vgene_dict_finder == gene_seqs.end() ||
+            jgene_dict_finder == gene_seqs.end()) {
+        throw std::runtime_error(std::string("There was an error "
+                    "in the construction of the "
+                    "vj gene tool; necessary gene databases "
+                    "were not found. Please report."));
     }
 
     std::vector<std::string> &vgenes = vgene_dict_finder->second;
@@ -132,8 +159,10 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
     std::vector<std::string> &vnames = vname_dict_finder->second;
     std::vector<std::string> &jnames = jname_dict_finder->second;
 
-    // This string will store the positions in the sequence that correspond to IMGT 1-128.
-    // If the scheme is not IMGT, we can convert the numbering to IMGT temporarily for
+    // This string will store the positions in the
+    // sequence that correspond to IMGT 1-128.
+    // If the scheme is not IMGT, we can convert the
+    // numbering to IMGT temporarily for
     // this purpose.
     std::string prepped_sequence(REQUIRED_SEQUENCE_LENGTH, '-');
     int err_code = this->prep_sequence(prepped_sequence, sequence, alignment);
@@ -143,8 +172,9 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
     }
 
     if (vgenes.size() != vnames.size() || jgenes.size() != jnames.size()) {
-        throw std::runtime_error(std::string("There was an error in the construction of the "
-                    "vj gene tool; necessary gene databases were not found. Please report."));
+        throw std::runtime_error(std::string("There was an error in "
+                    "the construction of the vj gene tool; necessary "
+                    "gene databases were not found. Please report."));
     }
 
     std::string vgene_name, jgene_name;
@@ -183,12 +213,13 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
 
 
 
-void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs,
-                std::vector<std::string> &gene_names,
-                std::string &prepped_sequence,
-                double &best_identity,
-                std::string &best_gene_name,
-                char gene_type) {
+void VJMatchCounter::assign_gene_by_identity(
+std::vector<std::string> &gene_seqs,
+std::vector<std::string> &gene_names,
+std::string &prepped_sequence,
+double &best_identity,
+std::string &best_gene_name,
+char gene_type) {
     // Sometimes with e-value or identity there is a tie where multiple genes
     // have the same e-value or percent identity. In this case, we report all
     // of them. To do so, we temporarily keep track of the best matches so far.
@@ -222,7 +253,7 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
         }
         if (nonzero_positions == 0)
             nonzero_positions = 1;
-        double current_identity = (static_cast<double>(matching_positions)) / 
+        double current_identity = (static_cast<double>(matching_positions)) /
             (static_cast<double>(nonzero_positions));
 
         // Since we are comparing doubles here, just check if they are
@@ -232,15 +263,16 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
             best_matches.clear();
             best_matches.push_back(i);
             best_identity = current_identity;
-        }
-        else if (current_identity > (best_identity - 1e-10))
+        } else if (current_identity > (best_identity - 1e-10)) {
             best_matches.push_back(i);
+        }
     }
+
     // If only one top match was found, we can use that name...
-    if (best_matches.size() == 1)
-        best_gene_name = gene_names[best_matches[0]];
     // otherwise, use a comma-separated list.
-    else if (best_matches.size() > 1) {
+    if (best_matches.size() == 1) {
+        best_gene_name = gene_names[best_matches[0]];
+    } else if (best_matches.size() > 1) {
         best_gene_name = gene_names[best_matches[0]];
         for (size_t i=1; i < best_matches.size(); i++)
             best_gene_name += "_" + gene_names[best_matches[i]];
@@ -250,12 +282,13 @@ void VJMatchCounter::assign_gene_by_identity(std::vector<std::string> &gene_seqs
 
 
 
-int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
-                std::vector<std::string> &gene_names,
-                int *encoded_sequence,
-                double &best_identity,
-                std::string &best_gene_name,
-                char gene_type) {
+int VJMatchCounter::assign_gene_by_evalue(
+std::vector<std::string> &gene_seqs,
+std::vector<std::string> &gene_names,
+int *encoded_sequence,
+double &best_identity,
+std::string &best_gene_name,
+char gene_type) {
     // Sometimes with e-value or identity there is a tie where multiple genes
     // have the same e-value or percent identity. In this case, we report all
     // of them. To do so, we temporarily keep track of the best matches so far.
@@ -274,12 +307,11 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
     if (gene_type == 'j') {
         start_letter = 105;
         end_letter = REQUIRED_SEQUENCE_LENGTH;
-    }
-    else{
+    } else {
         start_letter = 0;
         end_letter = 108;
     }
-    
+
     for (size_t i=0; i < gene_seqs.size(); i++) {
         int64_t blosum_score = 0;
 
@@ -382,8 +414,10 @@ int VJMatchCounter::assign_gene_by_evalue(std::vector<std::string> &gene_seqs,
 
 
 
-int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &sequence,
-        std::tuple<std::vector<std::string>, double, std::string, std::string> &alignment) {
+int VJMatchCounter::prep_sequence(std::string &prepped_sequence,
+std::string &sequence,
+std::tuple<std::vector<std::string>, double,
+std::string, std::string> &alignment) {
     if (this->scheme == "imgt") {
         std::vector<std::string> &numbering = std::get<0>(alignment);
         for (size_t i=0; i < sequence.length(); i++) {
@@ -391,18 +425,19 @@ int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &se
                     this->essential_imgt_map.end())
                 prepped_sequence.at(std::stoi(numbering[i]) - 1) = sequence[i];
         }
-    }
-    else{
-        // If the scheme is not IMGT, we have several options. We can convert numbering
-        // to IMGT, and indeed some programs (ANARCI) rely heavily on interconversion
-        // between schemes, although this involves some heuristics so for now we are
-        // avoiding this. Alternatively we can realign the trimmed sequence. This is
-        // actually quite fast because 1) we trim the sequence and 2) we only need to
-        // do one chain alignment (we already know the chain type). So for now we
-        // are doing this (although it is not perfect either). The third option is
+    } else {
+        // If the scheme is not IMGT, we have several options.
+        // We can convert numbering to IMGT, and indeed some programs
+        // (ANARCI) rely heavily on interconversion between schemes,
+        // although this involves some heuristics so for now we are
+        // avoiding this. Alternatively we can realign the trimmed
+        // sequence. This is actually quite fast because 1) we trim
+        // the sequence and 2) we only need to do one chain alignment
+        // (we already know the chain type). So for now we are doing
+        // this (although it is not perfect either). The third option is
         // to do alignments of VJ genes against the original sequence without
-        // using numbering, and while some tools use this this is slow, so we are
-        // not doing that here.
+        // using numbering, and while some tools use this this is slow,
+        // so we are not doing that here.
         std::vector<std::string> trimmed_numbering;
         std::vector<char> trimmed_seq_vector;
         int exstart, exend;
@@ -425,9 +460,10 @@ int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &se
                     trimmed_seq))
             return INVALID_SEQUENCE;
 
-        // Now that the alignment is trimmed, we can renumber the trimmed sequence.
-        // Caller already checks that chain is one of H, K, L so no need to recheck
-        // here. The order H = 0, K = 1, L = 2 is set in the class constructor.
+        // Now that the alignment is trimmed, we can renumber the
+        // trimmed sequence. Caller already checks that chain is one
+        // of H, K, L so no need to recheck here. The order H = 0, K = 1,
+        // L = 2 is set in the class constructor.
         if (std::get<2>(alignment) == "H") {
             this->h_aligner->align(trimmed_seq,
                     queryAsIdx.get(), imgt_numbering, percent_identity,
@@ -458,7 +494,7 @@ int VJMatchCounter::prep_sequence(std::string &prepped_sequence, std::string &se
 
 
 std::string VJMatchCounter::get_vj_gene_sequence(std::string query_name,
-    std::string species) {
+std::string species) {
     size_t matchID;
     std::string output = "";
 
@@ -467,12 +503,17 @@ std::string VJMatchCounter::get_vj_gene_sequence(std::string query_name,
 
     std::string dict_key = species + "_" + query_name.substr(0, 4);
 
-    // We assume here that if the key is in names to positions, it is also in gene_seqs,
-    // and that the vectors stored in both are the same length, because of the way
-    // we initialized names to positions (see class constructor).
-    if (this->names_to_positions.find(dict_key) != this->names_to_positions.end()) {
-        std::map<std::string, int> &name_to_position_map = this->names_to_positions[dict_key];
-        if (name_to_position_map.find(query_name) != name_to_position_map.end()) {
+    // We assume here that if the key is in names to positions,
+    // it is also in gene_seqs, and that the vectors stored in
+    // both are the same length, because of the way we initialized
+    // names to positions (see class constructor).
+    if (this->names_to_positions.find(dict_key) !=
+            this->names_to_positions.end()) {
+        std::map<std::string, int> &name_to_position_map =
+            this->names_to_positions[dict_key];
+
+        if (name_to_position_map.find(query_name) !=
+                name_to_position_map.end()) {
             matchID = name_to_position_map[query_name];
             output = this->gene_seqs[dict_key][matchID];
         }

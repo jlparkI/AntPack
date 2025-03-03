@@ -1,4 +1,8 @@
-/* The IGAligner runs a highly efficient profile alignment for mAb sequences.
+/* The VJAligner class handles alignment of an input sequence by
+ * finding the most appropriate V and J genes from a list then
+ * using custom preconstructed scoring matrices. This is different
+ * from IGAligner, which aligns to a profile (not individual VJ
+ * genes).
  * Copyright (C) 2025 Jonathan Parkinson
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,11 +18,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "ig_aligner.h"
+// C++ headers
+
+// Library headers
+
+// Project headers
+#include "vj_aligner.h"
+
 
 namespace NumberingTools{
 
-IGAligner::IGAligner(
+VJAligner::VJAligner(
              std::string consensus_filepath,
              std::string chain_name,
              std::string scheme):
@@ -26,9 +36,10 @@ chain_name(chain_name),
 scheme(scheme) {
     // Note that exceptions thrown here are sent back to Python via
     // PyBind as long as this constructor is used within the wrapper.
-    if (chain_name != "H" && chain_name != "K" && chain_name != "L") {
-        throw std::runtime_error(std::string("The IGAligner class currently "
-                    "support only H, K, L chains."));
+    if (chain_name != "A" && chain_name != "B" && chain_name != "D" &&
+            chain_name != "G") {
+        throw std::runtime_error(std::string("VJAligner currently "
+                    "support only A, B, D, G chains."));
     }
 
     std::filesystem::path extensionPath = consensus_filepath;

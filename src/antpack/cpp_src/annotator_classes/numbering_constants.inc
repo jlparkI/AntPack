@@ -11,7 +11,7 @@
  * This header ensures they are all in one convenient place.
  *************************************************/
 
-namespace NumberingTools{
+namespace NumberingTools {
 
 
 // We universally use 1 for valid result, 0 for error.
