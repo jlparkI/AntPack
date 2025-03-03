@@ -15,8 +15,10 @@
 */
 // C++ headers
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 // Project headers
 #include "prefiltering_tool.h"
@@ -28,11 +30,9 @@ namespace NumberingTools {
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
     std::string scheme, std::string consensus_filepath,
-    std::unordered_map<std::string, size_t> nterm_kmers
-    ):
+    std::unordered_map<std::string, size_t> nterm_kmers):
 AnnotatorBaseClassCpp(scheme),
 scheme(scheme) {
-
     this->boundary_finder = std::make_unique
         <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
                 nterm_kmers);
@@ -48,20 +48,6 @@ scheme(scheme) {
     chains = {"H", "K", "L"};
     this->analyzer = std::make_unique<SingleChainAnnotatorCpp>
         (chains, scheme, consensus_filepath, nterm_kmers);
-
-
-    std::filesystem::path extensionPath = consensus_filepath;
-
-    std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
-    cnpy::NpyArray raw_score_arr;
-    try {
-        raw_score_arr = cnpy::npy_load(npyFPath.string());
-    }
-    catch (...) {
-        throw std::runtime_error(std::string("The consensus file / "
-                    "library installation has an issue."));
-    }
 }
 
 
@@ -71,8 +57,7 @@ scheme(scheme) {
 // are found.
 std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
     std::tuple<std::vector<std::string>, double, std::string, std::string>>
-    PairedChainAnnotatorCpp::analyze_seq(std::string sequence) {
-    
+    PairedChainAnnotatorCpp::analyze_seq(std::string sequence) { 
     if (!SequenceUtilities::validate_x_sequence(sequence)) {
         std::tuple<std::vector<std::string>, double,
             std::string, std::string> vecres =
@@ -321,7 +306,7 @@ std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string,
            std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
              PairedChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences) {
     std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
-           std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
+        std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
                output_results;
 
     std::pair<std::tuple<std::vector<std::string>, double,
@@ -342,9 +327,9 @@ std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string,
 /// Pads the input alignment so it is the same length as the
 /// query sequence.
 std::vector<std::string> PairedChainAnnotatorCpp::pad_alignment(
-        const std::string &query_sequence,
-                const std::vector<std::string> &alignment,
-                const int &align_start, const int &align_end) {
+    const std::string &query_sequence,
+    const std::vector<std::string> &alignment,
+    const int &align_start, const int &align_end) {
     std::vector<std::string> padded_numbering;
 
     for (size_t i=0; i < align_start; i++)

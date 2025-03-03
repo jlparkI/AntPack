@@ -35,8 +35,7 @@ namespace nb = nanobind;
 NB_MODULE(antpack_cpp_ext, m) {
     nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m,
             "AnnotatorBaseClassCpp")
-        .def(nb::init<std::string, std::string,
-                std::unordered_map<std::string, size_t>>())
+        .def(nb::init<std::string>())
         .def("sort_position_codes",
                 &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
                 nb::arg("position_code_list"),

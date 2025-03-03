@@ -1,3 +1,18 @@
+/* Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 // C++ headers
 #include <utility>
 #include <tuple>
@@ -25,13 +40,11 @@ static const int POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT = 2;
 
 SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
     std::vector<std::string> chains,
-            std::string scheme, std::string consensus_filepath,
-            std::unordered_map<std::string, size_t> nterm_kmers
-):
-    AnnotatorBaseClassCpp(scheme),
-    chains(chains),
-    scheme(scheme)
-{
+    std::string scheme, std::string consensus_filepath,
+    std::unordered_map<std::string, size_t> nterm_kmers):
+AnnotatorBaseClassCpp(scheme),
+chains(chains),
+scheme(scheme) {
     this->boundary_finder = std::make_unique
         <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
                 nterm_kmers);
@@ -39,8 +52,8 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
     // Note that exceptions thrown here go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
     if (chains.size() < 1 || chains.size() > 3) {
-        throw std::runtime_error(std::string("There must be at least one chain specified, "
-                "and no more than 3."));
+        throw std::runtime_error(std::string("There must be at least "
+                    "one chain specified, and no more than 3."));
     }
 
 
@@ -101,7 +114,6 @@ std::tuple<std::vector<std::string>, double, std::string,
     if (this->boundary_finder->find_start_end_zones(sequence,
                 cterm_scores, cterm_positions,
                 nterm_scores, nterm_positions)) {
-
         // If no error code, find the most plausible cterminal.
         // If the most plausible n-terminal region matches,
         // we know the chain type with high confidence. Make
@@ -188,8 +200,8 @@ std::tuple<std::vector<std::string>, double, std::string,
 
 /// Aligns the input sequence, which may be either the full sequence or a subregion of it.
 int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::string>, double,
-                std::string, std::string> &best_result, std::string &query_sequence,
-                std::string preferred_chain) {
+    std::string, std::string> &best_result, std::string &query_sequence,
+    std::string preferred_chain) {
     auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
     bool fwgxg_error = false;
 

@@ -26,12 +26,11 @@
 #include "vj_aligner.h"
 
 
-namespace NumberingTools{
+namespace NumberingTools {
 
-VJAligner::VJAligner(
-             std::string consensus_filepath,
-             std::string chain_name,
-             std::string scheme):
+VJAligner::VJAligner(std::string consensus_filepath,
+    std::string chain_name,
+    std::string scheme):
 chain_name(chain_name),
 scheme(scheme) {
     // Note that exceptions thrown here are sent back to Python via
@@ -42,19 +41,21 @@ scheme(scheme) {
                     "support only A, B, D, G chains."));
     }
 
-    std::filesystem::path extensionPath = consensus_filepath;
-    std::string uppercaseScheme = scheme;
-    for (auto & c: uppercaseScheme) c = toupper(c);
+    std::filesystem::path extension_path = consensus_filepath;
+    std::string uppercase_scheme = scheme;
+    for (auto & c : uppercase_scheme) c = toupper(c);
 
-    std::string npyFName = uppercaseScheme + "_CONSENSUS_" + chain_name + ".npy";
-    std::string consFName = uppercaseScheme + "_CONSENSUS_" + chain_name + ".txt";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
-    std::filesystem::path consFPath = extensionPath / consFName;
+    std::string npyFName = uppercase_scheme + "_CONSENSUS_" +
+        chain_name + ".npy";
+    std::string consFName = uppercase_scheme + "_CONSENSUS_" +
+        chain_name + ".txt";
+    std::filesystem::path npyFPath = extension_path / npyFName;
+    std::filesystem::path consFPath = extension_path / consFName;
 
     std::vector<std::vector<std::string>> position_consensus;
     if (!cnpy::read_consensus_file(consFPath, position_consensus)) {
-        throw std::runtime_error(std::string("The consensus file / library installation "
-                        "has an issue."));
+        throw std::runtime_error(std::string("The consensus file / "
+                    "library installation has an issue."));
     }
 
     cnpy::NpyArray raw_score_arr = cnpy::npy_load(npyFPath.string());

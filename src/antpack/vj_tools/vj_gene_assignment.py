@@ -35,11 +35,11 @@ class VJGeneTool(VJMatchCounter):
                 db_path, database)
 
         blosum_matrix = np.load(os.path.join(project_path, "..",
-            "numbering_tools", "consensus_data",
+            "numbering_tools", "consensus_data", "mabs",
             "blosum_matrix.npy")).astype(np.float64)
         self.retrieved_dates = retrieved_dates
         ig_aligner_consensus_path = os.path.join(project_path, "..", "numbering_tools",
-                "consensus_data")
+                "consensus_data", "mabs")
         super().__init__(vj_names, vj_seqs, blosum_matrix,
                 scheme, ig_aligner_consensus_path)
 

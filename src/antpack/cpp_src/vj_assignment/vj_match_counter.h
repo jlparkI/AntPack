@@ -44,7 +44,7 @@ namespace VJAssignment {
 // considered. Caller should already have extracted the IMGT
 // standard positions which are all that is used for VJ
 // assignment.
-static const int REQUIRED_SEQUENCE_LENGTH = 2;
+static const int REQUIRED_SEQUENCE_LENGTH = 128;
 static const int VALID_SEQUENCE = 1;
 static const int INVALID_SEQUENCE = 0;
 

@@ -22,6 +22,6 @@ class PairedChainAnnotator(PairedChainAnnotatorCpp):
                 supplied.
         """
         consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                "consensus_data")
+                "consensus_data", "mabs")
         kmer_dict = _load_nterm_kmers()
         super().__init__(scheme, consensus_path, kmer_dict)

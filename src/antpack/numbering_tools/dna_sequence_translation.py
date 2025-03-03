@@ -22,7 +22,7 @@ def _load_common_kmers():
     """A convenience function for loading a set of kmers frequently
     observed in heavy and light chains."""
     filepath = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                "consensus_data", "ALL_REGION_KMER_FILES.txt.gz")
+                "consensus_data", "mabs", "ALL_REGION_KMER_FILES.txt.gz")
     with gzip.open(filepath, "rt") as fhandle:
         common_kmers = {line.strip().split(',')[1]
                 for line in fhandle}

@@ -40,7 +40,7 @@ class TestPrefiltering(unittest.TestCase):
             cterm_to_aa[:,:,k] = np.load(
                     os.path.join(project_path, "..", "src",
                 "antpack", "numbering_tools", "consensus_data",
-                f"CTERMFINDER_CONSENSUS_{chain}.npy"))
+                "mabs", f"CTERMFINDER_CONSENSUS_{chain}.npy"))
 
         for seq in seqs:
             nterm_gt_scores, cterm_gt_scores = \
