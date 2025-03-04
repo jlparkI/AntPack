@@ -62,7 +62,7 @@ scheme(scheme) {
 
     this->score_arr_shape[0] = raw_score_arr.shape[0];
     this->score_arr_shape[1] = raw_score_arr.shape[1];
-    if (this->score_arr_shape[1] != 23)
+    if (this->score_arr_shape[1] != EXPECTED_NUM_AAS_FOR_ALIGNERS)
         throw std::runtime_error(std::string("Error in library "
                     "installation (IG)."));
 
@@ -202,6 +202,7 @@ void IGAligner::align(std::string query_sequence,
     }
 
     std::vector<int> position_key;
+    position_key.reserve(query_sequence.length());
 
     int row_size = query_sequence.length() + 1;
     int numElements = row_size * (this->num_positions + 1);
@@ -396,7 +397,7 @@ void IGAligner::align(std::string query_sequence,
         }
     }
 
-    percent_identity /= static_cast<double>(this->num_restricted_positions);
+    percent_identity /= this->num_restricted_positions;
 
     error_code = noError;
     // Check to make sure query sequence and numbering are same length. If not,
@@ -426,7 +427,7 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
                 int &numElements) {
     auto needle_scores = std::make_unique<double[]>( numElements );
     double score_updates[3], best_score;
-    int grid_pos, diagNeighbor, upperNeighbor, best_pos;
+    int grid_pos, diag_neighbor, upper_neighbor, best_pos;
     double *score_itr = this->score_array.get();
 
     // Fill in the first row of the tables. We use a default score here
@@ -451,19 +452,19 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
     // reached inside this loop.
     for (int i=1; i < this->num_positions; i++) {
         grid_pos = i * row_size;
-        diagNeighbor = (i - 1) * row_size;
-        upperNeighbor = diagNeighbor + 1;
-        needle_scores[grid_pos] = needle_scores[diagNeighbor] +
+        diag_neighbor = (i - 1) * row_size;
+        upper_neighbor = diag_neighbor + 1;
+        needle_scores[grid_pos] = needle_scores[diag_neighbor] +
             score_itr[QUERY_GAP_COLUMN];
         path_trace[grid_pos] = UP_TRANSFER;
         grid_pos++;
 
         for (int j=0; j < (query_seq_len - 1); j++) {
-            score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
+            score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
                 score_itr[encoded_sequence[j]];
             score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
                 score_itr[TEMPLATE_GAP_COLUMN];
-            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
+            score_updates[UP_TRANSFER] = needle_scores[upper_neighbor] +
                 score_itr[QUERY_GAP_COLUMN];
 
             // This is mildly naughty -- we don't consider the possibility
@@ -485,11 +486,11 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
             path_trace[grid_pos] = best_pos;
 
             grid_pos++;
-            diagNeighbor++;
-            upperNeighbor++;
+            diag_neighbor++;
+            upper_neighbor++;
         }
 
-        score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
             score_itr[encoded_sequence[query_seq_len - 1]];
         score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
             score_itr[TEMPLATE_GAP_COLUMN];
@@ -498,10 +499,10 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
         // always be assigned.
             if (std::binary_search(this->highly_conserved_positions.begin(),
                     this->highly_conserved_positions.end(), i))
-                score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
+                score_updates[UP_TRANSFER] = needle_scores[upper_neighbor] +
                     score_itr[QUERY_GAP_COLUMN];
             else
-                score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
+                score_updates[UP_TRANSFER] = needle_scores[upper_neighbor] +
                     CTERMINAL_TEMPLATE_GAP_PENALTY;
 
             best_score = score_updates[DIAGONAL_TRANSFER];
@@ -526,16 +527,16 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
         score_itr = this->score_array.get() + (this->num_positions-1) *
             this->score_arr_shape[1];
         grid_pos = (this->num_positions) * row_size;
-        diagNeighbor = (this->num_positions - 1) * row_size;
-        upperNeighbor = diagNeighbor + 1;
+        diag_neighbor = (this->num_positions - 1) * row_size;
+        upper_neighbor = diag_neighbor + 1;
 
-        needle_scores[grid_pos] = needle_scores[diagNeighbor] +
+        needle_scores[grid_pos] = needle_scores[diag_neighbor] +
             score_itr[QUERY_GAP_COLUMN];
         path_trace[grid_pos] = UP_TRANSFER;
         grid_pos++;
 
         for (int j=0; j < (query_seq_len - 1); j++) {
-            score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
+            score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
                 score_itr[encoded_sequence[j]];
             // If a gap is already open, extending a c-terminal gap should
             // cost nothing.
@@ -545,7 +546,7 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
             } else {
                 score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1];
             }
-            score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
+            score_updates[UP_TRANSFER] = needle_scores[upper_neighbor] +
                 score_itr[QUERY_GAP_COLUMN];
 
             best_score = score_updates[DIAGONAL_TRANSFER];
@@ -562,14 +563,14 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
             path_trace[grid_pos] = best_pos;
 
             grid_pos++;
-            diagNeighbor++;
-            upperNeighbor++;
+            diag_neighbor++;
+            upper_neighbor++;
         }
 
 
 
         // And, finally, the last column of the last row.
-        score_updates[DIAGONAL_TRANSFER] = needle_scores[diagNeighbor] +
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
             score_itr[encoded_sequence[query_seq_len-1]];
         // If a gap is already open, extending a c-terminal gap should
         // cost nothing.
@@ -579,7 +580,7 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
         } else {
             score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1];
         }
-        score_updates[UP_TRANSFER] = needle_scores[upperNeighbor] +
+        score_updates[UP_TRANSFER] = needle_scores[upper_neighbor] +
             CTERMINAL_TEMPLATE_GAP_PENALTY;
 
         best_score = score_updates[DIAGONAL_TRANSFER];

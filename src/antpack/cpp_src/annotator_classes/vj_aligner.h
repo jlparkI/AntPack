@@ -82,14 +82,22 @@ class VJAligner {
             int &best_jgene_number);
 
 
-    /// @brief Numbers an input sequence
-    /// @param query_sequence Sequence to number
-    /// @param encoded_sequence Pointer to array of same length
-    ///        as query sequence with the encoded query seq.
-    /// @param final_numbering vector that will store the generated
-    ///        numbering
-    /// @param percent_identity the percent identity to the template.
-    /// @param error_message the error message (if none, "").
+    /// @brief Aligns an input sequence to a specified template V and J gene.
+    /// @param query_sequence The sequence to be aligned.
+    /// @param encoded_sequence A pointer to an array of ints containing the
+    /// sequence encoded as numbers.
+    /// @param final_number The vector in which the final numbering (as a vector
+    /// of strings) will be stored.
+    /// @param percent_identity The variable in which the percent identity to
+    /// the template vgene will be stored.
+    /// @param error_message The variable in which the error message for the
+    /// alignment (if any) will be stored.
+    /// @param vgene_number The number of the vgene. Determines which vgene in
+    /// this class's list of vgenes will be used. If the input value is
+    /// unacceptable this will cause an exception to be thrown.
+    /// @param jgene_number The number of the jgene. Determines which jgene in
+    /// this class's list of jgenes will be used. If the input value is
+    /// unacceptable this will cause an exception to be thrown.
     void align(std::string query_sequence, int *encoded_sequence,
             std::vector<std::string> &final_numbering,
             double &percent_identity, std::string &error_message,
@@ -168,7 +176,9 @@ class VJAligner {
     void fill_needle_scoring_table(uint8_t *path_trace,
             int query_seq_len, int row_size,
             const int *encoded_sequence,
-            int &numElements);
+            const int &numElements,
+            const int &vgene_number,
+            const int &jgene_number);
 };
 
 }  // namespace NumberingTools

@@ -28,6 +28,10 @@ static constexpr int VALID_SEQUENCE = 1;
 static constexpr int INVALID_SEQUENCE = 0;
 
 
+// The expected number of AAs.
+static constexpr int EXPECTED_NUM_AAS_FOR_ALIGNERS = 23;
+
+
 // The minimum number of amino acids in a sequence to try to align it.
 // Less than this and it will be immediately rejected. This is fairly
 // arbitrary, we didn't put much thought into the selection of 25 --

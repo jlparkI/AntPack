@@ -254,8 +254,6 @@ int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::s
         std::string error_message = "";
         double percent_identity = -1;
 
-        final_numbering.reserve(query_sequence.length() * 2);
-
         this->scoring_tools[i].align(query_sequence,
                     queryAsIdx.get(), final_numbering, percent_identity,
                     error_message);

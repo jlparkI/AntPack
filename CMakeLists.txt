@@ -73,6 +73,7 @@ nanobind_add_module(
   NB_STATIC
 
     src/antpack/cpp_src/ant_ext.cpp
+    src/antpack/cpp_src/annotator_classes/vj_aligner.cpp
     src/antpack/cpp_src/annotator_classes/ig_aligner.cpp
     src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp
     src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp
