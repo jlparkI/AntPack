@@ -19,6 +19,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <utility>
 
 // Library headers
 
@@ -33,24 +34,25 @@ VJMatchCounter::VJMatchCounter(std::map<std::string,
         std::map<std::string, std::vector<std::string>> gene_seqs,
         nb::ndarray<double, nb::shape<22,22>, nb::device::cpu, nb::c_contig> blosum_matrix,
         std::string scheme,
-        std::string consensus_filepath
-):
-    gene_seqs(gene_seqs),
-    gene_names(gene_names),
-    blosum_matrix(blosum_matrix),
-    scheme(scheme) {
+        std::string consensus_filepath):
+gene_seqs(gene_seqs),
+gene_names(gene_names),
+blosum_matrix(blosum_matrix),
+scheme(scheme) {
     // Note that exceptions thrown here go back to Python via
     // PyBind as long as this constructor is used within the wrapper.
     for ( const auto &gene_seq_element : gene_seqs ) {
-        std::map<std::string, std::vector<std::string>>::iterator gene_name_element =
-            gene_names.find(gene_seq_element.first);
+        std::map<std::string, std::vector<std::string>>::iterator
+            gene_name_element = gene_names.find(gene_seq_element.first);
 
         if (gene_name_element == gene_names.end()) {
             throw std::runtime_error(std::string("One or more keys "
                         "in the gene_seqs dictionary is not in the "
                         "gene_names dictionary."));
         }
-        if (gene_name_element->second.size() != gene_seq_element.second.size()) {
+
+        if (gene_name_element->second.size() !=
+                gene_seq_element.second.size()) {
             throw std::runtime_error(std::string("The gene name lists "
                         "and gene sequence lists must be of the same sizes."));
         }
@@ -65,13 +67,15 @@ VJMatchCounter::VJMatchCounter(std::map<std::string,
     for ( const auto &gene_name_element : gene_names ) {
         if (gene_seqs.find(gene_name_element.first) == gene_seqs.end()) {
             throw std::runtime_error(std::string("One or more keys in the "
-                        "gene_names dictionary is not in the gene_seqs dictionary."));
+                        "gene_names dictionary is not in the gene_seqs "
+                        "dictionary."));
         }
         std::map<std::string, int> name_submap;
         for (size_t i=0; i < gene_name_element.second.size(); i++)
             name_submap[gene_name_element.second[i]] = i;
 
-        this->names_to_positions[gene_name_element.first] = std::move(name_submap);
+        this->names_to_positions[gene_name_element.first] =
+            std::move(name_submap);
     }
 
     // Initialize the set of expected imgt positions.
@@ -494,7 +498,7 @@ std::string, std::string> &alignment) {
 
 
 std::string VJMatchCounter::get_vj_gene_sequence(std::string query_name,
-std::string species) {
+    std::string species) {
     size_t matchID;
     std::string output = "";
 

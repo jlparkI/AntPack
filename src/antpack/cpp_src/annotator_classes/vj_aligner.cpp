@@ -19,6 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 // C++ headers
+#include <unordered_map>
 
 // Library headers
 
@@ -28,13 +29,24 @@
 
 namespace NumberingTools {
 
+
+// Enforces that the V and J gene sizes we see when loading
+// library files are what we expect, and the number of gaps
+// that we expect to see at the beginning of a jgene.
+static constexpr int EXPECTED_JGENE_SIZE = 16;
+static constexpr int EXPECTED_VGENE_SIZE = 112;
+static constexpr int NUM_JGENE_GAPS = 5;
+
 VJAligner::VJAligner(std::string consensus_filepath,
     std::string chain_name,
-    std::string scheme):
+    std::string scheme,
+    std::string receptor_type):
 chain_name(chain_name),
 scheme(scheme) {
     // Note that exceptions thrown here are sent back to Python via
     // PyBind as long as this constructor is used within the wrapper.
+    // Currently this is set up to be used only with TCRs, but we may
+    // modify this if this design turns out to work well.
     if (chain_name != "A" && chain_name != "B" && chain_name != "D" &&
             chain_name != "G") {
         throw std::runtime_error(std::string("VJAligner currently "
@@ -43,156 +55,227 @@ scheme(scheme) {
 
     std::filesystem::path extension_path = consensus_filepath;
     std::string uppercase_scheme = scheme;
-    for (auto & c : uppercase_scheme) c = toupper(c);
+    for (auto & c : uppercase_scheme) c = std::toupper(c);
 
-    std::string npyFName = uppercase_scheme + "_CONSENSUS_" +
-        chain_name + ".npy";
-    std::string consFName = uppercase_scheme + "_CONSENSUS_" +
-        chain_name + ".txt";
-    std::filesystem::path npyFPath = extension_path / npyFName;
-    std::filesystem::path consFPath = extension_path / consFName;
+    // Load jgene and vgene sequence files.
+    std::string current_filename = receptor_type + "_" +
+        chain_name + "J.txt";
+    std::filesystem::path current_filepath = extension_path / current_filename;
+    if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->jgenes,
+                EXPECTED_JGENE_SIZE))
+        throw std::runtime_error(std::string("Error in library installation."));
 
-    std::vector<std::vector<std::string>> position_consensus;
-    if (!cnpy::read_consensus_file(consFPath, position_consensus)) {
-        throw std::runtime_error(std::string("The consensus file / "
-                    "library installation has an issue."));
+    current_filename = receptor_type + "_" + chain_name + "V.txt";
+    current_filepath = extension_path / current_filename;
+    if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->vgenes,
+                EXPECTED_VGENE_SIZE))
+        throw std::runtime_error(std::string("Error in library installation."));
+
+    // Load vgene and jgene scoring matrices. These contain scores for all V and
+    // j genes for a specific chain type. Contents are transferred to unique_ptr
+    // score matrices.
+    //
+    // VGENES
+    //
+    current_filename = receptor_type + "_" + chain_name + "V.npy";
+    current_filepath = extension_path / current_filename;
+    cnpy::NpyArray vraw_score_arr = cnpy::npy_load(current_filepath.string());
+    double *raw_score_ptr = vraw_score_arr.data<double>();
+    if (vraw_score_arr.word_size != 8)
+        throw std::runtime_error(std::string("Error in library installation."));
+
+    for (size_t i=0; i < 3; i++)
+        this->vgene_score_arr_shape[i] = vraw_score_arr.shape[i];
+
+    if (this->vgene_score_arr_shape[1] != EXPECTED_VGENE_SIZE ||
+            this->vgene_score_arr_shape[2] != 23 ||
+            this->vgene_score_arr_shape[0] != this->vgenes.size())
+        throw std::runtime_error(std::string("Error in library installation."));
+
+    this->vgene_score_array = std::make_unique<double[]>(
+            this->vgene_score_arr_shape[0] * this->vgene_score_arr_shape[1] *
+            this->vgene_score_arr_shape[2]);
+
+    for (size_t k=0; k < vraw_score_arr.shape[0] *
+            vraw_score_arr.shape[1] * vraw_score_arr.shape[2]; k++)
+        this->vgene_score_array[k] = raw_score_ptr[k];
+    //
+    // JGENES
+    //
+    current_filename = receptor_type + "_" + chain_name + "J.npy";
+    current_filepath = extension_path / current_filename;
+    cnpy::NpyArray jraw_score_arr = cnpy::npy_load(current_filepath.string());
+    raw_score_ptr = jraw_score_arr.data<double>();
+    if (jraw_score_arr.word_size != 8)
+        throw std::runtime_error(std::string("Error in library installation."));
+
+    for (size_t i=0; i < 3; i++)
+        this->jgene_score_arr_shape[i] = jraw_score_arr.shape[i];
+
+    if (this->jgene_score_arr_shape[1] != EXPECTED_JGENE_SIZE ||
+            this->jgene_score_arr_shape[2] != 23 ||
+            this->jgene_score_arr_shape[0] != this->jgenes.size())
+        throw std::runtime_error(std::string("Error in library installation."));
+
+    this->jgene_score_array = std::make_unique<double[]>(
+            this->jgene_score_arr_shape[0] * this->jgene_score_arr_shape[1] *
+            this->jgene_score_arr_shape[2]);
+
+    for (size_t k=0; k < jraw_score_arr.shape[0] *
+            jraw_score_arr.shape[1] * jraw_score_arr.shape[2]; k++)
+        this->jgene_score_array[k] = raw_score_ptr[k];
+
+    // Next, extract kmers from each vgene and add these to a map indicating
+    // the v-gene with which each kmer is associated. This will enable
+    // us to quickly determine which vgene is the best template for alignment
+    // without having to do multiple alignments. We use 9-mers by default.
+    for (const auto & vgene : this->vgenes) {
+        for (size_t i=0; i < vgene.length() - 9; i++) {
+            std::string kmer = vgene.substr(i, 9);
+            if (kmer.find('-') != std::string::npos)
+                continue;
+
+            if (this->vgene_kmer_map.count(kmer) == 0) {
+                std::vector<int> associated_vgene_list;
+                this->vgene_kmer_map[kmer] = associated_vgene_list;
+            }
+            this->vgene_kmer_map.at(kmer).push_back(i);
+        }
     }
 
-    cnpy::NpyArray raw_score_arr = cnpy::npy_load(npyFPath.string());
-    double *raw_score_ptr = raw_score_arr.data<double>();
-    if (raw_score_arr.word_size != 8) {
-        throw std::runtime_error(std::string("The consensus file / "
-                    "library installation has an issue."));
-    }
-    this->score_arr_shape[0] = raw_score_arr.shape[0];
-    this->score_arr_shape[1] = raw_score_arr.shape[1];
-    if (this->score_arr_shape[1] != 23) {
-        throw std::runtime_error(std::string("The consensus file / "
-                    "library installation has an issue."));
-    }
 
-    this->score_array = std::make_unique<double[]>(this->score_arr_shape[0] *
-        this->score_arr_shape[1]);
-
-    for (size_t k=0; k < raw_score_arr.shape[0] * raw_score_arr.shape[1]; k++)
-        this->score_array[k] = raw_score_ptr[k];
-
-    // Check that the number of positions in the scoring and consensus is as expected,
-    // and set the list of highly conserved positions according to the selected scheme.
+    // Currently only the IMGT scheme is supported. This aligner is primarily
+    // used for TCRs, which are not in any case compatible with Martin / Kabat.
+    // It may be helpful to add Aho, but interconversion between IMGT / Aho
+    // is much more straightforward than interconversion between IMGT and Martin
+    // or Kabat, so if Aho is added the Annotator class should make this
+    // conversion after VJAligner has set up the alignment.
     if (scheme == "imgt") {
-        this->highly_conserved_positions = {HIGHLY_CONSERVED_IMGT_1, HIGHLY_CONSERVED_IMGT_2,
-                                    HIGHLY_CONSERVED_IMGT_3, HIGHLY_CONSERVED_IMGT_4,
-                                    HIGHLY_CONSERVED_IMGT_5, HIGHLY_CONSERVED_IMGT_6};
-        if (this->score_arr_shape[0] != NUM_HEAVY_IMGT_POSITIONS && this->score_arr_shape[0] !=
-                NUM_LIGHT_IMGT_POSITIONS) {
-            throw std::runtime_error(std::string("The score_array passed to "
-                "IGAligner must have the expected number of positions "
-                "for the numbering system."));
-        }
-        if (position_consensus.size() != NUM_HEAVY_IMGT_POSITIONS && position_consensus.size() !=
-            NUM_LIGHT_IMGT_POSITIONS) {
-            throw std::runtime_error(std::string("The consensus sequence passed to "
-                "IGAligner must have the expected number of positions "
-                "for the numbering system."));
-        }
-    } else if (scheme == "aho") {
-        this->highly_conserved_positions = {HIGHLY_CONSERVED_AHO_1,
-            HIGHLY_CONSERVED_AHO_2, HIGHLY_CONSERVED_AHO_3,
-            HIGHLY_CONSERVED_AHO_4, HIGHLY_CONSERVED_AHO_5,
-            HIGHLY_CONSERVED_AHO_6};
-        if (this->score_arr_shape[0] != NUM_HEAVY_AHO_POSITIONS && this->score_arr_shape[0] !=
-                NUM_LIGHT_AHO_POSITIONS) {
-            throw std::runtime_error(std::string("The score_array passed to "
-                "IGAligner must have the expected number of positions "
-                "for the numbering system."));
-        }
-        if (position_consensus.size() != NUM_HEAVY_AHO_POSITIONS && position_consensus.size() !=
-                NUM_LIGHT_AHO_POSITIONS) {
-            throw std::runtime_error(std::string("The consensus sequence passed to "
-                "IGAligner must have the expected number of positions "
-                "for the numbering system."));
-        }
-    } else if (scheme == "martin" || scheme == "kabat") {
-        if (chain_name == "L" || chain_name == "K") {
-            this->highly_conserved_positions = {HIGHLY_CONSERVED_KABAT_LIGHT_1,
-                HIGHLY_CONSERVED_KABAT_LIGHT_2, HIGHLY_CONSERVED_KABAT_LIGHT_3,
-                HIGHLY_CONSERVED_KABAT_LIGHT_4, HIGHLY_CONSERVED_KABAT_LIGHT_5,
-                HIGHLY_CONSERVED_KABAT_LIGHT_6};
-        }
-        else if (chain_name == "H") {
-            this->highly_conserved_positions = {HIGHLY_CONSERVED_KABAT_HEAVY_1,
-                HIGHLY_CONSERVED_KABAT_HEAVY_2, HIGHLY_CONSERVED_KABAT_HEAVY_3,
-                HIGHLY_CONSERVED_KABAT_HEAVY_4, HIGHLY_CONSERVED_KABAT_HEAVY_5,
-                HIGHLY_CONSERVED_KABAT_HEAVY_6};
-        }
-        if (this->score_arr_shape[0] != NUM_HEAVY_MARTIN_KABAT_POSITIONS && this->score_arr_shape[0] !=
-            NUM_LIGHT_MARTIN_KABAT_POSITIONS) {
-            throw std::runtime_error(std::string("The score_array passed to "
-                "IGAligner must have the expected number of positions "
-                "for the numbering system."));
-        }
-        if (position_consensus.size() != NUM_HEAVY_MARTIN_KABAT_POSITIONS && position_consensus.size() !=
-            NUM_LIGHT_MARTIN_KABAT_POSITIONS) {
-            throw std::runtime_error(std::string("The consensus sequence passed to "
-                "IGAligner must have the expected number of positions "
-                "for the numbering system."));
-        }
+        this->highly_conserved_positions = {HIGHLY_CONSERVED_IMGT_1,
+            HIGHLY_CONSERVED_IMGT_2, HIGHLY_CONSERVED_IMGT_3,
+            HIGHLY_CONSERVED_IMGT_4, HIGHLY_CONSERVED_IMGT_5,
+            HIGHLY_CONSERVED_IMGT_6};
     } else {
-        throw std::runtime_error(std::string("Currently IGAligner "
-                "only recognizes schemes 'martin', 'kabat', 'imgt', 'aho'."));
-    }
-
-    this->num_positions = this->score_arr_shape[0];
-    // Update the consensus map to indicate which letters are expected at
-    // which positions. An empty set at a given position means that
-    // ANY letter at that position is considered acceptable. These are
-    // excluded from percent identity calculation. num_restricted_positions
-    // indicates how many are INCLUDED in percent identity.
-    this->num_restricted_positions = 0;
-
-    for (size_t i = 0; i < position_consensus.size(); i++) {
-        consensus_map.push_back(std::set<char> {});
-        if (position_consensus[i].empty())
-            continue;
-        num_restricted_positions += 1;
-        // This is a new addition in v0.3.5 -- treat X as an allowed character
-        // at all positions!
-        consensus_map[i].insert('X');
-
-        for (std::string & AA : position_consensus[i]) {
-            if (!SequenceUtilities::validate_sequence(AA)) {
-                throw std::runtime_error(std::string("Non-default AAs supplied "
-                    "in a consensus file."));
-            }
-            if (AA.length() > 1) {
-                throw std::runtime_error(std::string("Non-default AAs supplied "
-                    "in a consensus file."));
-            }
-            consensus_map[i].insert(AA[0]);
-        }
+        throw std::runtime_error(std::string("Currently VJAligner "
+                "only recognizes the IMGT scheme."));
     }
 }
 
 
 // Convenience function for retrieving the chain name.
-std::string IGAligner::get_chain_name() {
+std::string VJAligner::get_chain_name() {
     return this->chain_name;
 }
 
 
+/// @brief Identifies the vgene which has the most kmers in
+/// common with an input sequence.
+/// @param query_sequence The input sequence.
+/// @param identity The number of kmer matches to the best vgene;
+/// the result is stored in this reference.
+/// @param best_vgene_number The number indicating which vgene in
+/// the list is the best; the result is stored in this reference.
+/// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
+int VJAligner::identify_best_vgene(std::string &query_sequence,
+        int &identity, int &best_vgene_number) {
+    if (query_sequence.length() < 10)
+        return INVALID_SEQUENCE;
+
+    std::vector<int> vgene_identities(this->vgenes.size(), 0);
+
+    for (size_t i=0; i < query_sequence.length() - 9; i++) {
+        std::string kmer = query_sequence.substr(i, 9);
+        std::unordered_map<std::string, std::vector<int>>::iterator
+            kmer_location = this->vgene_kmer_map.find(kmer);
+
+        if (kmer_location != this->vgene_kmer_map.end()) {
+            for (const auto & idx : kmer_location->second)
+                vgene_identities.at(idx) += 1;
+        }
+    }
+
+    identity = 0;
+    best_vgene_number = 0;
+    for (size_t i=0; i < vgene_identities.size(); i++) {
+        if (vgene_identities[i] > identity) {
+            identity = vgene_identities[i];
+            best_vgene_number = i;
+        }
+    }
+    if (identity == 0)
+         return INVALID_SEQUENCE;
+
+    return VALID_SEQUENCE;
+}
+
+
+/// @brief Identifies the jgene which is the best match for
+/// an input sequence based on a sliding window, and finds
+/// the location in the query sequence where the jgene should
+/// likely be aligned.
+/// @param query_sequence The input sequence.
+/// @param optimal_position The position at which the jgene
+/// alignment should most likely occur; the result is stored
+/// in this reference.
+/// @param identity The number of matches to the best jgene;
+/// the result is stored in this reference.
+/// @param best_jgene_number The number indicating which jgene
+/// in the list is the best; the result is stored in this
+/// reference.
+/// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
+int VJAligner::identify_best_jgene(std::string &query_sequence,
+        int &optimal_position, int &identity,
+        int &best_jgene_number) {
+    if (query_sequence.length() < EXPECTED_JGENE_SIZE)
+        return INVALID_SEQUENCE;
+
+    identity = 0;
+    best_jgene_number = 0;
+
+    for (size_t i=0; i < query_sequence.length() - EXPECTED_JGENE_SIZE;
+            i++) {
+        std::string window = query_sequence.substr(i, i + EXPECTED_JGENE_SIZE);
+
+        for (size_t j=0; j < this->jgenes.size(); j++) {
+            int matches = 0;
+            for (size_t k=NUM_JGENE_GAPS; k < EXPECTED_JGENE_SIZE; k++) {
+                if (window[k] == this->jgenes[j][k])
+                    matches += 1;
+            }
+            if (matches > identity) {
+                identity = matches;
+                best_jgene_number = j;
+            }
+        }
+    }
+    if (identity == 0)
+        return INVALID_SEQUENCE;
+
+    return VALID_SEQUENCE;
+}
 
 
 
-/// This core alignment function is wrapped by other alignment functions.
-/// Previously this function was available to Python but is no longer made
-/// available; indeed, it now expects queryAsidx, which is an int array that
-/// must be of the same length as query_sequence -- caller must guarantee this.
-/// Therefore this function is now accessed only by the SingleChainAnnotator /
-/// PairedChainAnnotator classes (for an align function that can be accessed
-/// directly by Python wrappers, see align_test_only).
-void IGAligner::align(std::string query_sequence,
+/// @brief Aligns an input sequence to a specified template V and J gene.
+/// @param query_sequence The sequence to be aligned.
+/// @param encoded_sequence A pointer to an array of ints containing the
+/// sequence encoded as numbers.
+/// @param final_number The vector in which the final numbering (as a vector
+/// of strings) will be stored.
+/// @param percent_identity The variable in which the percent identity to
+/// the template vgene will be stored.
+/// @param error_message The variable in which the error message for the
+/// alignment (if any) will be stored.
+/// @param vgene_number The number of the vgene. Determines which vgene in
+/// this class's list of vgenes will be used. If the input value is unacceptable
+/// this will cause an exception to be thrown.
+/// @param jgene_number The number of the jgene. Determines which jgene in
+/// this class's list of jgenes will be used. If the input value is unacceptable
+/// this will cause an exception to be thrown.
+void VJAligner::align(std::string query_sequence,
             int *encoded_sequence, std::vector<std::string> &final_numbering,
-            double &percent_identity, std::string &error_message) {
+            double &percent_identity, std::string &error_message,
+            int vgene_number, int jgene_number) {
 
     allowedErrorCodes error_code;
     percent_identity = 0;
@@ -203,6 +286,14 @@ void IGAligner::align(std::string query_sequence,
         error_message = this->error_code_to_message[error_code];
         return;
     }
+    if (vgene_number >= this->vgenes.size() ||
+            jgene_number >= this->jgenes.size() ||
+            vgene_number < 0 || jgene_number < 0) {
+        throw std::runtime_error("Internal error; invalid v or jgene assigned. "
+                "Please report.");
+    }
+
+
 
     std::vector<int> position_key;
 
@@ -337,13 +428,12 @@ void IGAligner::align(std::string query_sequence,
                     break;
             }
         }
-    }
+    } else {
     // Build vector of numbers for other schemes (much simpler).
-    else{
         for (i=0; i < this->num_positions; i++) {
             if (init_numbering[i] == 0)
                 continue;
-        
+
             if (init_numbering[i] > this->alphabet.size()) {
                 error_code = tooManyInsertions;
                 error_message = this->error_code_to_message[error_code];
@@ -352,7 +442,8 @@ void IGAligner::align(std::string query_sequence,
             final_numbering.push_back(std::to_string(i+1));
             position_key.push_back(i);
             for (size_t k=1; k < init_numbering[i]; k++) {
-                final_numbering.push_back(std::to_string(i+1) + this->alphabet[k-1]);
+                final_numbering.push_back(std::to_string(i+1) +
+                        this->alphabet[k-1]);
                 position_key.push_back(-1);
             }
         }
@@ -382,7 +473,7 @@ void IGAligner::align(std::string query_sequence,
         int scheme_std_position = position_key[k];
         if (scheme_std_position < 0)
             continue;
-    
+
         if (this->consensus_map[scheme_std_position].empty())
             continue;
 
@@ -421,7 +512,7 @@ void IGAligner::align(std::string query_sequence,
 /// Fill in the scoring table created by caller, using the position-specific
 /// scores for indels and substitutions, and add the appropriate
 /// pathway traces.
-void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
+void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
                 int query_seq_len, int row_size, const int *encoded_sequence,
                 int &numElements) {
     auto needle_scores = std::make_unique<double[]>( numElements );

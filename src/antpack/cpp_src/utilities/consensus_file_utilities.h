@@ -87,12 +87,21 @@ struct NpyArray {
 
 int read_consensus_file(std::filesystem::path consFPath,
         std::vector<std::vector<std::string>> &allowedAAs);
+
+int read_tcr_vj_gene_file(std::filesystem::path filepath,
+        std::vector<std::string> gene_list,
+        size_t expected_length);
+
 char BigEndianTest();
+
 char map_type(const std::type_info& t);
+
 void parse_npy_header(FILE* fp, size_t& word_size,
         std::vector<size_t>& shape, bool& fortran_order);
-void parse_npy_header(unsigned char* buffer,size_t& word_size,
+
+void parse_npy_header(unsigned char* buffer, size_t& word_size,
         std::vector<size_t>& shape, bool& fortran_order);
+
 NpyArray npy_load(std::string fname);
 
 

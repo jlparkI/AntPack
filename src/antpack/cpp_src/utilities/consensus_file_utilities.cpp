@@ -19,6 +19,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+// C++ headers
+
+// Library headers
+
+// Project headers
 #include "consensus_file_utilities.h"
 
 
@@ -30,6 +35,10 @@
 /// indicates any AA is tolerated at that position. Therefore,
 /// if a '-' is found at a given postiion, assume any AA is
 /// tolerated there.
+/// @param consFPath The location of the consensus file.
+/// @param consensusAAs The list in which the results will
+/// be stored.
+/// @return An integer error code.
 int cnpy::read_consensus_file(std::filesystem::path consFPath,
         std::vector<std::vector<std::string>> &consensusAAs) {
     if (!std::filesystem::exists(consFPath))
@@ -39,24 +48,24 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
 
     int lastPosition = 0;
     bool readNow = false;
-    std::string currentLine;
+    std::string current_line;
 
-    while (std::getline(file, currentLine)) {
-        if (currentLine.at(0) == '#') {
+    while (std::getline(file, current_line)) {
+        if (current_line.at(0) == '#') {
             readNow = true;
             continue;
         }
-        if (currentLine.at(0) == '/')
+        if (current_line.at(0) == '/')
             break;
         if (!readNow)
             continue;
 
-        std::stringstream splitString(currentLine);
+        std::stringstream split_string(current_line);
         std::string segment;
         bool firstSegment = true, allAAsAllowed = false;
         std::vector<std::string> allowedAAs;
 
-        while (std::getline(splitString, segment, ',')) {
+        while (std::getline(split_string, segment, ',')) {
             if (firstSegment) {
                 int position = std::stoi(segment);
                 if (position - 1 != lastPosition)
@@ -79,6 +88,48 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
 
     return VALID_CONSENSUS_FILE;
 }
+
+
+
+
+
+/// @brief Reads a specially formatted text file into a
+/// vector of strings. Each entry is a V-gene or J-gene,
+/// which must be of a prespecified length in order to
+/// be accepted.
+/// @param filepath The location of the file.
+/// @param gene_list The vector in which the results will
+/// be stored.
+/// @param expected_length Enforces that all loaded genes will
+/// be of an expected length.
+/// @return An integer error code.
+int cnpy::read_tcr_vj_gene_file(std::filesystem::path filepath,
+        std::vector<std::string> gene_list,
+        size_t expected_length) {
+    if (!std::filesystem::exists(filepath))
+        return INVALID_CONSENSUS_FILE;
+
+    std::ifstream file(filepath.string());
+
+    int lastPosition = 0;
+    std::string current_line;
+
+    while (std::getline(file, current_line)) {
+        if (current_line.length() < 2)
+            break;
+
+        std::string gene_seq = current_line.substr(0,
+                current_line.length() - 1);
+        if (gene_seq.length() != expected_length)
+            return INVALID_CONSENSUS_FILE;
+
+        gene_list.push_back(gene_seq);
+    }
+
+    return VALID_CONSENSUS_FILE;
+}
+
+
 
 
 // Test for big-endianness.

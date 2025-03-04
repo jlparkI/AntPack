@@ -13,6 +13,15 @@
 
 namespace NumberingTools {
 
+// Codes for the pathways that can link a score
+// to the best-scoring parent.
+static constexpr int LEFT_TRANSFER = 1;
+static constexpr int UP_TRANSFER = 2;
+static constexpr int DIAGONAL_TRANSFER = 0;
+
+// The columns of the score matrix that are accessed for gap penalties.
+static constexpr int QUERY_GAP_COLUMN = 21;
+static constexpr int TEMPLATE_GAP_COLUMN = 22;
 
 // We universally use 1 for valid result, 0 for error.
 static constexpr int VALID_SEQUENCE = 1;
