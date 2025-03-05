@@ -37,7 +37,7 @@
 
 
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 
 class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
@@ -56,11 +56,11 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
 
  protected:
         std::string scheme;
-        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
+        std::unique_ptr<SequenceAnnotators::SingleChainAnnotatorCpp>
             light_chain_analyzer;
-        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
+        std::unique_ptr<SequenceAnnotators::SingleChainAnnotatorCpp>
             heavy_chain_analyzer;
-        std::unique_ptr<NumberingTools::SingleChainAnnotatorCpp>
+        std::unique_ptr<SequenceAnnotators::SingleChainAnnotatorCpp>
             analyzer;
 
         std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
@@ -73,6 +73,6 @@ class PairedChainAnnotatorCpp : public AnnotatorBaseClassCpp {
                 const int &align_start, const int &align_end);
 };
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators
 
 #endif

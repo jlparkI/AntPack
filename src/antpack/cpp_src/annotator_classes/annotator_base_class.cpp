@@ -24,11 +24,11 @@
 #include "annotator_base_class.h"
 #include "../utilities/cdr_assignment_utilities.h"
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 
 AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme):
-    scheme(scheme) {
+scheme(scheme) {
 }
 
 
@@ -118,4 +118,4 @@ std::vector<std::string> AnnotatorBaseClassCpp::assign_cdr_labels(
     return cdr_labeling;
 }
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators

@@ -31,7 +31,7 @@
 
 
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 
 class AnnotatorBaseClassCpp {
@@ -104,6 +104,6 @@ class AnnotatorBaseClassCpp {
         std::string scheme;
 };
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators
 
 #endif  // SRC_ANTPACK_CPP_SRC_ANNOTATOR_CLASSES_ANNOTATOR_BASE_CLASS_H_

@@ -30,7 +30,7 @@
 
 
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 
 // Special error code for cases where a rare but specific type
@@ -95,7 +95,8 @@ scheme(scheme) {
                 throw std::runtime_error(std::string("For mAbs, valid "
                             "chains must be one of 'H', 'K', 'L'."));
             } else {
-                this->scoring_tools.push_back(IGAligner(consensus_filepath,
+                this->scoring_tools.push_back(
+                        NumberingTools::IGAligner(consensus_filepath,
                         chain, scheme) );
             }
         }
@@ -117,7 +118,8 @@ scheme(scheme) {
                             "valid chains must be one of 'A', 'B', "
                             "'D', 'G'."));
             } else {
-                this->tcr_scoring_tools.push_back(VJAligner(consensus_filepath,
+                this->tcr_scoring_tools.push_back(
+                        NumberingTools::VJAligner(consensus_filepath,
                         chain, scheme, "TCR") );
             }
         }
@@ -238,8 +240,9 @@ std::tuple<std::vector<std::string>, double, std::string,
     // Also make sure it is not unreasonably short.
     best_seq_cutoff = best_seq_cutoff + this->boundary_finder->
         get_num_positions() + 5;
-    best_seq_cutoff = best_seq_cutoff > MINIMUM_SEQUENCE_LENGTH ?
-        best_seq_cutoff : MINIMUM_SEQUENCE_LENGTH;
+    best_seq_cutoff = best_seq_cutoff >
+        NumberingTools::MINIMUM_SEQUENCE_LENGTH ?
+        best_seq_cutoff : NumberingTools::MINIMUM_SEQUENCE_LENGTH;
     best_seq_cutoff = best_seq_cutoff < sequence.length() ? best_seq_cutoff :
         sequence.length();
 
@@ -287,6 +290,7 @@ std::tuple<std::vector<std::string>, double, std::string,
     int best_jg_position = 0, best_vg_score = -1, best_jg_score = -1;
     int best_vg_idx = -1, best_jg_idx = -1;
     std::string best_vg_chain, best_jg_chain;
+    std::vector<int> best_vgenes, best_jgenes;
 
     for (auto & aligner : this->tcr_scoring_tools) {
         int vg_score, jg_score, vg_idx, jg_idx, jg_position;
@@ -298,6 +302,10 @@ std::tuple<std::vector<std::string>, double, std::string,
                     jg_position, jg_score, jg_idx)) {
             return best_result;
         }
+
+        best_vgenes.push_back(vg_idx);
+        best_jgenes.push_back(jg_idx);
+
         if (vg_score > best_vg_score) {
             best_vg_score = vg_score;
             best_vg_idx = vg_idx;
@@ -312,17 +320,39 @@ std::tuple<std::vector<std::string>, double, std::string,
     }
 
     // If we identified different chains using jgene and vgene,
-    // determine how high the jgene score is; if it is very high,
-    // use the jgene chain, otherwise, use the vgene chain.
-    int identify_best_vgene(std::string &query_sequence,
-            int &identity, int &best_vgene_number);
-    int identify_best_jgene(std::string &query_sequence,
-            int &optimal_position, int &identity,
-            int &best_jgene_number);
+    // or if no chain was identified, try aligning to all possible
+    // chains.
+    if (best_jg_chain != best_vg_chain || best_vg_idx < 0 ||
+            best_jg_idx < 0) {
+        for (size_t i=0; i < this->tcr_scoring_tools.size(); i++) {
+            std::tuple<std::vector<std::string>, double, std::string,
+                    std::string> current_result;
 
-    // Perform the alignment, passing the preferred_chain variable.
-    // Since preferred_chain is initialized to "", if no preferred
-    // chain was found, the aligner will try all available chains.
+            if (!this->tcr_align_input_subregion(current_result,
+                    sequence, this->chains[i],
+                    best_vgenes.at(i), best_jgenes.at(i))) {
+                std::tuple<std::vector<std::string>, double, std::string,
+                    std::string> null_result{ empty_numbering,
+                        0, "", "Error in sequence processing"};
+                return null_result;
+            }
+            if (std::get<1>(current_result) > std::get<1>(best_result))
+                best_result = current_result;
+        }
+        return best_result;
+    }
+
+    // Otherwise, we have agreement on the v and jgene, which
+    // strongly suggests a particular chain. Align only to that
+    // chain.
+    if (!this->tcr_align_input_subregion(best_result,
+            sequence, best_vg_chain,
+            best_vg_idx, best_jg_idx)) {
+        std::tuple<std::vector<std::string>, double, std::string,
+            std::string> null_result{ empty_numbering,
+                0, "", "Error in sequence processing"};
+        return null_result;
+    }
 
     return best_result;
 }
@@ -350,7 +380,7 @@ int SingleChainAnnotatorCpp::mab_align_input_subregion(
 
     if (!SequenceUtilities::convert_x_sequence_to_array(queryAsIdx.get(),
                 query_sequence))
-        return INVALID_SEQUENCE;
+        return NumberingTools::INVALID_SEQUENCE;
 
     // If preferred chain is specified (i.e. is not ""), we can
     // only align to one scoring tool...neat! In that case, score
@@ -377,7 +407,7 @@ int SingleChainAnnotatorCpp::mab_align_input_subregion(
             std::get<2>(best_result) = this->scoring_tools[aligner_id].
                 get_chain_name();
             std::get<3>(best_result) = error_message;
-            return VALID_SEQUENCE;
+            return NumberingTools::VALID_SEQUENCE;
         }
     }
 
@@ -410,10 +440,74 @@ int SingleChainAnnotatorCpp::mab_align_input_subregion(
     }
     if (fwgxg_error && std::get<1>(best_result) < 0.75)
         return POSSIBLE_FWGXG_ERROR_ON_ALIGNMENT;
-    return VALID_SEQUENCE;
+    return NumberingTools::VALID_SEQUENCE;
 }
 
 
+
+/// @brief Aligns a subregion of an input sequence (for situations where
+/// a subregion needs to be extracted) in cases where the object has
+/// been initialized to analyze TCR sequences.
+/// @param best_result The tuple of numbering, percent_identity,
+/// chain_type and error_message in which output will be stored.
+/// @param query_sequence The input sequence.
+/// @param preferred_chain Indicates which chain should be used. Note
+/// that in contrast to mab_align_input_subregion, for TCRs the
+/// preferred chain must be specified.
+/// @param preferred_vgene Indicates which vgene to use (notice that
+/// this is different from mab_align_input_subregion).
+/// @param preferred_jgene Indicates which jgene to use (notice that
+/// this is different from mab_align_input_subregion).
+int SingleChainAnnotatorCpp::tcr_align_input_subregion(
+    std::tuple<std::vector<std::string>, double,
+        std::string, std::string> &best_result,
+    std::string &query_sequence,
+    const std::string &preferred_chain,
+    const int &preferred_vgene,
+    const int &preferred_jgene) {
+    auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
+
+    // Set initial percent identity to minimum.
+    std::get<1>(best_result) = 0.0;
+
+    if (!SequenceUtilities::convert_x_sequence_to_array(queryAsIdx.get(),
+                query_sequence))
+        return NumberingTools::INVALID_SEQUENCE;
+
+    // Notice that in contrast to mab_align_input_subregion,
+    // a preferred chain MUST be specified (since otherwise this
+    // function would have to again find the preferred vgene and
+    // jgene which have already been found by caller).
+    auto first_chain = this->chains.begin();
+    auto last_chain = this->chains.end();
+    auto selection = std::find(first_chain, last_chain,
+            preferred_chain);
+
+    if (selection != this->chains.end()) {
+        size_t aligner_id = selection - this->chains.begin();
+        std::vector<std::string> final_numbering;
+        std::string error_message = "";
+        double percent_identity = -1;
+
+        this->tcr_scoring_tools[aligner_id].align(
+                query_sequence, queryAsIdx.get(), final_numbering,
+                percent_identity, error_message,
+                preferred_vgene, preferred_jgene);
+
+        std::get<0>(best_result) = final_numbering;
+        std::get<1>(best_result) = percent_identity;
+        std::get<2>(best_result) = this->scoring_tools[aligner_id].
+            get_chain_name();
+        std::get<3>(best_result) = error_message;
+        return NumberingTools::VALID_SEQUENCE;
+    }
+    // If we could not find the specified chain in the list of
+    // aligners, something went wrong (highly unlikely, because
+    // that would mean the object was finding in its list of
+    // VJAligners an object that did not exist in its list of
+    // VJAligners, but add this error return here just in case).
+    return NumberingTools::INVALID_SEQUENCE;
+}
 
 
 
@@ -443,4 +537,4 @@ std::vector<std::tuple<std::vector<std::string>, double, std::string,
     return output_results;
 }
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators

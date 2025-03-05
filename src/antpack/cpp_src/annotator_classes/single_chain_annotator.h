@@ -39,7 +39,7 @@
 namespace nb = nanobind;
 
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
  public:
@@ -94,6 +94,28 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
                 std::string &query_sequence,
                 std::string preferred_chain);
 
+
+        /// @brief Aligns a subregion of an input sequence (for situations where
+        /// a subregion needs to be extracted) in cases where the object has
+        /// been initialized to analyze TCR sequences.
+        /// @param best_result The tuple of numbering, percent_identity,
+        /// chain_type and error_message in which output will be stored.
+        /// @param query_sequence The input sequence.
+        /// @param preferred_chain Indicates which chain should be used. Note
+        /// that in contrast to mab_align_input_subregion, for TCRs the
+        /// preferred chain must be specified.
+        /// @param preferred_vgene Indicates which vgene to use (notice that
+        /// this is different from mab_align_input_subregion).
+        /// @param preferred_jgene Indicates which jgene to use (notice that
+        /// this is different from mab_align_input_subregion).
+        int tcr_align_input_subregion(
+            std::tuple<std::vector<std::string>, double,
+                std::string, std::string> &best_result,
+            std::string &query_sequence,
+            const std::string &preferred_chain,
+            const int &preferred_vgene,
+            const int &preferred_jgene);
+
  protected:
         std::vector<std::string> chains;
         std::string scheme;
@@ -108,6 +130,6 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::vector<NumberingTools::VJAligner> tcr_scoring_tools;
 };
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators
 
 #endif

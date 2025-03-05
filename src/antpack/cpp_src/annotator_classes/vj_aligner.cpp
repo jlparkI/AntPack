@@ -241,8 +241,15 @@ int VJAligner::identify_best_jgene(std::string &query_sequence,
         for (size_t j=0; j < this->jgenes.size(); j++) {
             int matches = 0;
             for (size_t k=NUM_JGENE_GAPS; k < EXPECTED_JGENE_SIZE; k++) {
-                if (window[k] == this->jgenes[j][k])
-                    matches += 1;
+                if (this->jgenes[j][k] == '-')
+                    continue;
+                // Matches count double if at the highly conserved positions.
+                if (window[k] == this->jgenes[j][k]) {
+                    if (k == 5 || k == 6 || k == 8)
+                        matches += 2;
+                    else
+                        matches += 1;
+                }
             }
             if (matches > identity) {
                 identity = matches;

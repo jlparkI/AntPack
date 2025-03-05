@@ -26,7 +26,7 @@
 
 
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
     std::string scheme, std::string consensus_filepath,
@@ -177,16 +177,17 @@ std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>
     // This may happen if user passed a single chain by mistake.
     // We can try realigning with no cutoffs and no preferred chain
     // and see what we get.
-    int err_code = VALID_SEQUENCE;
+    int err_code = NumberingTools::VALID_SEQUENCE;
     if (std::get<0>(init_results).size() == 0) {
         start_cutoff = 0;
         end_cutoff = sequence.length();
-        err_code = this->analyzer->align_input_subregion(init_results,
+        err_code = this->analyzer->mab_align_input_subregion(init_results,
                 sequence, "");
     }
 
     // If we still have the same problem, abort.
-    if (std::get<0>(init_results).size() == 0 || err_code != VALID_SEQUENCE) {
+    if (std::get<0>(init_results).size() == 0 || err_code !=
+            NumberingTools::VALID_SEQUENCE) {
         std::tuple<std::vector<std::string>, double,
             std::string, std::string> blank =
             {{}, 0., "", "Alignment error; cterminal, nterminal not found."};
@@ -249,24 +250,25 @@ std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>
     std::get<2>(second_result) = "";
     std::get<2>(third_result) = "";
 
-    if (sequence.length() - postalign_end > MINIMUM_SEQUENCE_LENGTH) {
+    if (sequence.length() - postalign_end >
+            NumberingTools::MINIMUM_SEQUENCE_LENGTH) {
         subsequence = sequence.substr(postalign_end, sequence.length() -
                 postalign_end);
         if (std::get<2>(init_results) == "H") {
-            err_code = this->light_chain_analyzer->align_input_subregion(
+            err_code = this->light_chain_analyzer->mab_align_input_subregion(
                     second_result, subsequence, "");
         } else {
-            err_code = this->heavy_chain_analyzer->align_input_subregion(
+            err_code = this->heavy_chain_analyzer->mab_align_input_subregion(
                     second_result, subsequence, "");
         }
     }
-    if (postalign_start > MINIMUM_SEQUENCE_LENGTH) {
+    if (postalign_start > NumberingTools::MINIMUM_SEQUENCE_LENGTH) {
         subsequence = sequence.substr(0, postalign_start);
         if (std::get<2>(init_results) == "H") {
-            err_code = this->light_chain_analyzer->align_input_subregion(
+            err_code = this->light_chain_analyzer->mab_align_input_subregion(
                     third_result, subsequence, "");
         } else {
-            err_code = this->heavy_chain_analyzer->align_input_subregion(
+            err_code = this->heavy_chain_analyzer->mab_align_input_subregion(
                     third_result, subsequence, "");
         }
     }
@@ -344,4 +346,4 @@ std::vector<std::string> PairedChainAnnotatorCpp::pad_alignment(
 
 
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators
