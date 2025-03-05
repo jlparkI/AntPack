@@ -136,10 +136,9 @@ class VJAligner {
     // Since we always use IMGT, num_positions is set to 128.
     int num_positions = 128;
     // Likewise set num_restricted_positions to a preset value based
-    // on how many positions are not gapped in IMGT.
+    // on how many positions are not gapped in IMGT for TCRs specifically.
     int num_restricted_positions = 85;
 
-    std::vector<std::set<char>> consensus_map;
     std::vector<int> highly_conserved_positions;
     std::array<std::string, 6> error_code_to_message {{"",
         "Sequence contains invalid characters",
@@ -171,8 +170,15 @@ class VJAligner {
                     "UUU", "VVV", "WWW", "XXX", "YYY", "ZZZ"};
 
 
-    /// @brief Fills a scoring table corresponding to alignment of the
-    ///        input sequence to the template.
+    /// @brief Fills in the scoring table to construct an alignment.
+    /// @param path_trace The array that will store the best path found (aka
+    /// the scoring table).
+    /// @param query_seq_len The length of the query sequence.
+    /// @param encoded_sequence A pointer to the array containing the encoded
+    /// sequence.
+    /// @param num_elements The number of elements in the scoring table.
+    /// @param vgene_number The vgene we should use.
+    /// @param jgene_number The jgene we should use.
     void fill_needle_scoring_table(uint8_t *path_trace,
             int query_seq_len, int row_size,
             const int *encoded_sequence,

@@ -45,54 +45,119 @@ SingleChainAnnotatorCpp::SingleChainAnnotatorCpp(
 AnnotatorBaseClassCpp(scheme),
 chains(chains),
 scheme(scheme) {
-    this->boundary_finder = std::make_unique
-        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
-                nterm_kmers);
-
-    // Note that exceptions thrown here go back to Python via
-    // PyBind as long as this constructor is used within the wrapper.
-    if (chains.size() < 1 || chains.size() > 3) {
-        throw std::runtime_error(std::string("There must be at least "
-                    "one chain specified, and no more than 3."));
+    // First, determine whether the chains that the user passed are TCR or
+    // mAb. If the user supplied a combination, generate an exception
+    // (they should never do this).
+    int tcr_chain_count = 0, mab_chain_count = 0;
+    for (const auto & chain : chains) {
+        if (chain == "H" || chain == "K" || chain == "L") {
+            mab_chain_count += 1;
+        } else if (chain == "A" || chain == "B" || chain == "D" ||
+                chain == "G") {
+            tcr_chain_count += 1;
+        } else {
+            throw std::runtime_error(std::string("Unrecognized "
+                        "chain supplied."));
+        }
     }
 
+    if (tcr_chain_count > 0 && mab_chain_count > 0) {
+        throw std::runtime_error(std::string("You have supplied chains "
+                    "for TCRs and chains for mAbs to the same annotator. "
+                    "You cannot have an annotator for both mAbs and TCRs "
+                    "-- if you need to analyze both types of sequences, "
+                    "you should create an annotator for each. When "
+                    "creating an annotator, supply either TCR chains "
+                    "(A, B, D, G) or mAb chains (H, K, L) -- not both."));
+    }
 
-    for (auto & chain : this->chains) {
-        if (chain != "H" && chain != "K" && chain != "L") {
-            throw std::runtime_error(std::string("Valid chains must be "
-                        "one of 'H', 'K', 'L'."));
-        } else {
-            if (scheme == "imgt") {
-                this->scoring_tools.push_back(IGAligner(consensus_filepath,
-                        chain, scheme) );
-            } else if (scheme == "aho") {
-                this->scoring_tools.push_back(IGAligner(consensus_filepath,
-                        chain, scheme) );
-            } else if (scheme == "martin") {
-                this->scoring_tools.push_back(IGAligner(consensus_filepath,
-                        chain, scheme) );
-            } else if (scheme == "kabat") {
-                this->scoring_tools.push_back(IGAligner(consensus_filepath,
-                        chain, scheme) );
+    if (mab_chain_count > 0) {
+        this->boundary_finder = std::make_unique
+            <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
+                nterm_kmers);
+
+        // Note that exceptions thrown here go back to Python via
+        // PyBind as long as this constructor is used within the wrapper.
+        if (chains.size() < 1 || chains.size() > 3) {
+            throw std::runtime_error(std::string("There must be at least "
+                        "one chain specified, and no more than 3."));
+        }
+
+        if (scheme != "aho" && scheme != "imgt" && scheme != "kabat"
+                && scheme != "martin") {
+            throw std::runtime_error(std::string("Invalid scheme "
+                            "specified. Please use one of 'imgt', 'kabat', "
+                            "'martin', 'aho'."));
+        }
+
+        for (auto & chain : this->chains) {
+            if (chain != "H" && chain != "K" && chain != "L") {
+                throw std::runtime_error(std::string("For mAbs, valid "
+                            "chains must be one of 'H', 'K', 'L'."));
             } else {
-                throw std::runtime_error(std::string("Invalid scheme "
-                        "specified. Please use one of 'imgt', 'kabat', "
-                        "'martin', 'aho'."));
+                this->scoring_tools.push_back(IGAligner(consensus_filepath,
+                        chain, scheme) );
+            }
+        }
+    }
+
+    if (tcr_chain_count > 0) {
+        if (chains.size() < 1 || chains.size() > 4) {
+            throw std::runtime_error(std::string("There must be at least "
+                        "one chain specified, and no more than 4."));
+        }
+        if (scheme != "imgt") {
+            throw std::runtime_error(std::string("Invalid scheme "
+                            "specified. For TCRs, please use IMGT."));
+        }
+        for (auto & chain : this->chains) {
+            if (chain != "A" && chain != "B" && chain != "D" &&
+                    chain != "G") {
+                throw std::runtime_error(std::string("For TCRs, "
+                            "valid chains must be one of 'A', 'B', "
+                            "'D', 'G'."));
+            } else {
+                this->tcr_scoring_tools.push_back(VJAligner(consensus_filepath,
+                        chain, scheme, "TCR") );
             }
         }
     }
 }
 
-
-
-/// SingleChainAnnotatorCpp function which numbers a single input sequence.
-/// This is essentially a wrapper on align_input_subregion which decides
-/// what chain(s) are worth aligning. This can save a considerable amount
-/// of time since alignment is the most expensive step. In the event we
-/// are unable to determine, we can of course try all possibilities.
+/// @brief Numbers a single input sequence by internally
+/// routing to mab_analyze_seq or tcr_analyze_seq depending
+/// on what the class was initialized to do.
+/// @param sequence The input sequence.
+/// @return A tuple of numbering, percent_identity, chain_type
+/// and error_message.
 std::tuple<std::vector<std::string>, double, std::string,
-        std::string> SingleChainAnnotatorCpp::analyze_seq(std::string sequence) {
+    std::string> SingleChainAnnotatorCpp::analyze_seq(
+    std::string sequence) {
+    if (this->scoring_tools.size() > 0) {
+        return this->mab_analyze_seq(sequence);
+    } else if (this->tcr_scoring_tools.size() > 0) {
+        return this->tcr_analyze_seq(sequence);
+    } else {
+        // This should never happen -- class is always initialized with
+        // one or the other and if not throws an exception during
+        // construction.
+        std::vector<std::string> empty_numbering;
+        std::tuple<std::vector<std::string>, double, std::string,
+                    std::string> best_result{ empty_numbering,
+                        0, "", "Annotator not initialized properly."};
+        return best_result;
+    }
+}
 
+
+/// @brief Numbers a single input sequence when the object has been
+/// initialized to annotate antibody sequences specifically.
+/// @param sequence The input sequence.
+/// @return A tuple of numbering, percent_identity, chain_type
+/// and error_message.
+std::tuple<std::vector<std::string>, double, std::string,
+        std::string> SingleChainAnnotatorCpp::mab_analyze_seq(
+                std::string sequence) {
     std::string preferred_chain = "";
     std::vector<std::string> empty_numbering;
     std::tuple<std::vector<std::string>, double, std::string,
@@ -145,7 +210,7 @@ std::tuple<std::vector<std::string>, double, std::string,
     // Since preferred_chain is initialized to "", if no preferred
     // chain was found, the aligner will try all available chains.
 
-    int err_code = this->align_input_subregion(best_result, sequence,
+    int err_code = this->mab_align_input_subregion(best_result, sequence,
             preferred_chain);
 
     // It is unlikely but possible to have a rare error when the j-region
@@ -184,7 +249,7 @@ std::tuple<std::vector<std::string>, double, std::string,
     // alignments (since we encountered an alignment error, best to
     // be safe).
     preferred_chain = "";
-    err_code = this->align_input_subregion(best_result,
+    err_code = this->mab_align_input_subregion(best_result,
             subsequence, preferred_chain);
 
     for (size_t i = 0; i < (sequence.length() - subsequence.length());
@@ -197,9 +262,84 @@ std::tuple<std::vector<std::string>, double, std::string,
 
 
 
+/// @brief Numbers a single input sequence when the object has been
+/// initialized to annotate TCR sequences specifically.
+/// @param sequence The input sequence.
+/// @return A tuple of numbering, percent_identity, chain_type
+/// and error_message.
+std::tuple<std::vector<std::string>, double, std::string,
+        std::string> SingleChainAnnotatorCpp::tcr_analyze_seq(
+                std::string sequence) {
+    std::string preferred_chain = "";
+    int preferred_vgene = 0, preferred_jgene = 0;
+    std::vector<std::string> empty_numbering;
+    std::tuple<std::vector<std::string>, double, std::string,
+                    std::string> best_result{ empty_numbering,
+                        0, "", "Sequence contains invalid characters"};
 
-/// Aligns the input sequence, which may be either the full sequence or a subregion of it.
-int SingleChainAnnotatorCpp::align_input_subregion(std::tuple<std::vector<std::string>, double,
+
+    if (!SequenceUtilities::validate_x_sequence(sequence))
+        return best_result;
+
+    // First, determine using the available VJAligners which chain
+    // is the best match. If both V and J genes concur, this is
+    // straightforward, and we can set a preferred_chain.
+    int best_jg_position = 0, best_vg_score = -1, best_jg_score = -1;
+    int best_vg_idx = -1, best_jg_idx = -1;
+    std::string best_vg_chain, best_jg_chain;
+
+    for (auto & aligner : this->tcr_scoring_tools) {
+        int vg_score, jg_score, vg_idx, jg_idx, jg_position;
+        if (!aligner.identify_best_vgene(sequence,
+                vg_score, vg_idx)) {
+            return best_result;
+        }
+        if (!aligner.identify_best_jgene(sequence,
+                    jg_position, jg_score, jg_idx)) {
+            return best_result;
+        }
+        if (vg_score > best_vg_score) {
+            best_vg_score = vg_score;
+            best_vg_idx = vg_idx;
+            best_vg_chain = aligner.get_chain_name();
+        }
+        if (jg_score > best_jg_score) {
+            best_jg_position = jg_position;
+            best_jg_score = jg_score;
+            best_jg_idx = jg_idx;
+            best_jg_chain = aligner.get_chain_name();
+        }
+    }
+
+    // If we identified different chains using jgene and vgene,
+    // determine how high the jgene score is; if it is very high,
+    // use the jgene chain, otherwise, use the vgene chain.
+    int identify_best_vgene(std::string &query_sequence,
+            int &identity, int &best_vgene_number);
+    int identify_best_jgene(std::string &query_sequence,
+            int &optimal_position, int &identity,
+            int &best_jgene_number);
+
+    // Perform the alignment, passing the preferred_chain variable.
+    // Since preferred_chain is initialized to "", if no preferred
+    // chain was found, the aligner will try all available chains.
+
+    return best_result;
+}
+
+
+
+/// @brief Aligns a subregion of an input sequence (for situations where
+/// a subregion needs to be extracted) in cases where the object has
+/// been initialized to analyze mab sequences.
+/// @param best_result The tuple of numbering, percent_identity,
+/// chain_type and error_message in which output will be stored.
+/// @param query_sequence The input sequence.
+/// @param preferred_chain Indicates if a specific chain has already
+/// been found (based on kmer counting) to be a better match; if
+/// so, only this one needs to be aligned.
+int SingleChainAnnotatorCpp::mab_align_input_subregion(
+    std::tuple<std::vector<std::string>, double,
     std::string, std::string> &best_result, std::string &query_sequence,
     std::string preferred_chain) {
     auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
@@ -286,8 +426,19 @@ std::vector<std::tuple<std::vector<std::string>, double, std::string,
     std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> output_results;
 
-    for (size_t i=0; i < sequences.size(); i++)
-        output_results.push_back(this->analyze_seq(sequences[i]));
+    if (this->scoring_tools.size() > 0) {
+        for (size_t i=0; i < sequences.size(); i++)
+            output_results.push_back(this->mab_analyze_seq(sequences[i]));
+    } else if (this->tcr_scoring_tools.size() > 0) {
+        for (size_t i=0; i < sequences.size(); i++)
+            output_results.push_back(this->tcr_analyze_seq(sequences[i]));
+    } else {
+        // This should never happen -- class is always initialized with
+        // one or the other and if not throws an exception during
+        // construction.
+        for (size_t i=0; i < sequences.size(); i++)
+            output_results.push_back(this->analyze_seq(sequences[i]));
+    }
 
     return output_results;
 }

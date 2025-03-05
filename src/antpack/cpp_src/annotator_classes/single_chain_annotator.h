@@ -31,6 +31,7 @@
 #include "annotator_base_class.h"
 #include "../utilities/utilities.h"
 #include "ig_aligner.h"
+#include "vj_aligner.h"
 #include "numbering_constants.inc"
 
 
@@ -46,34 +47,65 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
                 std::string scheme, std::string consensus_filepath,
                 std::unordered_map<std::string, size_t> nterm_kmers);
 
-
-        /// @brief Numbers an input sequence
-        /// @param query_sequence Sequence to number
-        /// @return A tuple containing the numbering, percent identity,
-        ///         chain type and error message.
+        /// @brief Numbers a single input sequence by internally
+        /// routing to mab_analyze_seq or tcr_analyze_seq depending
+        /// on what the class was initialized to do.
+        /// @param sequence The input sequence.
+        /// @return A tuple of numbering, percent_identity, chain_type
+        /// and error_message.
         std::tuple<std::vector<std::string>, double, std::string,
-            std::string> analyze_seq(std::string);
+                std::string> analyze_seq(std::string sequence);
+
+        /// @brief Numbers a single input sequence when the object has been
+        /// initialized to annotate antibody sequences specifically.
+        /// @param sequence The input sequence.
+        /// @return A tuple of numbering, percent_identity, chain_type
+        /// and error_message.
+        std::tuple<std::vector<std::string>, double, std::string,
+                std::string> mab_analyze_seq(std::string sequence);
+
+        /// @brief Numbers a single input sequence when the object has been
+        /// initialized to annotate TCR sequences specifically.
+        /// @param sequence The input sequence.
+        /// @return A tuple of numbering, percent_identity, chain_type
+        /// and error_message.
+        std::tuple<std::vector<std::string>, double, std::string,
+                std::string> tcr_analyze_seq(std::string sequence);
 
         /// @brief Numbers a list of input sequences
         /// @param query_sequences A vector of sequences to number.
         /// @return A vector of tuples of the same length as the input vector
-        ///         of sequences. Each tuple contains the numbering, percent identity,
-        ///         chain type and error message for the corresponding sequence.
+        /// of sequences. Each tuple contains the numbering, percent identity,
+        /// chain type and error message for the corresponding sequence.
         std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> analyze_seqs(std::vector<std::string> sequences);
 
         /// @brief Aligns a subregion of an input sequence (for situations where
-        ///        a subregion needs to be extracted).
-        int align_input_subregion(std::tuple<std::vector<std::string>, double,
-                std::string, std::string> &best_result, std::string &query_sequence,
+        /// a subregion needs to be extracted) in cases where the object has
+        /// been initialized to analyze mab sequences.
+        /// @param best_result The tuple of numbering, percent_identity,
+        /// chain_type and error_message in which output will be stored.
+        /// @param query_sequence The input sequence.
+        /// @param preferred_chain Indicates if a specific chain has already
+        /// been found (based on kmer counting) to be a better match; if
+        /// so, only this one needs to be aligned.
+        int mab_align_input_subregion(std::tuple<std::vector<std::string>,
+                    double, std::string, std::string> &best_result,
+                std::string &query_sequence,
                 std::string preferred_chain);
 
  protected:
         std::vector<std::string> chains;
         std::string scheme;
-        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
 
+        // The following two variables are used ONLY if this annotator
+        // handles mAbs. If it handles tcrs, see below.
+        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
         std::vector<NumberingTools::IGAligner> scoring_tools;
+
+        // The following variables are used ONLY if this annotator
+        // handles tcrs. If it handles mAbs, see above.
+        std::vector<NumberingTools::VJAligner> tcr_scoring_tools;
 };
 
 }  // namespace NumberingTools

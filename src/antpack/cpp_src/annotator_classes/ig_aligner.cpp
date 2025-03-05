@@ -49,22 +49,18 @@ scheme(scheme) {
     std::filesystem::path consFPath = extensionPath / consFName;
 
     std::vector<std::vector<std::string>> position_consensus;
-    if (!cnpy::read_consensus_file(consFPath, position_consensus)) {
-        throw std::runtime_error(std::string("The consensus file / "
-                    "library installation has an issue."));
-    }
+    if (!cnpy::read_consensus_file(consFPath, position_consensus))
+        throw std::runtime_error(std::string("Error in library installation (IG)"));
 
     cnpy::NpyArray raw_score_arr = cnpy::npy_load(npyFPath.string());
     double *raw_score_ptr = raw_score_arr.data<double>();
     if (raw_score_arr.word_size != 8)
-        throw std::runtime_error(std::string("Error in library "
-                    "installation (IG)."));
+        throw std::runtime_error(std::string("Error in library installation (IG)."));
 
     this->score_arr_shape[0] = raw_score_arr.shape[0];
     this->score_arr_shape[1] = raw_score_arr.shape[1];
     if (this->score_arr_shape[1] != EXPECTED_NUM_AAS_FOR_ALIGNERS)
-        throw std::runtime_error(std::string("Error in library "
-                    "installation (IG)."));
+        throw std::runtime_error(std::string("Error in library installation (IG)."));
 
     this->score_array = std::make_unique<double[]>(this->score_arr_shape[0] *
         this->score_arr_shape[1]);
@@ -180,13 +176,14 @@ std::string IGAligner::get_chain_name() {
 
 
 
-/// This core alignment function is wrapped by other alignment functions.
-/// Previously this function was available to Python but is no longer made
-/// available; indeed, it now expects queryAsidx, which is an int array that
-/// must be of the same length as query_sequence -- caller must guarantee this.
-/// Therefore this function is now accessed only by the SingleChainAnnotator /
-/// PairedChainAnnotator classes (for an align function that can be accessed
-/// directly by Python wrappers, see align_test_only).
+/// @brief Numbers an input sequence
+/// @param query_sequence Sequence to number
+/// @param encoded_sequence Pointer to array of same length
+///        as query sequence with the encoded query seq.
+/// @param final_numbering vector that will store the generated
+///        numbering
+/// @param percent_identity the percent identity to the template.
+/// @param error_message the error message (if none, "").
 void IGAligner::align(std::string query_sequence,
             int *encoded_sequence, std::vector<std::string> &final_numbering,
             double &percent_identity, std::string &error_message) {
@@ -419,9 +416,13 @@ void IGAligner::align(std::string query_sequence,
 
 
 
-/// Fill in the scoring table created by caller, using the position-specific
-/// scores for indels and substitutions, and add the appropriate
-/// pathway traces.
+/// @brief Fills in the scoring table to construct an alignment.
+/// @param path_trace The array that will store the best path found (aka
+/// the scoring table).
+/// @param query_seq_len The length of the query sequence.
+/// @param encoded_sequence A pointer to the array containing the encoded
+/// sequence.
+/// @param num_elements The number of elements in the scoring table.
 void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
                 int query_seq_len, int row_size, const int *encoded_sequence,
                 int &numElements) {
