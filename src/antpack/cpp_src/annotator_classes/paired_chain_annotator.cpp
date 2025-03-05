@@ -30,34 +30,83 @@ namespace SequenceAnnotators {
 
 PairedChainAnnotatorCpp::PairedChainAnnotatorCpp(
     std::string scheme, std::string consensus_filepath,
-    std::unordered_map<std::string, size_t> nterm_kmers):
+    std::unordered_map<std::string, size_t> nterm_kmers,
+    std::string receptor_type):
 AnnotatorBaseClassCpp(scheme),
 scheme(scheme) {
-    this->boundary_finder = std::make_unique
-        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
-                nterm_kmers);
+    if (receptor_type == "mab") {
+        this->receptor_type_is_mab = true;
 
-    std::vector<std::string> chains = {"K", "L"};
-    this->light_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
-        (chains, scheme, consensus_filepath, nterm_kmers);
+        this->boundary_finder = std::make_unique
+            <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
+                    nterm_kmers);
 
-    chains = {"H"};
-    this->heavy_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
-        (chains, scheme, consensus_filepath, nterm_kmers);
+        std::vector<std::string> chains = {"K", "L"};
+        this->light_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
+            (chains, scheme, consensus_filepath, nterm_kmers);
 
-    chains = {"H", "K", "L"};
-    this->analyzer = std::make_unique<SingleChainAnnotatorCpp>
-        (chains, scheme, consensus_filepath, nterm_kmers);
+        chains = {"H"};
+        this->heavy_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
+            (chains, scheme, consensus_filepath, nterm_kmers);
+
+        chains = {"H", "K", "L"};
+        this->analyzer = std::make_unique<SingleChainAnnotatorCpp>
+            (chains, scheme, consensus_filepath, nterm_kmers);
+    } else if (receptor_type == "tcr") {
+        this->receptor_type_is_mab = false;
+
+        std::vector<std::string> chains = {"B", "D"};
+        this->light_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
+            (chains, scheme, consensus_filepath, nterm_kmers);
+
+        chains = {"A", "G"};
+        this->heavy_chain_analyzer = std::make_unique<SingleChainAnnotatorCpp>
+            (chains, scheme, consensus_filepath, nterm_kmers);
+
+        chains = {"A", "B", "D", "G"};
+        this->analyzer = std::make_unique<SingleChainAnnotatorCpp>
+            (chains, scheme, consensus_filepath, nterm_kmers);
+    } else {
+        // Exceptions thrown here are handled by Python if called
+        // through the wrapper.
+        throw std::runtime_error(std::string("An invalid receptor "
+                    "type was supplied when constructing a paired "
+                    "chain annotator. Your options are tcr and mab."));
+    }
+}
+
+/// @brief Numbers an input sequence that contains a
+/// paired heavy and light chain (or alternatively just
+/// a heavy or light chain). Returns results for both
+/// heavy and light chains (the result will be blank for
+/// one of the two if only one is present).
+/// @param sequence The sequence to be numbered.
+/// @return A pair of tuples, each containing numbering,
+/// percent identity, chain name and error message. The
+/// first tuple is for heavy and the second for light.
+std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
+    std::tuple<std::vector<std::string>, double, std::string, std::string>>
+    PairedChainAnnotatorCpp::analyze_seq(std::string sequence) {
+    if (this->receptor_type_is_mab)
+       return this->mab_analyze_seq(sequence);
+    else
+       return this->tcr_analyze_seq(sequence);
 }
 
 
-
-// PairedChainAnnotatorCpp function which numbers an input sequence.
-// An alignment is returned for the heavy chain and light chain that
-// are found.
+/// @brief Numbers an input sequence that contains a
+/// paired heavy and light chain (or alternatively just
+/// a heavy or light chain), IF the receptor type is mab.
+/// Returns results for both heavy and light chains (the
+/// result will be blank for one of the two if only one is
+/// present).
+/// @param sequence The sequence to be numbered.
+/// @return A pair of tuples, each containing numbering,
+/// percent identity, chain name and error message. The
+/// first tuple is for heavy and the second for light.
 std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
     std::tuple<std::vector<std::string>, double, std::string, std::string>>
-    PairedChainAnnotatorCpp::analyze_seq(std::string sequence) { 
+    PairedChainAnnotatorCpp::mab_analyze_seq(std::string &sequence) {
     if (!SequenceUtilities::validate_x_sequence(sequence)) {
         std::tuple<std::vector<std::string>, double,
             std::string, std::string> vecres =
@@ -301,12 +350,63 @@ std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>
 }
 
 
+/// @brief Numbers an input sequence that contains a
+/// paired heavy and light chain (or alternatively just
+/// a heavy or light chain), IF the receptor type is tcr.
+/// Returns results for both heavy and light chains (the
+/// result will be blank for one of the two if only one is
+/// present).
+/// @param sequence The sequence to be numbered.
+/// @return A pair of tuples, each containing numbering,
+/// percent identity, chain name and error message. The
+/// first tuple is for heavy and the second for light.
+std::pair<std::tuple<std::vector<std::string>, double, std::string, std::string>,
+    std::tuple<std::vector<std::string>, double, std::string, std::string>>
+    PairedChainAnnotatorCpp::tcr_analyze_seq(std::string &sequence) {
+    if (!SequenceUtilities::validate_x_sequence(sequence)) {
+        std::tuple<std::vector<std::string>, double,
+            std::string, std::string> vecres =
+            {{}, 0., "", "Sequence contains invalid characters"};
+        std::pair<std::tuple<std::vector<std::string>, double,
+            std::string, std::string>,     std::tuple<std::vector<std::string>,
+            double, std::string, std::string>> output_result = {vecres, vecres};
+        return output_result;
+    }
 
-/// PairedChainAnnotatorCpp function which numbers a list of input sequences.
-/// Basically a wrapper on analyze_seq for convenience if user passes a list.
+    // FOR NOW, we are taking the simplest possible solution (align
+    // first using the heavy chain analyzer then using the light chain).
+    // This is more feasible for TCR than for mAb given the different
+    // workflows and thus simplifies the process greatly.
+    std::tuple<std::vector<std::string>, double,
+        std::string, std::string> heavy_result =
+            this->heavy_chain_analyzer->tcr_analyze_seq(sequence);
+    std::tuple<std::vector<std::string>, double,
+        std::string, std::string> light_result =
+            this->light_chain_analyzer->tcr_analyze_seq(sequence);
+    std::pair<std::tuple<std::vector<std::string>, double,
+        std::string, std::string>,     std::tuple<std::vector<std::string>,
+        double, std::string, std::string>> output_result {heavy_result,
+            light_result};
+
+    return output_result;
+}
+
+
+/// @brief Numbers a list of input sequences, each of which
+/// contains a paired heavy and light chain (or just
+/// a heavy or light chain). Returns results for both
+/// heavy and light chains (the result will be blank for
+/// one of the two if only one is present).
+/// @param sequences The list of sequences to be numbered.
+/// @return A tuple of vectors. Each vector is a vector
+/// of tuples. Each sub-tuple contains numbering,
+/// percent identity, chain name and error message for
+/// the corresponding sequence. The first vector is a
+/// vector of results for heavy chains and the second
+/// is for light.
 std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
-           std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
-             PairedChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences) {
+       std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
+       PairedChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences) {
     std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>,
         std::vector<std::tuple<std::vector<std::string>, double, std::string, std::string>>>
                output_results;
@@ -316,18 +416,35 @@ std::tuple<std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::tuple<std::vector<std::string>, double,
             std::string, std::string>> seq_result;
 
-    for (size_t i=0; i < sequences.size(); i++) {
-        seq_result = this->analyze_seq(sequences[i]);
-        std::get<0>(output_results).push_back(std::move(seq_result.first));
-        std::get<1>(output_results).push_back(std::move(seq_result.second));
+    if (this->receptor_type_is_mab) {
+        for (size_t i=0; i < sequences.size(); i++) {
+            seq_result = this->mab_analyze_seq(sequences[i]);
+            std::get<0>(output_results).push_back(std::move(seq_result.first));
+            std::get<1>(output_results).push_back(std::move(seq_result.second));
+        }
+    } else {
+        for (size_t i=0; i < sequences.size(); i++) {
+            seq_result = this->tcr_analyze_seq(sequences[i]);
+            std::get<0>(output_results).push_back(std::move(seq_result.first));
+            std::get<1>(output_results).push_back(std::move(seq_result.second));
+        }
     }
     return output_results;
 }
 
 
 
-/// Pads the input alignment so it is the same length as the
-/// query sequence.
+/// @brief Pads the alignment represented by the input
+/// so it is the same length as the sequence.
+/// @param query_sequence The input sequence
+/// @param alignment The numbering, which is not the same
+/// length as query_sequence and therefore needs to be
+/// padded.
+/// @param align_start The position in query_sequence at
+/// which alignment starts.
+/// @param align_end The position in query_sequence at which
+/// alignment ends.
+/// @return The updated padded numbering.
 std::vector<std::string> PairedChainAnnotatorCpp::pad_alignment(
     const std::string &query_sequence,
     const std::vector<std::string> &alignment,

@@ -72,14 +72,6 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         std::tuple<std::vector<std::string>, double, std::string,
                 std::string> tcr_analyze_seq(std::string sequence);
 
-        /// @brief Numbers a list of input sequences
-        /// @param query_sequences A vector of sequences to number.
-        /// @return A vector of tuples of the same length as the input vector
-        /// of sequences. Each tuple contains the numbering, percent identity,
-        /// chain type and error message for the corresponding sequence.
-        std::vector<std::tuple<std::vector<std::string>, double, std::string,
-            std::string>> analyze_seqs(std::vector<std::string> sequences);
-
         /// @brief Aligns a subregion of an input sequence (for situations where
         /// a subregion needs to be extracted) in cases where the object has
         /// been initialized to analyze mab sequences.
@@ -94,6 +86,27 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
                 std::string &query_sequence,
                 std::string preferred_chain);
 
+
+        /// @brief Numbers a list of input sequences
+        /// @param query_sequences A vector of sequences to number.
+        /// @return A vector of tuples of the same length as the input vector
+        /// of sequences. Each tuple contains the numbering, percent identity,
+        /// chain type and error message for the corresponding sequence.
+        std::vector<std::tuple<std::vector<std::string>, double, std::string,
+            std::string>> analyze_seqs(std::vector<std::string> sequences);
+
+ protected:
+        std::vector<std::string> chains;
+        std::string scheme;
+
+        // The following two variables are used ONLY if this annotator
+        // handles mAbs. If it handles tcrs, see below.
+        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
+        std::vector<NumberingTools::IGAligner> scoring_tools;
+
+        // The following variables are used ONLY if this annotator
+        // handles tcrs. If it handles mAbs, see above.
+        std::vector<NumberingTools::VJAligner> tcr_scoring_tools;
 
         /// @brief Aligns a subregion of an input sequence (for situations where
         /// a subregion needs to be extracted) in cases where the object has
@@ -115,19 +128,6 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
             const std::string &preferred_chain,
             const int &preferred_vgene,
             const int &preferred_jgene);
-
- protected:
-        std::vector<std::string> chains;
-        std::string scheme;
-
-        // The following two variables are used ONLY if this annotator
-        // handles mAbs. If it handles tcrs, see below.
-        std::unique_ptr<PrefilteringRoutines::PrefilteringTool> boundary_finder;
-        std::vector<NumberingTools::IGAligner> scoring_tools;
-
-        // The following variables are used ONLY if this annotator
-        // handles tcrs. If it handles mAbs, see above.
-        std::vector<NumberingTools::VJAligner> tcr_scoring_tools;
 };
 
 }  // namespace SequenceAnnotators

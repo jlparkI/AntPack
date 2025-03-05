@@ -512,11 +512,13 @@ int SingleChainAnnotatorCpp::tcr_align_input_subregion(
 
 
 
-/// SingleChainAnnotatorCpp function which numbers a list of input sequences.
-/// Essentially a wrapper on analyze_seq that is convenient if user wants
-/// to pass a list.
+/// @brief Numbers a list of input sequences
+/// @param query_sequences A vector of sequences to number.
+/// @return A vector of tuples of the same length as the input vector
+/// of sequences. Each tuple contains the numbering, percent identity,
+/// chain type and error message for the corresponding sequence.
 std::vector<std::tuple<std::vector<std::string>, double, std::string,
-            std::string>> SingleChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences) {
+    std::string>> SingleChainAnnotatorCpp::analyze_seqs(std::vector<std::string> sequences) {
     std::vector<std::tuple<std::vector<std::string>, double, std::string,
             std::string>> output_results;
 
