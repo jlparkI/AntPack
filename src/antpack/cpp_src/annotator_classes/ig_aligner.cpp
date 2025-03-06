@@ -37,7 +37,8 @@ scheme(scheme) {
                     "support only H, K, L chains."));
     }
 
-    std::filesystem::path extensionPath = consensus_filepath;
+    std::filesystem::path extension_path = consensus_filepath;
+    extension_path = extension_path / "mabs";
     std::string uppercaseScheme = scheme;
     for (auto & c : uppercaseScheme) c = toupper(c);
 
@@ -45,8 +46,8 @@ scheme(scheme) {
         chain_name + ".npy";
     std::string consFName = uppercaseScheme + "_CONSENSUS_" +
         chain_name + ".txt";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
-    std::filesystem::path consFPath = extensionPath / consFName;
+    std::filesystem::path npyFPath = extension_path / npyFName;
+    std::filesystem::path consFPath = extension_path / consFName;
 
     std::vector<std::vector<std::string>> position_consensus;
     if (!cnpy::read_consensus_file(consFPath, position_consensus))

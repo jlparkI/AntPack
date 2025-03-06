@@ -28,9 +28,10 @@ namespace PrefilteringRoutines {
 PrefilteringTool::PrefilteringTool(std::string consensus_filepath,
         std::unordered_map<std::string, size_t> nterm_kmers) {
 
-    std::filesystem::path extensionPath = consensus_filepath;
+    std::filesystem::path extension_path = consensus_filepath;
+    extension_path = extension_path / "mabs";
     std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
+    std::filesystem::path npyFPath = extension_path / npyFName;
     cnpy::NpyArray raw_score_arr;
 
     try {
@@ -55,7 +56,7 @@ PrefilteringTool::PrefilteringTool(std::string consensus_filepath,
     for (size_t i=0; i < boundary_chains.size(); i++) {
         std::string npyFName = "CTERMFINDER_CONSENSUS_" +
             boundary_chains[i] + ".npy";
-        std::filesystem::path npyFPath = extensionPath / npyFName;
+        std::filesystem::path npyFPath = extension_path / npyFName;
 
         try {
             raw_score_arr = cnpy::npy_load(npyFPath.string());

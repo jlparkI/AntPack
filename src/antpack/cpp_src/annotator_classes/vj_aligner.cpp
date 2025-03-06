@@ -56,6 +56,7 @@ scheme(scheme) {
     }
 
     std::filesystem::path extension_path = consensus_filepath;
+    extension_path = extension_path / "tcrs";
     std::string uppercase_scheme = scheme;
     for (auto & c : uppercase_scheme) c = std::toupper(c);
 

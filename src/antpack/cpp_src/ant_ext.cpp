@@ -33,11 +33,11 @@ namespace nb = nanobind;
 
 
 NB_MODULE(antpack_cpp_ext, m) {
-    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m,
+    nb::class_<SequenceAnnotators::AnnotatorBaseClassCpp>(m,
             "AnnotatorBaseClassCpp")
         .def(nb::init<std::string>())
         .def("sort_position_codes",
-                &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
+                &SequenceAnnotators::AnnotatorBaseClassCpp::sort_position_codes,
                 nb::arg("position_code_list"),
      R"(
         Takes an input list of position codes for a specified scheme and
@@ -51,7 +51,7 @@ NB_MODULE(antpack_cpp_ext, m) {
 
         Returns:
             sorted_codes (list): A list of sorted position codes.)")
-        .def("build_msa", &NumberingTools::AnnotatorBaseClassCpp::build_msa,
+        .def("build_msa", &SequenceAnnotators::AnnotatorBaseClassCpp::build_msa,
                 nb::arg("sequences"), nb::arg("annotations"),
                 nb::arg("add_unobserved_positions") = false,
      R"(
@@ -79,7 +79,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 scheme.
             aligned_seqs (list): A list of strings -- the input sequences all aligned
                 to form an MSA.)")
-        .def("assign_cdr_labels", &NumberingTools::AnnotatorBaseClassCpp::assign_cdr_labels,
+        .def("assign_cdr_labels", &SequenceAnnotators::AnnotatorBaseClassCpp::assign_cdr_labels,
                 nb::arg("numbering"), nb::arg("chain"),
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
@@ -104,7 +104,7 @@ NB_MODULE(antpack_cpp_ext, m) {
             region_labels (list): A list of strings, each of which is one of
                 "fmwk1", "fmwk2", "fmwk3", "fmwk4", "cdr1", "cdr2", "cdr3" or "-".
                 This list will be of the same length as the input alignment.)")
-        .def("trim_alignment", &NumberingTools::AnnotatorBaseClassCpp::trim_alignment,
+        .def("trim_alignment", &SequenceAnnotators::AnnotatorBaseClassCpp::trim_alignment,
                 nb::arg("sequence"), nb::arg("alignment"),
      R"(
         Takes as input a sequence and a tuple produced by
@@ -130,12 +130,12 @@ NB_MODULE(antpack_cpp_ext, m) {
             exend (int): The last untrimmed position in the input sequence.
                 The trimmed sequence is sequence[exstart:exend].)");
 
-    nb::class_<NumberingTools::SingleChainAnnotatorCpp,
-        NumberingTools::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
+    nb::class_<SequenceAnnotators::SingleChainAnnotatorCpp,
+        SequenceAnnotators::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
         .def(nb::init<std::vector<std::string>,
                 std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
-        .def("analyze_seq", &NumberingTools::SingleChainAnnotatorCpp::analyze_seq,
+        .def("analyze_seq", &SequenceAnnotators::SingleChainAnnotatorCpp::analyze_seq,
                 nb::arg("sequence"),
      R"(
         Numbers and scores a single input sequence. A list of
@@ -154,7 +154,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 message is "". An alignment with low percent identity (e.g. < 0.85)
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.)")
-        .def("analyze_seqs", &NumberingTools::SingleChainAnnotatorCpp::analyze_seqs,
+        .def("analyze_seqs", &SequenceAnnotators::SingleChainAnnotatorCpp::analyze_seqs,
                 nb::arg("sequences"),
      R"(
         Numbers and scores a list of input sequences. The outputs
@@ -178,11 +178,12 @@ NB_MODULE(antpack_cpp_ext, m) {
 
 
 
-    nb::class_<NumberingTools::PairedChainAnnotatorCpp,
-        NumberingTools::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
+    nb::class_<SequenceAnnotators::PairedChainAnnotatorCpp,
+        SequenceAnnotators::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
         .def(nb::init<std::string, std::string,
-                std::unordered_map<std::string, size_t>>())
-        .def("analyze_seq", &NumberingTools::PairedChainAnnotatorCpp::analyze_seq,
+                std::unordered_map<std::string, size_t>,
+                std::string>())
+        .def("analyze_seq", &SequenceAnnotators::PairedChainAnnotatorCpp::analyze_seq,
                 nb::arg("sequence"),
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
@@ -206,7 +207,7 @@ NB_MODULE(antpack_cpp_ext, m) {
                 chain_name, error_message). Numbering is the same length as the input
                 sequence. A low percent identity or an error message may indicate a problem
                 with the input sequence. The error_message is "" unless some error occurred.)")
-        .def("analyze_seqs", &NumberingTools::PairedChainAnnotatorCpp::analyze_seqs,
+        .def("analyze_seqs", &SequenceAnnotators::PairedChainAnnotatorCpp::analyze_seqs,
                 nb::arg("sequences"),
      R"(
         Extracts and numbers the variable chain regions from a list of sequences

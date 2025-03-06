@@ -11,7 +11,7 @@ class PyCTermFinder(PrefilteringTool):
         """Class constructor.
         """
         consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                "consensus_data", "mabs")
+                "consensus_data")
         kmer_dict = _load_nterm_kmers()
         super().__init__(consensus_path, kmer_dict)
 
