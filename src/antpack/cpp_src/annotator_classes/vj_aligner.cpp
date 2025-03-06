@@ -65,14 +65,16 @@ scheme(scheme) {
         chain_name + "J.txt";
     std::filesystem::path current_filepath = extension_path / current_filename;
     if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->jgenes,
-                EXPECTED_JGENE_SIZE))
+                EXPECTED_JGENE_SIZE)) {
         throw std::runtime_error(std::string("Error in library installation."));
+    }
 
     current_filename = receptor_type + "_" + chain_name + "V.txt";
     current_filepath = extension_path / current_filename;
     if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->vgenes,
-                EXPECTED_VGENE_SIZE))
+                EXPECTED_VGENE_SIZE)) {
         throw std::runtime_error(std::string("Error in library installation."));
+    }
 
     // Load vgene and jgene scoring matrices. These contain scores for all V and
     // j genes for a specific chain type. Contents are transferred to unique_ptr
@@ -132,9 +134,9 @@ scheme(scheme) {
     // the v-gene with which each kmer is associated. This will enable
     // us to quickly determine which vgene is the best template for alignment
     // without having to do multiple alignments. We use 9-mers by default.
-    for (const auto & vgene : this->vgenes) {
-        for (size_t i=0; i < vgene.length() - 9; i++) {
-            std::string kmer = vgene.substr(i, 9);
+    for (size_t i=0; i < this->vgenes.size(); i++) {
+        for (size_t j=0; j < this->vgenes[i].length() - 9; j++) {
+            std::string kmer = this->vgenes[i].substr(j, 9);
             if (kmer.find('-') != std::string::npos)
                 continue;
 
@@ -192,8 +194,9 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
             kmer_location = this->vgene_kmer_map.find(kmer);
 
         if (kmer_location != this->vgene_kmer_map.end()) {
-            for (const auto & idx : kmer_location->second)
+            for (const auto & idx : kmer_location->second) {
                 vgene_identities.at(idx) += 1;
+            }
         }
     }
 
@@ -205,9 +208,6 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
             best_vgene_number = i;
         }
     }
-    if (identity == 0)
-         return INVALID_SEQUENCE;
-
     return VALID_SEQUENCE;
 }
 
@@ -237,7 +237,7 @@ int VJAligner::identify_best_jgene(std::string &query_sequence,
 
     for (size_t i=0; i < query_sequence.length() - EXPECTED_JGENE_SIZE;
             i++) {
-        std::string window = query_sequence.substr(i, i + EXPECTED_JGENE_SIZE);
+        std::string window = query_sequence.substr(i, EXPECTED_JGENE_SIZE);
 
         for (size_t j=0; j < this->jgenes.size(); j++) {
             int matches = 0;
@@ -476,8 +476,8 @@ void VJAligner::align(std::string query_sequence,
                     query_sequence[k])
                 percent_identity += 1;
         } else if (scheme_std_position < this->num_positions) {
-            if (this->jgenes[jgene_number][scheme_std_position] ==
-                    query_sequence[k])
+            if (this->jgenes[jgene_number][scheme_std_position -
+                    EXPECTED_VGENE_SIZE] == query_sequence[k])
                 percent_identity += 1;
         }
 
@@ -527,7 +527,7 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
                 const int &jgene_number) {
     auto needle_scores = std::make_unique<double[]>( num_elements );
     double score_updates[3], best_score;
-    int grid_pos, diag_neigbhor, upper_neighbor, best_pos;
+    int grid_pos, diag_neighbor, upper_neighbor, best_pos;
     // The size of the V and J gene score arrays is checked by the class
     // constructor. We set the pointer to the row corresponding to the
     // selected v and j gene (caller should check this is valid).
@@ -543,6 +543,8 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
     path_trace[0] = LEFT_TRANSFER;
     for (int i=0; i < query_seq_len; i++) {
         double updated_score = needle_scores[i] + NTERMINAL_QUERY_GAP_PENALTY;
+        // This seems counterintuitive but realize that the gap penalty is
+        // NEGATIVE.
         updated_score = updated_score > MAX_NTERMINAL_GAP_PENALTY ?
             updated_score : MAX_NTERMINAL_GAP_PENALTY;
         needle_scores[i+1] = updated_score;
@@ -559,15 +561,15 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
     for (int i=0; i < EXPECTED_VGENE_SIZE; i++) {
         // Add 1 to i here to skip the first row which is already filled.
         grid_pos = (i+1) * row_size;
-        diag_neigbhor = i * row_size;
-        upper_neighbor = diag_neigbhor + 1;
-        needle_scores[grid_pos] = needle_scores[diag_neigbhor] +
+        diag_neighbor = i * row_size;
+        upper_neighbor = diag_neighbor + 1;
+        needle_scores[grid_pos] = needle_scores[diag_neighbor] +
             vgene_itr[QUERY_GAP_COLUMN];
         path_trace[grid_pos] = UP_TRANSFER;
         grid_pos++;
 
         for (int j=0; j < (query_seq_len - 1); j++) {
-            score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neigbhor] +
+            score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
                 vgene_itr[encoded_sequence[j]];
             score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
                 vgene_itr[TEMPLATE_GAP_COLUMN];
@@ -593,11 +595,11 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
             path_trace[grid_pos] = best_pos;
 
             grid_pos++;
-            diag_neigbhor++;
+            diag_neighbor++;
             upper_neighbor++;
         }
 
-        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neigbhor] +
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
             vgene_itr[encoded_sequence[query_seq_len - 1]];
         score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
             vgene_itr[TEMPLATE_GAP_COLUMN];
@@ -641,15 +643,15 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
 
     for (int i=0; i < (EXPECTED_JGENE_SIZE - 1); i++) {
         grid_pos = grid_row * row_size;
-        diag_neigbhor = (grid_row - 1) * row_size;
-        upper_neighbor = diag_neigbhor + 1;
-        needle_scores[grid_pos] = needle_scores[diag_neigbhor] +
+        diag_neighbor = (grid_row - 1) * row_size;
+        upper_neighbor = diag_neighbor + 1;
+        needle_scores[grid_pos] = needle_scores[diag_neighbor] +
             jgene_itr[QUERY_GAP_COLUMN];
         path_trace[grid_pos] = UP_TRANSFER;
         grid_pos++;
 
         for (int j=0; j < (query_seq_len - 1); j++) {
-            score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neigbhor] +
+            score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
                 jgene_itr[encoded_sequence[j]];
             score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
                 jgene_itr[TEMPLATE_GAP_COLUMN];
@@ -675,11 +677,11 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
             path_trace[grid_pos] = best_pos;
 
             grid_pos++;
-            diag_neigbhor++;
+            diag_neighbor++;
             upper_neighbor++;
         }
 
-        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neigbhor] +
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
             jgene_itr[encoded_sequence[query_seq_len - 1]];
         score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
             jgene_itr[TEMPLATE_GAP_COLUMN];
@@ -714,16 +716,16 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
 
     // Now handle the last row.
     grid_pos = (this->num_positions) * row_size;
-    diag_neigbhor = (this->num_positions - 1) * row_size;
-    upper_neighbor = diag_neigbhor + 1;
+    diag_neighbor = (this->num_positions - 1) * row_size;
+    upper_neighbor = diag_neighbor + 1;
 
-    needle_scores[grid_pos] = needle_scores[diag_neigbhor] +
+    needle_scores[grid_pos] = needle_scores[diag_neighbor] +
         jgene_itr[QUERY_GAP_COLUMN];
     path_trace[grid_pos] = UP_TRANSFER;
     grid_pos++;
 
     for (int j=0; j < (query_seq_len - 1); j++) {
-        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neigbhor] +
+        score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
             jgene_itr[encoded_sequence[j]];
         // If a gap is already open, extending a c-terminal gap should
         // cost nothing.
@@ -750,14 +752,14 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
         path_trace[grid_pos] = best_pos;
 
         grid_pos++;
-        diag_neigbhor++;
+        diag_neighbor++;
         upper_neighbor++;
     }
 
 
 
     // And, finally, the last column of the last row.
-    score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neigbhor] +
+    score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
         jgene_itr[encoded_sequence[query_seq_len-1]];
     // If a gap is already open, extending a c-terminal gap should
     // cost nothing.

@@ -496,7 +496,7 @@ int SingleChainAnnotatorCpp::tcr_align_input_subregion(
 
         std::get<0>(best_result) = final_numbering;
         std::get<1>(best_result) = percent_identity;
-        std::get<2>(best_result) = this->scoring_tools[aligner_id].
+        std::get<2>(best_result) = this->tcr_scoring_tools[aligner_id].
             get_chain_name();
         std::get<3>(best_result) = error_message;
         return NumberingTools::VALID_SEQUENCE;

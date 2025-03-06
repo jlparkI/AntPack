@@ -439,6 +439,8 @@ void IGAligner::fill_needle_scoring_table(uint8_t *path_trace,
     path_trace[0] = LEFT_TRANSFER;
     for (int i=0; i < query_seq_len; i++) {
         double updated_score = needle_scores[i] + NTERMINAL_QUERY_GAP_PENALTY;
+        // This seems counterintuitive but realize that the gap penalty is
+        // NEGATIVE.
         updated_score = updated_score > MAX_NTERMINAL_GAP_PENALTY ?
             updated_score : MAX_NTERMINAL_GAP_PENALTY;
         needle_scores[i+1] = updated_score;

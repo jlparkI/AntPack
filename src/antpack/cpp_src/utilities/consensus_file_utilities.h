@@ -89,7 +89,7 @@ int read_consensus_file(std::filesystem::path consFPath,
         std::vector<std::vector<std::string>> &allowedAAs);
 
 int read_tcr_vj_gene_file(std::filesystem::path filepath,
-        std::vector<std::string> gene_list,
+        std::vector<std::string> &gene_list,
         size_t expected_length);
 
 char BigEndianTest();

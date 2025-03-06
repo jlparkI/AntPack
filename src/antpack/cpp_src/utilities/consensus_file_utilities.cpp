@@ -104,7 +104,7 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
 /// be of an expected length.
 /// @return An integer error code.
 int cnpy::read_tcr_vj_gene_file(std::filesystem::path filepath,
-        std::vector<std::string> gene_list,
+        std::vector<std::string> &gene_list,
         size_t expected_length) {
     if (!std::filesystem::exists(filepath))
         return INVALID_CONSENSUS_FILE;
@@ -118,12 +118,10 @@ int cnpy::read_tcr_vj_gene_file(std::filesystem::path filepath,
         if (current_line.length() < 2)
             break;
 
-        std::string gene_seq = current_line.substr(0,
-                current_line.length() - 1);
-        if (gene_seq.length() != expected_length)
+        if (current_line.length() != expected_length)
             return INVALID_CONSENSUS_FILE;
 
-        gene_list.push_back(gene_seq);
+        gene_list.push_back(current_line);
     }
 
     return VALID_CONSENSUS_FILE;
