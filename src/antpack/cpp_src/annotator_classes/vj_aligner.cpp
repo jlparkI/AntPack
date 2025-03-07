@@ -303,7 +303,8 @@ void VJAligner::align(std::string query_sequence,
                 "Please report.");
     }
 
-    std::vector<int> position_key(query_sequence.length());
+    std::vector<int> position_key;
+    position_key.reserve(query_sequence.length());
 
     int row_size = query_sequence.length() + 1;
     int num_elements = row_size * (this->num_positions + 1);
