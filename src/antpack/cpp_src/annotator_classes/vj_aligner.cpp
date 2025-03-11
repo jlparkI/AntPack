@@ -37,6 +37,15 @@ namespace NumberingTools {
 static constexpr int EXPECTED_JGENE_SIZE = 16;
 static constexpr int EXPECTED_VGENE_SIZE = 112;
 static constexpr int NUM_JGENE_GAPS = 5;
+static constexpr int EXPECTED_BLOSUM_SHAPE = 22;
+
+// The size of the sliding windows that we want to extract
+// from v and jgenes and their locations.
+static constexpr int VGENE_WINDOW1_SIZE = 11;
+static constexpr int VGENE_WINDOW2_SIZE = 11;
+static constexpr int JGENE_WINDOW1_SIZE = 11;
+static constexpr int VGENE_WINDOW1_START = 40;
+static constexpr int VGENE_WINDOW2_START = 93;
 
 
 VJAligner::VJAligner(std::string consensus_filepath,
@@ -56,24 +65,106 @@ scheme(scheme) {
     }
 
     std::filesystem::path extension_path = consensus_filepath;
+    // First load the BLOSUM matrix.
+    extension_path = extension_path / "mabs" / "blosum_matrix.npy";
+    cnpy::NpyArray raw_blosum_arr = cnpy::npy_load(extension_path.string());
+    int16_t *raw_blosum_ptr = raw_blosum_arr.data<int16_t>();
+    if (raw_blosum_arr.word_size != 8 || raw_blosum_arr.shape[0] !=
+            EXPECTED_BLOSUM_SHAPE || raw_blosum_arr.shape[1] !=
+            EXPECTED_BLOSUM_SHAPE)
+        throw std::runtime_error(std::string("Error in library installation "
+                    "(VJ)."));
+
+    this->blosum_array = std::make_unique<int32_t[]>(raw_blosum_arr.shape[0] *
+            raw_blosum_arr.shape[1]);
+
+    for (size_t i=0; i < EXPECTED_BLOSUM_SHAPE; i++) {
+        for (size_t j=0; j < EXPECTED_BLOSUM_SHAPE; j++)
+            this->blosum_array[i*j] = static_cast<int32_t>(raw_blosum_ptr[i*j]);
+    }
+
+
+    extension_path = consensus_filepath;
     extension_path = extension_path / "tcrs";
     std::string uppercase_scheme = scheme;
     for (auto & c : uppercase_scheme) c = std::toupper(c);
 
     // Load jgene and vgene sequence files.
+    std::vector<std::string> raw_jgenes;
     std::string current_filename = receptor_type + "_" +
         chain_name + "J.txt";
     std::filesystem::path current_filepath = extension_path / current_filename;
-    if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->jgenes,
+    if (!cnpy::read_tcr_vj_gene_file(current_filepath, raw_jgenes,
                 EXPECTED_JGENE_SIZE)) {
         throw std::runtime_error(std::string("Error in library installation."));
     }
 
+    std::vector<std::string> raw_vgenes;
     current_filename = receptor_type + "_" + chain_name + "V.txt";
     current_filepath = extension_path / current_filename;
-    if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->vgenes,
+    if (!cnpy::read_tcr_vj_gene_file(current_filepath, raw_vgenes,
                 EXPECTED_VGENE_SIZE)) {
         throw std::runtime_error(std::string("Error in library installation."));
+    }
+
+    // Next, encode selected sliding windows from the j-genes and
+    // from the v-genes. We will blosum score the sliding windows on
+    // the input data to determine which v- and j-gene most closely
+    // resembles a query sequence.
+    this->num_vgenes = raw_vgenes.size();
+    this->num_jgenes = raw_jgenes.size();
+    this->encoded_v_window1 = std::make_unique<int[]>(this->num_vgenes *
+                VGENE_WINDOW1_SIZE);
+    this->encoded_v_window2 = std::make_unique<int[]>(this->num_vgenes *
+                VGENE_WINDOW2_SIZE);
+    this->encoded_j_window1 = std::make_unique<int[]>(this->num_jgenes *
+                JGENE_WINDOW1_SIZE);
+
+    for (size_t i=0; i < this->num_vgenes; i++) {
+        if (raw_vgenes.at(i).length() < VGENE_WINDOW1_START +
+                VGENE_WINDOW1_SIZE) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation."));
+        }
+        if (raw_vgenes.at(i).length() < VGENE_WINDOW2_START +
+                VGENE_WINDOW2_SIZE) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation."));
+        }
+
+        std::string window = raw_vgenes.at(i).substr(VGENE_WINDOW1_START,
+                VGENE_WINDOW1_SIZE);
+        if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
+            this->encoded_v_window1.get() + i * VGENE_WINDOW1_SIZE, window)) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation."));
+        }
+
+        window = raw_vgenes.at(i).substr(VGENE_WINDOW2_START,
+                VGENE_WINDOW2_SIZE);
+        if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
+            this->encoded_v_window2.get() + i * VGENE_WINDOW2_SIZE, window)) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation."));
+        }
+    }
+
+    for (size_t i=0; i < this->num_jgenes; i++) {
+        if (raw_jgenes.at(i).length() < JGENE_WINDOW1_SIZE) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation."));
+        }
+
+        std::string window = raw_jgenes.at(i).substr(
+                raw_jgenes.at(i).length() - JGENE_WINDOW1_SIZE,
+                JGENE_WINDOW1_SIZE);
+
+        if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
+            this->encoded_j_window1.get() +
+            i * JGENE_WINDOW1_SIZE, window)) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation."));
+        }
     }
 
     // Load vgene and jgene scoring matrices. These contain scores for all V and
@@ -94,7 +185,7 @@ scheme(scheme) {
 
     if (this->vgene_score_arr_shape[1] != EXPECTED_VGENE_SIZE ||
             this->vgene_score_arr_shape[2] != EXPECTED_NUM_AAS_FOR_ALIGNERS ||
-            this->vgene_score_arr_shape[0] != this->vgenes.size())
+            this->vgene_score_arr_shape[0] != this->num_vgenes)
         throw std::runtime_error(std::string("Error in library installation."));
 
     this->vgene_score_array = std::make_unique<double[]>(
@@ -119,7 +210,7 @@ scheme(scheme) {
 
     if (this->jgene_score_arr_shape[1] != EXPECTED_JGENE_SIZE ||
             this->jgene_score_arr_shape[2] != EXPECTED_NUM_AAS_FOR_ALIGNERS ||
-            this->jgene_score_arr_shape[0] != this->jgenes.size())
+            this->jgene_score_arr_shape[0] != this->num_jgenes)
         throw std::runtime_error(std::string("Error in library installation."));
 
     this->jgene_score_array = std::make_unique<double[]>(
@@ -129,24 +220,6 @@ scheme(scheme) {
     for (size_t k=0; k < jraw_score_arr.shape[0] *
             jraw_score_arr.shape[1] * jraw_score_arr.shape[2]; k++)
         this->jgene_score_array[k] = raw_score_ptr[k];
-
-    // Next, extract kmers from each vgene and add these to a map indicating
-    // the v-gene with which each kmer is associated. This will enable
-    // us to quickly determine which vgene is the best template for alignment
-    // without having to do multiple alignments. We use 9-mers by default.
-    for (size_t i=0; i < this->vgenes.size(); i++) {
-        for (size_t j=0; j < this->vgenes[i].length() - 9; j++) {
-            std::string kmer = this->vgenes[i].substr(j, 9);
-            if (kmer.find('-') != std::string::npos)
-                continue;
-
-            if (this->vgene_kmer_map.count(kmer) == 0) {
-                std::vector<int> associated_vgene_list;
-                this->vgene_kmer_map[kmer] = associated_vgene_list;
-            }
-            this->vgene_kmer_map.at(kmer).push_back(i);
-        }
-    }
 
 
     // Currently only the IMGT scheme is supported. This aligner is primarily
@@ -176,35 +249,63 @@ std::string VJAligner::get_chain_name() {
 /// @brief Identifies the vgene which has the most kmers in
 /// common with an input sequence.
 /// @param query_sequence The input sequence.
-/// @param identity The number of kmer matches to the best vgene;
+/// @param encoded_sequence Pointer to an array containing the
+/// input sequence encoded as integers; must be same size as
+/// query_sequence.length().
+/// @param identity The score for matching to the best vgene;
 /// the result is stored in this reference.
-/// @param best_vgene_number The number indicating which vgene in
-/// the list is the best; the result is stored in this reference.
+/// @param best_vgene_number The id of the best vgene that is
+/// found; the result is stored in this reference.
 /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
 int VJAligner::identify_best_vgene(std::string &query_sequence,
-        int &identity, int &best_vgene_number) {
-    if (query_sequence.length() < 10)
+        int *encoded_sequence, int &identity, int &best_vgene_number) {
+    if (query_sequence.length() < VGENE_WINDOW1_SIZE + 1 ||
+            query_sequence.length() < VGENE_WINDOW2_SIZE + 1)
         return INVALID_SEQUENCE;
 
-    std::vector<int> vgene_identities(this->vgenes.size(), 0);
+    std::vector<int32_t> vgene_scores(this->num_vgenes, 0);
 
-    for (size_t i=0; i < query_sequence.length() - 9; i++) {
-        std::string kmer = query_sequence.substr(i, 9);
-        std::unordered_map<std::string, std::vector<int>>::iterator
-            kmer_location = this->vgene_kmer_map.find(kmer);
-
-        if (kmer_location != this->vgene_kmer_map.end()) {
-            for (const auto & idx : kmer_location->second) {
-                vgene_identities.at(idx) += 1;
+    for (size_t i=0; i < this->num_vgenes; i++) {
+        int32_t best_score = 0;
+        for (size_t j=0; j < query_sequence.length() -
+                VGENE_WINDOW1_SIZE; j++) {
+            int32_t score = 0;
+            for (size_t k=0; j < VGENE_WINDOW1_SIZE; j++) {
+                int vletter = this->encoded_v_window1[i*VGENE_WINDOW1_SIZE + k];
+                int qletter = encoded_sequence[j+k];
+                score += this->blosum_array[vletter*EXPECTED_BLOSUM_SHAPE +
+                    qletter];
             }
+
+            if (score > best_score)
+                best_score = score;
         }
+        vgene_scores[i] += best_score;
+    }
+
+    for (size_t i=0; i < this->num_vgenes; i++) {
+        int32_t best_score = 0;
+        for (size_t j=0; j < query_sequence.length() -
+                VGENE_WINDOW2_SIZE; j++) {
+            int32_t score = 0;
+            for (size_t k=0; j < VGENE_WINDOW2_SIZE; j++) {
+                int vletter = this->encoded_v_window2[i*VGENE_WINDOW2_SIZE + k];
+                int qletter = encoded_sequence[j+k];
+                score += this->blosum_array[vletter*EXPECTED_BLOSUM_SHAPE +
+                    qletter];
+            }
+
+            if (score > best_score)
+                best_score = score;
+        }
+        vgene_scores[i] += best_score;
     }
 
     identity = 0;
     best_vgene_number = 0;
-    for (size_t i=0; i < vgene_identities.size(); i++) {
-        if (vgene_identities[i] > identity) {
-            identity = vgene_identities[i];
+    for (size_t i=0; i < vgene_scores.size(); i++) {
+        if (vgene_scores[i] > identity) {
+            identity = vgene_scores[i];
             best_vgene_number = i;
         }
     }
@@ -217,50 +318,55 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
 /// the location in the query sequence where the jgene should
 /// likely be aligned.
 /// @param query_sequence The input sequence.
+/// @param encoded_sequence Pointer to an array containing the
+/// input sequence encoded as integers; must be same size as
+/// query_sequence.length().
 /// @param optimal_position The position at which the jgene
 /// alignment should most likely occur; the result is stored
 /// in this reference.
-/// @param identity The number of matches to the best jgene;
+/// @param identity The score for matching to the best jgene;
 /// the result is stored in this reference.
-/// @param best_jgene_number The number indicating which jgene
-/// in the list is the best; the result is stored in this
-/// reference.
+/// @param best_jgene_number The id of the best jgene that is
+/// found; the result is stored in this reference.
 /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
 int VJAligner::identify_best_jgene(std::string &query_sequence,
-        int &optimal_position, int &identity,
+        int *encoded_sequence, int &optimal_position, int &identity,
         int &best_jgene_number) {
-    if (query_sequence.length() < EXPECTED_JGENE_SIZE)
+    if (query_sequence.length() < JGENE_WINDOW1_SIZE + 1)
         return INVALID_SEQUENCE;
+
+    std::vector<int32_t> jgene_scores(this->num_jgenes, 0);
+    std::vector<int> optimal_positions(this->num_jgenes, 0);
+
+    for (size_t i=0; i < this->num_jgenes; i++) {
+        int32_t best_score = 0;
+        for (size_t j=0; j < query_sequence.length() -
+                JGENE_WINDOW1_SIZE; j++) {
+            int32_t score = 0;
+            for (size_t k=0; j < JGENE_WINDOW1_SIZE; j++) {
+                int jletter = this->encoded_j_window1[i*JGENE_WINDOW1_SIZE + k];
+                int qletter = encoded_sequence[j+k];
+                score += this->blosum_array[jletter*EXPECTED_BLOSUM_SHAPE +
+                    qletter];
+            }
+
+            if (score > best_score) {
+                optimal_positions[i] = j;
+                best_score = score;
+            }
+        }
+        jgene_scores[i] = best_score;
+    }
 
     identity = 0;
     best_jgene_number = 0;
-
-    for (size_t i=0; i < query_sequence.length() - EXPECTED_JGENE_SIZE;
-            i++) {
-        std::string window = query_sequence.substr(i, EXPECTED_JGENE_SIZE);
-
-        for (size_t j=0; j < this->jgenes.size(); j++) {
-            int matches = 0;
-            for (size_t k=NUM_JGENE_GAPS; k < EXPECTED_JGENE_SIZE; k++) {
-                if (this->jgenes[j][k] == '-')
-                    continue;
-                // Matches count double if at the highly conserved positions.
-                if (window[k] == this->jgenes[j][k]) {
-                    if (k == 5 || k == 6 || k == 8)
-                        matches += 2;
-                    else
-                        matches += 1;
-                }
-            }
-            if (matches > identity) {
-                identity = matches;
-                best_jgene_number = j;
-            }
+    for (size_t i=0; i < jgene_scores.size(); i++) {
+        if (jgene_scores[i] > identity) {
+            identity = jgene_scores[i];
+            best_jgene_number = i;
+            optimal_position = optimal_positions[i];
         }
     }
-    if (identity == 0)
-        return INVALID_SEQUENCE;
-
     return VALID_SEQUENCE;
 }
 

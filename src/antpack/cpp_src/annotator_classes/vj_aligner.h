@@ -59,11 +59,16 @@ class VJAligner {
     /// @brief Identifies the vgene which has the most kmers in
     /// common with an input sequence.
     /// @param query_sequence The input sequence.
-    /// @param identity The number of kmer matches to the best vgene;
+    /// @param encoded_sequence Pointer to an array containing the
+    /// input sequence encoded as integers; must be same size as
+    /// query_sequence.length().
+    /// @param identity The score for matching to the best vgene;
     /// the result is stored in this reference.
+    /// @param best_vgene_number The id of the best vgene that is
+    /// found; the result is stored in this reference.
     /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
     int identify_best_vgene(std::string &query_sequence,
-            int &identity, int &best_vgene_number);
+            int *encoded_sequence, int &identity, int &best_vgene_number);
 
 
     /// @brief Identifies the jgene which is the best match for
@@ -71,13 +76,19 @@ class VJAligner {
     /// the location in the query sequence where the jgene should
     /// likely be aligned.
     /// @param query_sequence The input sequence.
+    /// @param encoded_sequence Pointer to an array containing the
+    /// input sequence encoded as integers; must be same size as
+    /// query_sequence.length().
     /// @param optimal_position The position at which the jgene
     /// alignment should most likely occur; the result is stored
     /// in this reference.
-    /// @param identity The number of matches to the best jgene;
+    /// @param identity The score for matching to the best jgene;
     /// the result is stored in this reference.
+    /// @param best_jgene_number The id of the best jgene that is
+    /// found; the result is stored in this reference.
     /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
     int identify_best_jgene(std::string &query_sequence,
+            int *encoded_sequence,
             int &optimal_position, int &identity,
             int &best_jgene_number);
 
@@ -125,14 +136,17 @@ class VJAligner {
     const std::string chain_name;
     std::string scheme;
 
-    std::unique_ptr<double[]> vgene_score_array;
-    std::unique_ptr<double[]> jgene_score_array;
     size_t vgene_score_arr_shape[3];
     size_t jgene_score_arr_shape[3];
-    std::vector<std::string> vgenes;
-    std::vector<std::string> jgenes;
+    size_t num_vgenes, num_jgenes;
+    std::unique_ptr<double[]> vgene_score_array;
+    std::unique_ptr<double[]> jgene_score_array;
+    std::unique_ptr<int32_t[]> blosum_array;
+    std::unique_ptr<int[]> encoded_v_window1;
+    std::unique_ptr<int[]> encoded_v_window2;
+    std::unique_ptr<int[]> encoded_j_window1;
 
-    std::unordered_map<std::string, std::vector<int>> vgene_kmer_map;
+
     // Since we always use IMGT, num_positions is set to 128.
     int num_positions = 128;
     // Likewise set num_restricted_positions to a preset value based
