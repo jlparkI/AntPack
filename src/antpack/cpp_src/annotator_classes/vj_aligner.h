@@ -138,14 +138,14 @@ class VJAligner {
 
     size_t vgene_score_arr_shape[3];
     size_t jgene_score_arr_shape[3];
-    size_t num_vgenes, num_jgenes;
     std::unique_ptr<double[]> vgene_score_array;
     std::unique_ptr<double[]> jgene_score_array;
     std::unique_ptr<int32_t[]> blosum_array;
     std::unique_ptr<int[]> encoded_v_window1;
     std::unique_ptr<int[]> encoded_v_window2;
     std::unique_ptr<int[]> encoded_j_window1;
-
+    std::vector<std::string> vgenes;
+    std::vector<std::string> jgenes;
 
     // Since we always use IMGT, num_positions is set to 128.
     int num_positions = 128;

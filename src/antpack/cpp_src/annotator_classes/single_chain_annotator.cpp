@@ -284,6 +284,11 @@ std::tuple<std::vector<std::string>, double, std::string,
     if (!SequenceUtilities::validate_x_sequence(sequence))
         return best_result;
 
+    auto queryAsIdx = std::make_unique<int[]>(sequence.length());
+    if (!SequenceUtilities::convert_x_sequence_to_array(queryAsIdx.get(),
+                sequence))
+        return best_result;
+
     // First, determine using the available VJAligners which chain
     // is the best match. If both V and J genes concur, this is
     // straightforward, and we can set a preferred_chain.
@@ -295,11 +300,11 @@ std::tuple<std::vector<std::string>, double, std::string,
     for (auto & aligner : this->tcr_scoring_tools) {
         int vg_score, jg_score, vg_idx, jg_idx, jg_position;
         if (!aligner.identify_best_vgene(sequence,
-                vg_score, vg_idx)) {
+                queryAsIdx.get(), vg_score, vg_idx)) {
             return best_result;
         }
         if (!aligner.identify_best_jgene(sequence,
-                    jg_position, jg_score, jg_idx)) {
+                    queryAsIdx.get(), jg_position, jg_score, jg_idx)) {
             return best_result;
         }
 
@@ -329,7 +334,7 @@ std::tuple<std::vector<std::string>, double, std::string,
                     std::string> current_result;
 
             if (!this->tcr_align_input_subregion(current_result,
-                    sequence, this->chains[i],
+                    sequence, queryAsIdx.get(), this->chains[i],
                     best_vgenes.at(i), best_jgenes.at(i))) {
                 std::tuple<std::vector<std::string>, double, std::string,
                     std::string> null_result{ empty_numbering,
@@ -346,7 +351,7 @@ std::tuple<std::vector<std::string>, double, std::string,
     // strongly suggests a particular chain. Align only to that
     // chain.
     if (!this->tcr_align_input_subregion(best_result,
-            sequence, best_vg_chain,
+            sequence, queryAsIdx.get(), best_vg_chain,
             best_vg_idx, best_jg_idx)) {
         std::tuple<std::vector<std::string>, double, std::string,
             std::string> null_result{ empty_numbering,
@@ -372,12 +377,12 @@ int SingleChainAnnotatorCpp::mab_align_input_subregion(
     std::tuple<std::vector<std::string>, double,
     std::string, std::string> &best_result, std::string &query_sequence,
     std::string preferred_chain) {
-    auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
     bool fwgxg_error = false;
 
     // Set initial percent identity to minimum.
     std::get<1>(best_result) = 0.0;
 
+    auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
     if (!SequenceUtilities::convert_x_sequence_to_array(queryAsIdx.get(),
                 query_sequence))
         return NumberingTools::INVALID_SEQUENCE;
@@ -462,17 +467,13 @@ int SingleChainAnnotatorCpp::tcr_align_input_subregion(
     std::tuple<std::vector<std::string>, double,
         std::string, std::string> &best_result,
     std::string &query_sequence,
+    int *queryAsIdx,
     const std::string &preferred_chain,
     const int &preferred_vgene,
     const int &preferred_jgene) {
-    auto queryAsIdx = std::make_unique<int[]>(query_sequence.length());
 
     // Set initial percent identity to minimum.
     std::get<1>(best_result) = 0.0;
-
-    if (!SequenceUtilities::convert_x_sequence_to_array(queryAsIdx.get(),
-                query_sequence))
-        return NumberingTools::INVALID_SEQUENCE;
 
     // Notice that in contrast to mab_align_input_subregion,
     // a preferred chain MUST be specified (since otherwise this
@@ -490,7 +491,7 @@ int SingleChainAnnotatorCpp::tcr_align_input_subregion(
         double percent_identity = -1;
 
         this->tcr_scoring_tools[aligner_id].align(
-                query_sequence, queryAsIdx.get(), final_numbering,
+                query_sequence, queryAsIdx, final_numbering,
                 percent_identity, error_message,
                 preferred_vgene, preferred_jgene);
 

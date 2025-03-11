@@ -114,6 +114,8 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
         /// @param best_result The tuple of numbering, percent_identity,
         /// chain_type and error_message in which output will be stored.
         /// @param query_sequence The input sequence.
+        /// @param queryAsIdx A pointer to an array containing the query
+        /// sequence encoded as integers.
         /// @param preferred_chain Indicates which chain should be used. Note
         /// that in contrast to mab_align_input_subregion, for TCRs the
         /// preferred chain must be specified.
@@ -125,6 +127,7 @@ class SingleChainAnnotatorCpp : public AnnotatorBaseClassCpp {
             std::tuple<std::vector<std::string>, double,
                 std::string, std::string> &best_result,
             std::string &query_sequence,
+            int *queryAsIdx,
             const std::string &preferred_chain,
             const int &preferred_vgene,
             const int &preferred_jgene);
