@@ -68,7 +68,7 @@ class VJAligner {
     /// found; the result is stored in this reference.
     /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
     int identify_best_vgene(std::string &query_sequence,
-            int *encoded_sequence, int &identity, int &best_vgene_number);
+            const int *encoded_sequence, int &identity, int &best_vgene_number);
 
 
     /// @brief Identifies the jgene which is the best match for
@@ -88,7 +88,7 @@ class VJAligner {
     /// found; the result is stored in this reference.
     /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
     int identify_best_jgene(std::string &query_sequence,
-            int *encoded_sequence,
+            const int *encoded_sequence,
             int &optimal_position, int &identity,
             int &best_jgene_number);
 
@@ -141,6 +141,7 @@ class VJAligner {
     std::unique_ptr<double[]> vgene_score_array;
     std::unique_ptr<double[]> jgene_score_array;
     std::unique_ptr<int32_t[]> blosum_array;
+
     std::unique_ptr<int[]> encoded_v_window1;
     std::unique_ptr<int[]> encoded_v_window2;
     std::unique_ptr<int[]> encoded_v_window3;

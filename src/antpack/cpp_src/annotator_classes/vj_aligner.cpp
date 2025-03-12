@@ -136,7 +136,7 @@ scheme(scheme) {
         std::string window = this->vgenes.at(i).substr(VGENE_WINDOW1_START,
                 VJ_WINDOW_SIZE);
         if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
-            this->encoded_v_window1.get() + i * VJ_WINDOW_SIZE, window)) {
+            this->encoded_v_window1.get() + i*VJ_WINDOW_SIZE, window)) {
             throw std::runtime_error(std::string(
                         "Error in library installation, 1C."));
         }
@@ -144,7 +144,7 @@ scheme(scheme) {
         window = this->vgenes.at(i).substr(VGENE_WINDOW2_START,
                 VJ_WINDOW_SIZE);
         if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
-            this->encoded_v_window2.get() + i * VJ_WINDOW_SIZE, window)) {
+            this->encoded_v_window2.get() + i*VJ_WINDOW_SIZE, window)) {
             throw std::runtime_error(std::string(
                         "Error in library installation, 1D."));
         }
@@ -152,7 +152,7 @@ scheme(scheme) {
         window = this->vgenes.at(i).substr(VGENE_WINDOW3_START,
                 VJ_WINDOW_SIZE);
         if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
-            this->encoded_v_window3.get() + i * VJ_WINDOW_SIZE, window)) {
+            this->encoded_v_window3.get() + i*VJ_WINDOW_SIZE, window)) {
             throw std::runtime_error(std::string(
                         "Error in library installation, 1D1."));
         }
@@ -271,35 +271,45 @@ std::string VJAligner::get_chain_name() {
 /// found; the result is stored in this reference.
 /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
 int VJAligner::identify_best_vgene(std::string &query_sequence,
-        int *encoded_sequence, int &identity, int &best_vgene_number) {
+        const int *encoded_sequence, int &identity, int &best_vgene_number) {
     if (query_sequence.length() < VJ_WINDOW_SIZE + 1 ||
             query_sequence.length() < VJ_WINDOW_SIZE + 1)
         return INVALID_SEQUENCE;
 
     std::vector<int32_t> vgene_scores(this->vgenes.size(), 0);
-    int *vwindow1 = this->encoded_v_window1.get(),
-        *vwindow2 = this->encoded_v_window2.get(),
-        *vwindow3 = this->encoded_v_window3.get();
+    int *vwindow1 = this->encoded_v_window1.get();
+    int *vwindow2 = this->encoded_v_window2.get();
+    int *vwindow3 = this->encoded_v_window3.get();
     int32_t *blosum_mat = this->blosum_array.get();
 
     for (size_t i=0; i < this->vgenes.size(); i++) {
         int32_t best_scores[3] = {0, 0, 0};
-        int *query_ptr = encoded_sequence;
+        const int *query_ptr = encoded_sequence;
+        size_t vletters1[VJ_WINDOW_SIZE],
+            vletters2[VJ_WINDOW_SIZE],
+            vletters3[VJ_WINDOW_SIZE];
+
+        for (size_t k=0; k < VJ_WINDOW_SIZE; k++) {
+            vletters1[k] = *vwindow1 * EXPECTED_BLOSUM_SHAPE;
+            vletters2[k] = *vwindow2 * EXPECTED_BLOSUM_SHAPE;
+            vletters3[k] = *vwindow3 * EXPECTED_BLOSUM_SHAPE;
+            vwindow1++;
+            vwindow2++;
+            vwindow3++;
+        }
 
         for (size_t j=0; j < query_sequence.length() -
                 VJ_WINDOW_SIZE; j++) {
             int32_t scores[3] = {0, 0, 0};
 
             for (size_t k=0; k < VJ_WINDOW_SIZE; k++) {
-                int vletter1 = vwindow1[k];
-                int vletter2 = vwindow2[k];
-                int vletter3 = vwindow3[k];
-                scores[0] += blosum_mat[vletter1*EXPECTED_BLOSUM_SHAPE +
-                    query_ptr[k]];
-                scores[1] += blosum_mat[vletter2*EXPECTED_BLOSUM_SHAPE +
-                    query_ptr[k]];
-                scores[2] += blosum_mat[vletter3*EXPECTED_BLOSUM_SHAPE +
-                    query_ptr[k]];
+                size_t qletter = query_ptr[k];
+                scores[0] += blosum_mat[vletters1[k] +
+                    qletter];
+                scores[1] += blosum_mat[vletters2[k] +
+                    qletter];
+                scores[2] += blosum_mat[vletters3[k] +
+                    qletter];
             }
 
             query_ptr++;
@@ -309,9 +319,6 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
             }
         }
         vgene_scores[i] += best_scores[0] + best_scores[1] + best_scores[2];
-        vwindow1 += VJ_WINDOW_SIZE;
-        vwindow2 += VJ_WINDOW_SIZE;
-        vwindow3 += VJ_WINDOW_SIZE;
     }
 
 
@@ -344,7 +351,7 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
 /// found; the result is stored in this reference.
 /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
 int VJAligner::identify_best_jgene(std::string &query_sequence,
-        int *encoded_sequence, int &optimal_position, int &identity,
+        const int *encoded_sequence, int &optimal_position, int &identity,
         int &best_jgene_number) {
     if (query_sequence.length() < VJ_WINDOW_SIZE + 1)
         return INVALID_SEQUENCE;
@@ -355,15 +362,20 @@ int VJAligner::identify_best_jgene(std::string &query_sequence,
 
     for (size_t i=0; i < this->jgenes.size(); i++) {
         int32_t best_score = 0;
+        const int *query_ptr = encoded_sequence;
+        int jletters[VJ_WINDOW_SIZE];
+        for (size_t k=0; k < VJ_WINDOW_SIZE; k++)
+            jletters[k] = jwindow[k] * EXPECTED_BLOSUM_SHAPE;
+
         for (size_t j=0; j < query_sequence.length() -
                 VJ_WINDOW_SIZE; j++) {
             int32_t score = 0;
+
             for (size_t k=0; k < VJ_WINDOW_SIZE; k++) {
-                int jletter = jwindow[k];
-                int qletter = encoded_sequence[j+k];
-                score += this->blosum_array[jletter*EXPECTED_BLOSUM_SHAPE +
-                    qletter];
+                score += this->blosum_array[jletters[k] +
+                    query_ptr[k]];
             }
+            query_ptr++;
 
             if (score > best_score) {
                 optimal_positions[i] = j;
