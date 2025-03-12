@@ -41,11 +41,10 @@ static constexpr int EXPECTED_BLOSUM_SHAPE = 22;
 
 // The size of the sliding windows that we want to extract
 // from v and jgenes and their locations.
-static constexpr int VGENE_WINDOW1_SIZE = 11;
-static constexpr int VGENE_WINDOW2_SIZE = 11;
-static constexpr int JGENE_WINDOW1_SIZE = 11;
+static constexpr int VJ_WINDOW_SIZE = 11;
 static constexpr int VGENE_WINDOW1_START = 40;
 static constexpr int VGENE_WINDOW2_START = 93;
+static constexpr int VGENE_WINDOW3_START = 12;
 
 
 VJAligner::VJAligner(std::string consensus_filepath,
@@ -69,7 +68,7 @@ scheme(scheme) {
     extension_path = extension_path / "mabs" / "blosum_matrix.npy";
     cnpy::NpyArray raw_blosum_arr = cnpy::npy_load(extension_path.string());
     int16_t *raw_blosum_ptr = raw_blosum_arr.data<int16_t>();
-    if (raw_blosum_arr.word_size != 8 || raw_blosum_arr.shape[0] !=
+    if (raw_blosum_arr.word_size != 2 || raw_blosum_arr.shape[0] !=
             EXPECTED_BLOSUM_SHAPE || raw_blosum_arr.shape[1] !=
             EXPECTED_BLOSUM_SHAPE)
         throw std::runtime_error(std::string("Error in library installation "
@@ -80,7 +79,8 @@ scheme(scheme) {
 
     for (size_t i=0; i < EXPECTED_BLOSUM_SHAPE; i++) {
         for (size_t j=0; j < EXPECTED_BLOSUM_SHAPE; j++)
-            this->blosum_array[i*j] = static_cast<int32_t>(raw_blosum_ptr[i*j]);
+            this->blosum_array[i*EXPECTED_BLOSUM_SHAPE + j] =
+                static_cast<int32_t>(raw_blosum_ptr[i*EXPECTED_BLOSUM_SHAPE + j]);
     }
 
 
@@ -95,14 +95,16 @@ scheme(scheme) {
     std::filesystem::path current_filepath = extension_path / current_filename;
     if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->jgenes,
                 EXPECTED_JGENE_SIZE)) {
-        throw std::runtime_error(std::string("Error in library installation."));
+        throw std::runtime_error(std::string("Error in library installation "
+                    "(wrong jgene sequence sizes)."));
     }
 
     current_filename = receptor_type + "_" + chain_name + "V.txt";
     current_filepath = extension_path / current_filename;
     if (!cnpy::read_tcr_vj_gene_file(current_filepath, this->vgenes,
                 EXPECTED_VGENE_SIZE)) {
-        throw std::runtime_error(std::string("Error in library installation."));
+        throw std::runtime_error(std::string("Error in library installation "
+                    "(wrong vgene sizes)."));
     }
 
     // Next, encode selected sliding windows from the j-genes and
@@ -110,56 +112,67 @@ scheme(scheme) {
     // the input data to determine which v- and j-gene most closely
     // resembles a query sequence.
     this->encoded_v_window1 = std::make_unique<int[]>(this->vgenes.size() *
-                VGENE_WINDOW1_SIZE);
+                VJ_WINDOW_SIZE);
     this->encoded_v_window2 = std::make_unique<int[]>(this->vgenes.size() *
-                VGENE_WINDOW2_SIZE);
+                VJ_WINDOW_SIZE);
+    this->encoded_v_window3 = std::make_unique<int[]>(this->vgenes.size() *
+                VJ_WINDOW_SIZE);
     this->encoded_j_window1 = std::make_unique<int[]>(this->jgenes.size() *
-                JGENE_WINDOW1_SIZE);
+                VJ_WINDOW_SIZE);
 
     for (size_t i=0; i < this->vgenes.size(); i++) {
         if (this->vgenes.at(i).length() < VGENE_WINDOW1_START +
-                VGENE_WINDOW1_SIZE) {
+                VJ_WINDOW_SIZE) {
             throw std::runtime_error(std::string(
-                        "Error in library installation."));
+                        "Error in library installation, 1A."));
         }
         if (this->vgenes.at(i).length() < VGENE_WINDOW2_START +
-                VGENE_WINDOW2_SIZE) {
+                VJ_WINDOW_SIZE || this->vgenes.at(i).length() <
+                VGENE_WINDOW3_START) {
             throw std::runtime_error(std::string(
-                        "Error in library installation."));
+                        "Error in library installation, 1B."));
         }
 
         std::string window = this->vgenes.at(i).substr(VGENE_WINDOW1_START,
-                VGENE_WINDOW1_SIZE);
+                VJ_WINDOW_SIZE);
         if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
-            this->encoded_v_window1.get() + i * VGENE_WINDOW1_SIZE, window)) {
+            this->encoded_v_window1.get() + i * VJ_WINDOW_SIZE, window)) {
             throw std::runtime_error(std::string(
-                        "Error in library installation."));
+                        "Error in library installation, 1C."));
         }
 
         window = this->vgenes.at(i).substr(VGENE_WINDOW2_START,
-                VGENE_WINDOW2_SIZE);
+                VJ_WINDOW_SIZE);
         if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
-            this->encoded_v_window2.get() + i * VGENE_WINDOW2_SIZE, window)) {
+            this->encoded_v_window2.get() + i * VJ_WINDOW_SIZE, window)) {
             throw std::runtime_error(std::string(
-                        "Error in library installation."));
+                        "Error in library installation, 1D."));
+        }
+
+        window = this->vgenes.at(i).substr(VGENE_WINDOW3_START,
+                VJ_WINDOW_SIZE);
+        if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
+            this->encoded_v_window3.get() + i * VJ_WINDOW_SIZE, window)) {
+            throw std::runtime_error(std::string(
+                        "Error in library installation, 1D1."));
         }
     }
 
     for (size_t i=0; i < this->jgenes.size(); i++) {
-        if (this->jgenes.at(i).length() < JGENE_WINDOW1_SIZE) {
+        if (this->jgenes.at(i).length() < VJ_WINDOW_SIZE) {
             throw std::runtime_error(std::string(
-                        "Error in library installation."));
+                        "Error in library installation, 1E."));
         }
 
         std::string window = this->jgenes.at(i).substr(
-                this->jgenes.at(i).length() - JGENE_WINDOW1_SIZE,
-                JGENE_WINDOW1_SIZE);
+                this->jgenes.at(i).length() - VJ_WINDOW_SIZE,
+                VJ_WINDOW_SIZE);
 
         if (!SequenceUtilities::convert_gapped_x_sequence_to_array(
             this->encoded_j_window1.get() +
-            i * JGENE_WINDOW1_SIZE, window)) {
+            i * VJ_WINDOW_SIZE, window)) {
             throw std::runtime_error(std::string(
-                        "Error in library installation."));
+                        "Error in library installation, 1F."));
         }
     }
 
@@ -174,7 +187,8 @@ scheme(scheme) {
     cnpy::NpyArray vraw_score_arr = cnpy::npy_load(current_filepath.string());
     double *raw_score_ptr = vraw_score_arr.data<double>();
     if (vraw_score_arr.word_size != 8)
-        throw std::runtime_error(std::string("Error in library installation."));
+        throw std::runtime_error(std::string("Error in library installation "
+                    "1G."));
 
     for (size_t i=0; i < 3; i++)
         this->vgene_score_arr_shape[i] = vraw_score_arr.shape[i];
@@ -182,7 +196,8 @@ scheme(scheme) {
     if (this->vgene_score_arr_shape[1] != EXPECTED_VGENE_SIZE ||
             this->vgene_score_arr_shape[2] != EXPECTED_NUM_AAS_FOR_ALIGNERS ||
             this->vgene_score_arr_shape[0] != this->vgenes.size())
-        throw std::runtime_error(std::string("Error in library installation."));
+        throw std::runtime_error(std::string("Error in library installation, "
+                    "1H."));
 
     this->vgene_score_array = std::make_unique<double[]>(
             this->vgene_score_arr_shape[0] * this->vgene_score_arr_shape[1] *
@@ -199,7 +214,8 @@ scheme(scheme) {
     cnpy::NpyArray jraw_score_arr = cnpy::npy_load(current_filepath.string());
     raw_score_ptr = jraw_score_arr.data<double>();
     if (jraw_score_arr.word_size != 8)
-        throw std::runtime_error(std::string("Error in library installation."));
+        throw std::runtime_error(std::string("Error in library installation, "
+                    "1I."));
 
     for (size_t i=0; i < 3; i++)
         this->jgene_score_arr_shape[i] = jraw_score_arr.shape[i];
@@ -207,7 +223,8 @@ scheme(scheme) {
     if (this->jgene_score_arr_shape[1] != EXPECTED_JGENE_SIZE ||
             this->jgene_score_arr_shape[2] != EXPECTED_NUM_AAS_FOR_ALIGNERS ||
             this->jgene_score_arr_shape[0] != this->jgenes.size())
-        throw std::runtime_error(std::string("Error in library installation."));
+        throw std::runtime_error(std::string("Error in library installation, "
+                    "1J."));
 
     this->jgene_score_array = std::make_unique<double[]>(
             this->jgene_score_arr_shape[0] * this->jgene_score_arr_shape[1] *
@@ -255,47 +272,48 @@ std::string VJAligner::get_chain_name() {
 /// @return Returns 1 (VALID_SEQUENCE) or 0 for an error.
 int VJAligner::identify_best_vgene(std::string &query_sequence,
         int *encoded_sequence, int &identity, int &best_vgene_number) {
-    if (query_sequence.length() < VGENE_WINDOW1_SIZE + 1 ||
-            query_sequence.length() < VGENE_WINDOW2_SIZE + 1)
+    if (query_sequence.length() < VJ_WINDOW_SIZE + 1 ||
+            query_sequence.length() < VJ_WINDOW_SIZE + 1)
         return INVALID_SEQUENCE;
 
     std::vector<int32_t> vgene_scores(this->vgenes.size(), 0);
+    int *vwindow1 = this->encoded_v_window1.get(),
+        *vwindow2 = this->encoded_v_window2.get(),
+        *vwindow3 = this->encoded_v_window3.get();
+    int32_t *blosum_mat = this->blosum_array.get();
 
     for (size_t i=0; i < this->vgenes.size(); i++) {
-        int32_t best_score = 0;
+        int32_t best_scores[3] = {0, 0, 0};
+        int *query_ptr = encoded_sequence;
+
         for (size_t j=0; j < query_sequence.length() -
-                VGENE_WINDOW1_SIZE; j++) {
-            int32_t score = 0;
-            for (size_t k=0; j < VGENE_WINDOW1_SIZE; j++) {
-                int vletter = this->encoded_v_window1[i*VGENE_WINDOW1_SIZE + k];
-                int qletter = encoded_sequence[j+k];
-                score += this->blosum_array[vletter*EXPECTED_BLOSUM_SHAPE +
-                    qletter];
+                VJ_WINDOW_SIZE; j++) {
+            int32_t scores[3] = {0, 0, 0};
+
+            for (size_t k=0; k < VJ_WINDOW_SIZE; k++) {
+                int vletter1 = vwindow1[k];
+                int vletter2 = vwindow2[k];
+                int vletter3 = vwindow3[k];
+                scores[0] += blosum_mat[vletter1*EXPECTED_BLOSUM_SHAPE +
+                    query_ptr[k]];
+                scores[1] += blosum_mat[vletter2*EXPECTED_BLOSUM_SHAPE +
+                    query_ptr[k]];
+                scores[2] += blosum_mat[vletter3*EXPECTED_BLOSUM_SHAPE +
+                    query_ptr[k]];
             }
 
-            if (score > best_score)
-                best_score = score;
-        }
-        vgene_scores[i] += best_score;
-    }
-
-    for (size_t i=0; i < this->vgenes.size(); i++) {
-        int32_t best_score = 0;
-        for (size_t j=0; j < query_sequence.length() -
-                VGENE_WINDOW2_SIZE; j++) {
-            int32_t score = 0;
-            for (size_t k=0; j < VGENE_WINDOW2_SIZE; j++) {
-                int vletter = this->encoded_v_window2[i*VGENE_WINDOW2_SIZE + k];
-                int qletter = encoded_sequence[j+k];
-                score += this->blosum_array[vletter*EXPECTED_BLOSUM_SHAPE +
-                    qletter];
+            query_ptr++;
+            for (size_t k=0; k < 3; k++) {
+                if (scores[k] > best_scores[k])
+                    best_scores[k] = scores[k];
             }
-
-            if (score > best_score)
-                best_score = score;
         }
-        vgene_scores[i] += best_score;
+        vgene_scores[i] += best_scores[0] + best_scores[1] + best_scores[2];
+        vwindow1 += VJ_WINDOW_SIZE;
+        vwindow2 += VJ_WINDOW_SIZE;
+        vwindow3 += VJ_WINDOW_SIZE;
     }
+
 
     identity = 0;
     best_vgene_number = 0;
@@ -328,19 +346,20 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
 int VJAligner::identify_best_jgene(std::string &query_sequence,
         int *encoded_sequence, int &optimal_position, int &identity,
         int &best_jgene_number) {
-    if (query_sequence.length() < JGENE_WINDOW1_SIZE + 1)
+    if (query_sequence.length() < VJ_WINDOW_SIZE + 1)
         return INVALID_SEQUENCE;
 
     std::vector<int32_t> jgene_scores(this->jgenes.size(), 0);
     std::vector<int> optimal_positions(this->jgenes.size(), 0);
+    int *jwindow = this->encoded_j_window1.get();
 
     for (size_t i=0; i < this->jgenes.size(); i++) {
         int32_t best_score = 0;
         for (size_t j=0; j < query_sequence.length() -
-                JGENE_WINDOW1_SIZE; j++) {
+                VJ_WINDOW_SIZE; j++) {
             int32_t score = 0;
-            for (size_t k=0; j < JGENE_WINDOW1_SIZE; j++) {
-                int jletter = this->encoded_j_window1[i*JGENE_WINDOW1_SIZE + k];
+            for (size_t k=0; k < VJ_WINDOW_SIZE; k++) {
+                int jletter = jwindow[k];
                 int qletter = encoded_sequence[j+k];
                 score += this->blosum_array[jletter*EXPECTED_BLOSUM_SHAPE +
                     qletter];
@@ -352,6 +371,7 @@ int VJAligner::identify_best_jgene(std::string &query_sequence,
             }
         }
         jgene_scores[i] = best_score;
+        jwindow += VJ_WINDOW_SIZE;
     }
 
     identity = 0;
@@ -831,7 +851,7 @@ void VJAligner::fill_needle_scoring_table(uint8_t *path_trace,
         score_updates[DIAGONAL_TRANSFER] = needle_scores[diag_neighbor] +
             jgene_itr[encoded_sequence[j]];
         // If a gap is already open, extending a c-terminal gap should
-        // cost nothing.
+        // cost minimally.
         if (path_trace[grid_pos - 1] != LEFT_TRANSFER) {
             score_updates[LEFT_TRANSFER] = needle_scores[grid_pos - 1] +
                 CTERMINAL_QUERY_GAP_PENALTY;

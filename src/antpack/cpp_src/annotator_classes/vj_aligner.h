@@ -143,6 +143,7 @@ class VJAligner {
     std::unique_ptr<int32_t[]> blosum_array;
     std::unique_ptr<int[]> encoded_v_window1;
     std::unique_ptr<int[]> encoded_v_window2;
+    std::unique_ptr<int[]> encoded_v_window3;
     std::unique_ptr<int[]> encoded_j_window1;
     std::vector<std::string> vgenes;
     std::vector<std::string> jgenes;
