@@ -367,12 +367,13 @@ void IGAligner::align(std::string query_sequence,
 
 
     // position_key is now the same length as final_numbering and indicates at
-    // each position whether that position maps to a standard 
+    // each position whether that position maps to a standard
     // position and if so what. Now use this to calculate percent identity,
     // excluding those positions at which the numbering system tolerates any
     // amino acid (i.e. CDRs). At the same time, we can check whether the
     // expected amino acids are present at the highly conserved residues.
-    // The consensus map will have only one possible amino acid at those positions.
+    // The consensus map will have only one possible amino acid at
+    // those positions.
 
     int num_required_positions_found = 0;
 

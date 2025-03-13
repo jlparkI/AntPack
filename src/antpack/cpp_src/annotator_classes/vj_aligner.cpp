@@ -600,6 +600,15 @@ void VJAligner::align(std::string query_sequence,
     // only one possible amino acid at those positions.
 
     int num_required_positions_found = 0;
+    int num_restricted_positions = 0;
+    for (const auto & vl : this->vgenes[vgene_number]) {
+        if (vl != '-')
+            num_restricted_positions += 1;
+    }
+    for (const auto & jl : this->jgenes[jgene_number]) {
+        if (jl != '-')
+            num_restricted_positions += 1;
+    }
 
     for (size_t k=0; k < position_key.size(); k++) {
         int scheme_std_position = position_key[k];
@@ -622,7 +631,7 @@ void VJAligner::align(std::string query_sequence,
         }
     }
 
-    percent_identity /= static_cast<double>(this->num_restricted_positions);
+    percent_identity /= static_cast<double>(num_restricted_positions);
 
     error_code = noError;
     // Check to make sure query sequence and numbering are same length. If not,

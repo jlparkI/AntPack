@@ -151,9 +151,6 @@ class VJAligner {
 
     // Since we always use IMGT, num_positions is set to 128.
     int num_positions = 128;
-    // Likewise set num_restricted_positions to a preset value based
-    // on how many positions are not gapped in IMGT for TCRs specifically.
-    int num_restricted_positions = 85;
 
     std::vector<int> highly_conserved_positions;
     std::array<std::string, 6> error_code_to_message {{"",

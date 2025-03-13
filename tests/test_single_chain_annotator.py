@@ -461,7 +461,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
     def test_extended_length_handling(self):
         """Check situations where the sequence is much longer than
-        a typical variable chain."""
+        a typical variable chain. For now this test is only for
+        mAbs."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -506,7 +507,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
     def test_x_handling(self):
         """Check situations where one or more letters has
-        been replaced with X."""
+        been replaced with X. This is specifically for mAbs."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
