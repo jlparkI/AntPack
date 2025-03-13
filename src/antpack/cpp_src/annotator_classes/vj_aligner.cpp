@@ -273,7 +273,7 @@ std::string VJAligner::get_chain_name() {
 int VJAligner::identify_best_vgene(std::string &query_sequence,
         const int *encoded_sequence, int &identity, int &best_vgene_number) {
     if (query_sequence.length() < VJ_WINDOW_SIZE + 1 ||
-            query_sequence.length() < VJ_WINDOW_SIZE + 1)
+            query_sequence.length() < VJ_WINDOW_SIZE + 2)
         return INVALID_SEQUENCE;
 
     std::vector<int32_t> vgene_scores(this->vgenes.size(), 0);
@@ -353,7 +353,7 @@ int VJAligner::identify_best_vgene(std::string &query_sequence,
 int VJAligner::identify_best_jgene(std::string &query_sequence,
         const int *encoded_sequence, int &optimal_position, int &identity,
         int &best_jgene_number) {
-    if (query_sequence.length() < VJ_WINDOW_SIZE + 1)
+    if (query_sequence.length() < VJ_WINDOW_SIZE + 2)
         return INVALID_SEQUENCE;
 
     std::vector<int32_t> jgene_scores(this->jgenes.size(), 0);
@@ -367,11 +367,16 @@ int VJAligner::identify_best_jgene(std::string &query_sequence,
         for (size_t k=0; k < VJ_WINDOW_SIZE; k++)
             jletters[k] = jwindow[k] * EXPECTED_BLOSUM_SHAPE;
 
-        for (size_t j=0; j < query_sequence.length() -
-                VJ_WINDOW_SIZE; j++) {
+        // Loop up to the length of the sequence minus 7. 7 is arbitrary
+        // but past a certain point if we look for matches to say only
+        // the first three positions of the jgene we will start to get
+        // false positives.
+        for (size_t j=0; j < query_sequence.length() - 7; j++) {
+            int cap = (j < query_sequence.length() - VJ_WINDOW_SIZE) ?
+                VJ_WINDOW_SIZE : (query_sequence.length() - j);
             int32_t score = 0;
 
-            for (size_t k=0; k < VJ_WINDOW_SIZE; k++) {
+            for (size_t k=0; k < cap; k++) {
                 score += this->blosum_array[jletters[k] +
                     query_ptr[k]];
             }
@@ -382,6 +387,7 @@ int VJAligner::identify_best_jgene(std::string &query_sequence,
                 best_score = score;
             }
         }
+
         jgene_scores[i] = best_score;
         jwindow += VJ_WINDOW_SIZE;
     }

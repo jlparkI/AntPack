@@ -260,11 +260,7 @@ int PrefilteringTool::find_start_end_zones(std::string &query_sequence,
         for (int j=0; j < this->num_positions; j++) {
             // This is a little clunky and introduces unnecessary
             // branching. TODO: Break into two loops so we don't
-            // have to do this. Also note that this can be greatly
-            // accelerated by simply adding the next letter score
-            // and removing the last one on each pass -- have not
-            // done this yet since likely "premature optimization"
-            // but TODO.
+            // have to do this.
             if (i + j >= query_sequence.length())
                 break;
 
