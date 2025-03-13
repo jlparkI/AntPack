@@ -30,9 +30,37 @@ class TestSingleChainAnnotator(unittest.TestCase):
         self.assertTrue(results[3].startswith("Sequence contains invalid"))
 
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["a", "1"])
+            _ = aligner.sort_position_codes(["a", "1"])
         with self.assertRaises(RuntimeError):
-            sorted_positions = aligner.sort_position_codes(["1", "2", "C3"])
+            _ = aligner.sort_position_codes(["1", "2", "C3"])
+
+        # Repeat these tests with a SingleChainAnnotator for TCRs.
+        aligner = SingleChainAnnotator(chains=["A", "B", "D", "G"])
+        results = aligner.analyze_seqs(["YaY"])
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
+        results = aligner.analyze_seqs(["YBW"])
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
+        results = aligner.analyze_seqs(["Y K"])
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
+        results = aligner.analyze_seqs(["Y-K"])
+        self.assertTrue(results[0][3].startswith("Sequence contains invalid"))
+
+        results = aligner.analyze_seq("Y-K")
+        self.assertTrue(results[3].startswith("Sequence contains invalid"))
+        results = aligner.analyze_seq("yAy")
+        self.assertTrue(results[3].startswith("Sequence contains invalid"))
+
+        # It should be impossible to create an annotator for both TCRs and
+        # mAbs -- let's check.
+        with self.assertRaises(RuntimeError):
+            aligner = SingleChainAnnotator(chains=["A", "B", "D", "H"])
+        with self.assertRaises(RuntimeError):
+            aligner = SingleChainAnnotator(chains=["H", "K", "A"])
+
+        # The only scheme allowed for TCRs should be IMGT.
+        with self.assertRaises(RuntimeError):
+            aligner = SingleChainAnnotator(chains=["A", "B", "D", "G"], scheme="martin")
+
 
 
     def test_chain_recognition(self):
@@ -40,38 +68,57 @@ class TestSingleChainAnnotator(unittest.TestCase):
         input chain when supplied with something that could be L or H,
         and ensure it can correctly detect sequences with large deletions
         that remove one or more conserved residues."""
-        known_K = ("DIVMTQSPSSLTVTAGEKVTMSCKSSQSLLSSGNQKNYLTWYQQIPGQPPKLLIYWASTR"
+        known_k = ("DIVMTQSPSSLTVTAGEKVTMSCKSSQSLLSSGNQKNYLTWYQQIPGQPPKLLIYWASTR"
                     "ESGVPDRFTGSGSGTDFTLTINSVQAEDLAVYYCQNDYTYPLTFGAGTKLELKRTV")
-        known_L = ("QSALTQPASVSGSPGQSITISCTGTTSDVGTYNFVSWYQQHPGKAPKAIIFDVTNRPSGI"
+        known_l = ("QSALTQPASVSGSPGQSITISCTGTTSDVGTYNFVSWYQQHPGKAPKAIIFDVTNRPSGI"
                     "SNRFSGSKFGNTASLTISGLQAEDEADYYCAAYTVASTLLFGGGTKVTVLRQP")
-        known_H = ("VHLQQSGAELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYN"
+        known_h = ("VHLQQSGAELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYN"
                     "ENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA")
 
-        for multithreading_setting in [False]:
-            for scheme in ["martin", "imgt", "kabat", "aho"]:
-                aligner = SingleChainAnnotator(chains=["H", "K", "L"],
-                            scheme = scheme)
-                results = aligner.analyze_seqs([known_K, known_L, known_H])
-                self.assertTrue(results[0][2] == "K")
-                self.assertTrue(results[1][2] == "L")
-                self.assertTrue(results[2][2] == "H")
+        for scheme in ["martin", "imgt", "kabat", "aho"]:
+            aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                        scheme = scheme)
+            results = aligner.analyze_seqs([known_k, known_l, known_h])
+            self.assertTrue(results[0][2] == "K")
+            self.assertTrue(results[1][2] == "L")
+            self.assertTrue(results[2][2] == "H")
 
-                self.assertTrue(aligner.analyze_seq(known_K)[2] == "K")
-                self.assertTrue(aligner.analyze_seq(known_L)[2] == "L")
-                self.assertTrue(aligner.analyze_seq(known_H)[2] == "H")
+            self.assertTrue(aligner.analyze_seq(known_k)[2] == "K")
+            self.assertTrue(aligner.analyze_seq(known_l)[2] == "L")
+            self.assertTrue(aligner.analyze_seq(known_h)[2] == "H")
 
-                bad_chain = known_H[:100]
-                self.assertTrue(aligner.analyze_seqs([bad_chain])[0][3].startswith("Unexpected"))
-                self.assertTrue(aligner.analyze_seq(bad_chain)[3].startswith("Unexpected"))
+            bad_chain = known_h[:100]
+            self.assertTrue(aligner.analyze_seqs([bad_chain])[0][3].startswith("Unexpected"))
+            self.assertTrue(aligner.analyze_seq(bad_chain)[3].startswith("Unexpected"))
 
-    def test_performance(self):
+        # Repeat this check, but this time using TCRs; the only allowed scheme for these
+        # is IMGT.
+        known_a = ("MQQVRQSPQSLTVWEGETAILNCSYENSAFDYFPWYQQFPGEGPALLIAIRSVSDKK"
+                "EDGRFTIFFNKREKKLSLHITDSQPGDSATYFCAASATGANTGKLTFGHGTILRVHP")
+        known_b = ("DAGVIQSPRHEVTEMGQEVTLRCKPISGHNSLFWYRQTMMRGLELLIYFNNNVPIDD"
+                "SGMPEDRFSAKMPNASFSTLKIQPSEPRDSAVYFCASTWGRASTDTQYFGPGTRLTVL")
+        known_d = ("AQKVTQAQSSVSMPVRKAVTLNCLYETSWWSYYIFWYKQLPSKEMIFLIRQGSDE"
+                "QNAKSGRYSVNFKKAAKSVALTISALQLEDSAKYFCALGDPGGLNTDKLIFGKGTRVTVEP")
+        known_g = ("SSNLEGGTKSVTRPTRSSAEITCDLTVINAFYIHWYLHQEGKAPQRLLYYDVSNSKDVLE"
+                "SGLSPGKYYTHTPRRWSWILILRNLIENDSGVYYCATWDRGNPKTHYYKKLFGSGTTLVVTD")
+        aligner = SingleChainAnnotator(chains=["A", "B", "D", "G"])
+        results = aligner.analyze_seqs([known_a, known_b, known_d, known_g])
+        self.assertTrue(results[0][2] == "A")
+        self.assertTrue(results[1][2] == "B")
+        self.assertTrue(results[2][2] == "D")
+        self.assertTrue(results[3][2] == "G")
+
+
+
+    def test_mab_performance(self):
         """Run a batch of test data (approximately 1600 sequences from the
         PDB) to ensure that numbering is consistent with numbering generated
         by another tool. There will occasionally be small differences in
         cases where there are multiple possible acceptable alignments,
         but in general we expect the numbering to be the same the vast
         majority of the time. Also check that the sequences can be correctly
-        formed into an MSA."""
+        formed into an MSA. This test is for mAbs specifically, tcrs are
+        tested separately since they use a different alignment workflow."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -131,7 +178,9 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
 
     def test_alignment_trimming(self):
-        """Make sure the alignment trimming procedure yields correct results."""
+        """Make sure the alignment trimming procedure yields correct results.
+        Since this procedure is the same for mabs and TCRs, we do not need
+        to check separately."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -157,7 +206,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                     scheme="imgt")
         aligner_results = aligner.analyze_seqs(padded_seqs)
-        
+
         for sequence, alignment in zip(padded_seqs, aligner_results):
             numbering = alignment[0]
             exstart = next((i for i in range(len(numbering)) if numbering[i] != '-'), 0)
@@ -178,7 +227,8 @@ class TestSingleChainAnnotator(unittest.TestCase):
     def test_region_labeling(self):
         """Ensure that the region labels assigned by the region labeling
         procedure correspond to our expectations, using a fairly
-        inefficient procedure to determine ground-truth labeling."""
+        inefficient procedure to determine ground-truth labeling.
+        This procedure is the same for mabs and tcrs."""
         regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
@@ -273,7 +323,9 @@ class TestSingleChainAnnotator(unittest.TestCase):
 
     def test_position_code_sorting(self):
         """Checks the position code sorting function to make
-        sure it is sorting positions correctly for different schemes."""
+        sure it is sorting positions correctly for different schemes.
+        This procedure is the same for mabs and tcrs, so no need
+        to test separately."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
