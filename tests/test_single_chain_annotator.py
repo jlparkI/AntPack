@@ -140,16 +140,15 @@ class TestSingleChainAnnotator(unittest.TestCase):
         numberings = [martin_num, kabat_num, imgt_num, aho_num]
         schemes = ["martin", "kabat", "imgt", "aho"]
 
-        for multithreading_setting in [False]:
-            for scheme, numbering in zip(schemes, numberings):
-                aligner = SingleChainAnnotator(chains=["H", "K", "L"],
-                    scheme=scheme)
-                aligner_results = aligner.analyze_seqs(seqs)
-                total_comparisons, num_correct = compare_results(aligner_results,
-                                    numbering, seqs, scheme)
-                print(f"{scheme}: Total comparisons: {total_comparisons}. "
-                        f"Num matching: {num_correct}. Multithreading {multithreading_setting}.")
-                self.assertTrue(num_correct / total_comparisons > 0.97)
+        for scheme, numbering in zip(schemes, numberings):
+            aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                scheme=scheme)
+            aligner_results = aligner.analyze_seqs(seqs)
+            total_comparisons, num_correct = compare_results(aligner_results,
+                                numbering, seqs, scheme)
+            print(f"{scheme}: Total comparisons: {total_comparisons}. "
+                    f"Num matching: {num_correct}.")
+            self.assertTrue(num_correct / total_comparisons > 0.97)
 
         # The last one produced is IMGT. Use this to test MSA construction.
         hnumbering, lnumbering, hseqs, lseqs = [], [], [], []
@@ -174,6 +173,60 @@ class TestSingleChainAnnotator(unittest.TestCase):
             for msa_seq in msa:
                 self.assertTrue(len(msa_seq) == len(position_set))
 
+
+    def test_tcr_performance(self):
+        """Run a batch of test data (approximately 525 sequences from the
+        PDB) to ensure that numbering is consistent with numbering generated
+        by another tool. There will occasionally be small differences in
+        cases where there are multiple possible acceptable alignments,
+        but in general we expect the numbering to be the same the vast
+        majority of the time. Also check that the sequences can be correctly
+        formed into an MSA. This test is for TCRs specifically, mabs are
+        tested separately since they use a different alignment workflow."""
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("tcr_test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs, imgt_num = [], []
+            for line in fhandle:
+                line_elements = line.strip().split(",")
+                seqs.append(line_elements[0])
+                imgt_num.append(line_elements[1].split("_"))
+
+        os.chdir(current_dir)
+
+        aligner = SingleChainAnnotator(chains=["A", "B", "D", "G"])
+        aligner_results = aligner.analyze_seqs(seqs)
+        total_comparisons, num_correct = compare_results(aligner_results,
+                                    imgt_num, seqs, "imgt")
+        print(f"*TCRS, IMGT: Total comparisons: {total_comparisons}. "
+                f"Num matching: {num_correct}.")
+        self.assertTrue(num_correct / total_comparisons > 0.97)
+
+        # The last one produced is IMGT. Use this to test MSA construction.
+        hnumbering, lnumbering, hseqs, lseqs = [], [], [], []
+
+        for seq, numbering in zip(seqs, aligner_results):
+            if numbering[2] in ["B", "D"]:
+                lnumbering.append(numbering)
+                lseqs.append(seq)
+            elif numbering[2] in ["A", "G"]:
+                hnumbering.append(numbering)
+                hseqs.append(seq)
+
+        observed_positions = set()
+        for n in hnumbering:
+            for pos in n[0]:
+                observed_positions.add(pos)
+
+        hpositions, hmsa = aligner.build_msa(hseqs, hnumbering, False)
+        lpositions, lmsa = aligner.build_msa(lseqs, lnumbering, False)
+
+        for position_set, msa in [(hpositions, hmsa), (lpositions, lmsa)]:
+            for msa_seq in msa:
+                self.assertTrue(len(msa_seq) == len(position_set))
 
 
 
@@ -227,8 +280,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
     def test_region_labeling(self):
         """Ensure that the region labels assigned by the region labeling
         procedure correspond to our expectations, using a fairly
-        inefficient procedure to determine ground-truth labeling.
-        This procedure is the same for mabs and tcrs."""
+        inefficient procedure to determine ground-truth labeling."""
         regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
@@ -319,6 +371,59 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 if gt_regions != labels:
                     num_err += 1
             self.assertTrue(num_err == 0)
+
+
+    def test_tcr_region_labeling(self):
+        """Ensure that the region labels assigned by the region labeling
+        procedure correspond to our expectations, using a fairly
+        inefficient procedure to determine ground-truth labeling.
+        This is very similar to mAbs but uses different test
+        data."""
+        regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
+
+        project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
+        os.chdir(os.path.join(project_path, "test_data"))
+
+        with gzip.open("tcr_test_data.csv.gz", "rt") as fhandle:
+            _ = fhandle.readline()
+            seqs = [line.strip().split(",")[0] for line in fhandle]
+
+        imgt_labels = [(str(i), "fmwk1") for i in range(1,27)] + \
+                [(str(i), "cdr1") for i in range(27,40)] + \
+                [(str(i), "fmwk2") for i in range(39,56)] + \
+                [(str(i), "cdr2") for i in range(56,66)] + \
+                [(str(i), "fmwk3") for i in range(66,105)] + \
+                [(str(i), "cdr3") for i in range(105,118)] + \
+                [(str(i), "fmwk4") for i in range(118,129)]
+        imgt_labels = {a:k for (a,k) in imgt_labels}
+
+
+        def get_gt_regions(numbering, label_map):
+            gt_reg = []
+            for n in numbering:
+                if n == "-":
+                    gt_reg.append("-")
+                else:
+                    gt_reg.append(label_map[regex.search(n).groups()[0]])
+            return gt_reg
+
+        os.chdir(current_dir)
+
+        aligner = SingleChainAnnotator(chains=["A", "B", "D", "G"])
+        num_err = 0
+
+        for seq in seqs:
+            numbering = aligner.analyze_seq(seq)
+            labels = aligner.assign_cdr_labels(numbering[0],
+                        numbering[2])
+
+            gt_regions = get_gt_regions(numbering[0],
+                    imgt_labels)
+            if gt_regions != labels:
+                num_err += 1
+        self.assertTrue(num_err == 0)
+
 
 
     def test_position_code_sorting(self):

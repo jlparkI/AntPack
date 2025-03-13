@@ -43,6 +43,8 @@ static constexpr int INVALID_SEQUENCE = 0;
 // Codes for chain type identification when building MSAs.
 static constexpr int MSA_HEAVY_CHAIN_ONLY = 1;
 static constexpr int MSA_LIGHT_CHAIN_ONLY = 2;
+static constexpr int MSA_TCR_HEAVY_CHAIN_ONLY = 3;
+static constexpr int MSA_TCR_LIGHT_CHAIN_ONLY = 4;
 
 
 /// @brief Check that the input sequence is valid. Does not allow X or gaps

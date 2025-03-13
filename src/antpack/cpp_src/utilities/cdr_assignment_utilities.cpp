@@ -53,7 +53,8 @@ void assign_cdr_labels(const std::vector<std::string> &numbering,
             "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"};
 
     if (scheme == "imgt") {
-        if (chain == "H" || chain == "L" || chain == "K")
+        if (chain == "H" || chain == "L" || chain == "K" || chain == "A"
+                || chain == "B" || chain == "D" || chain == "G")
             current_breakpoints = NumberingTools::IMGT_CDR_BREAKPOINTS;
         else
             throw std::runtime_error(std::string("Unrecognized chain or "

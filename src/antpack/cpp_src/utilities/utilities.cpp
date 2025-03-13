@@ -596,19 +596,41 @@ int build_msa_utility(std::vector<std::string> &sequences,
         if (std::get<2>(annotation) == "H") {
             if (chain_type > 0 && chain_type != MSA_HEAVY_CHAIN_ONLY) {
                 throw std::runtime_error(std::string("An MSA can only be built "
-                            "from either heavy chains or light chains."));
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
             } else {
                 chain_type = MSA_HEAVY_CHAIN_ONLY;
             }
-        }
-        else if (std::get<2>(annotation) == "K" ||
+        } else if (std::get<2>(annotation) == "K" ||
                 std::get<2>(annotation) == "L") {
             if (chain_type > 0 && chain_type != MSA_LIGHT_CHAIN_ONLY) {
                 throw std::runtime_error(std::string("An MSA can only be built "
-                            "from either heavy chains or light chains."));
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
             } else {
                 chain_type = MSA_LIGHT_CHAIN_ONLY;
             }
+        } else if (std::get<2>(annotation) == "B" ||
+                std::get<2>(annotation) == "D") {
+            if (chain_type > 0 && chain_type != MSA_TCR_LIGHT_CHAIN_ONLY) {
+                throw std::runtime_error(std::string("An MSA can only be built "
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
+            } else {
+                chain_type = MSA_TCR_LIGHT_CHAIN_ONLY;
+            }
+        } else if (std::get<2>(annotation) == "A" ||
+                std::get<2>(annotation) == "G") {
+            if (chain_type > 0 && chain_type != MSA_TCR_HEAVY_CHAIN_ONLY) {
+                throw std::runtime_error(std::string("An MSA can only be built "
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
+            } else {
+                chain_type = MSA_TCR_HEAVY_CHAIN_ONLY;
+            }
+        } else {
+                throw std::runtime_error(std::string("An unrecognized chain "
+                            "code was supplied."));
         }
     }
 
@@ -698,7 +720,7 @@ int build_msa_utility(std::vector<std::string> &sequences,
             if (code_to_location.find(pos_code) == code_to_location.end())
                 throw std::runtime_error(std::string("Invalid position codes "
                             "were supplied."));
-            
+
             int location = code_to_location[pos_code];
             aligned_seq[location] = sequences[i][j];
         }
