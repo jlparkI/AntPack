@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
                     "You are currently viewing a VJ gene sequence comparison. "
                     "You must clear this before using the Add Sequence "
                     "option.", QMessageBox.Ok)
+                return
 
         dialog = AddSequenceDialog(self)
         if dialog.exec():
@@ -181,6 +182,7 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
             if self.selected_seqs is None:
                 self.selected_seqs = MultiSequenceData()
             err = ""
