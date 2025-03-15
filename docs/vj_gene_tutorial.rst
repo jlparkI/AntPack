@@ -30,13 +30,9 @@ returns a list of the v-genes and j-genes that achieved the same
 (or essentially equivalent) score, delimited or separated by the
 character "_".
 
-AntPack can also use either the "imgt" database or the "ogrdb"
-database. In general we prefer "imgt". "ogrdb" assigns different
-names to sequences with the same amino acid sequence, so in some
-cases there is more than one name for the same gene; when this
-happens, these are all reported separated by spaces, i.e.
-"gene1 gene2". Still, the OGRDB database is available if useful
-for your particular project. Where IMGT is concerned, note that some
+In some versions of AntPack, there was a supported option to use
+the OGRDB database in place of IMGT. This option is removed as
+of v0.3.8. Note that some
 sequences found in IMGT VQuest are excluded (pseudogenes,
 partial sequences, sequences that do not have 'F' in the functionality
 section etc.), so not all V and J genes in the IMGT db are in
