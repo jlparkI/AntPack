@@ -16,23 +16,18 @@ class VJGeneTool(VJMatchCounter):
     used for these assignments is stored and can be retrieved
     if needed."""
 
-    def __init__(self, database = "imgt", scheme = "imgt"):
+    def __init__(self, scheme = "imgt"):
         """Class constructor.
 
         Args:
-            database (str): One of 'imgt', 'ogrdb'. Determines whether
-                the IMGT or OGRDB databases are used for germline gene
-                assignment.
             scheme (str): One of 'aho, 'imgt', 'kabat' or 'martin'.
                 Determines the numbering scheme that will be used
                 when assigning vj genes based on alignments.
         """
-        if database not in ("imgt", "ogrdb"):
-            raise RuntimeError("Invalid database supplied.")
         project_path = os.path.abspath(os.path.dirname(__file__))
         db_path = os.path.join(project_path, "consensus_data")
         vj_names, vj_seqs, retrieved_dates = load_vj_gene_consensus_db(os.getcwd(),
-                db_path, database)
+                db_path, "imgt")
 
         blosum_matrix = np.load(os.path.join(project_path, "..",
             "numbering_tools", "consensus_data", "mabs",

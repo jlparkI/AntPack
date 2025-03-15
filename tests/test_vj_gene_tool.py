@@ -15,13 +15,14 @@ class TestVJGeneTool(unittest.TestCase):
         as such, and that deliberately invalid inputs are recognized."""
         # Pass dummy sequences with errors.
         vj_tool = VJGeneTool()
-        vgene, jgene, vident, jident = vj_tool.assign_vj_genes(
+        vgene, jgene, vident, jident, species = vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
                 "AYAYAYA", "human")
         self.assertTrue(vident==0)
         self.assertTrue(jident==0)
         self.assertTrue(vgene=="")
         self.assertTrue(jgene=="")
+        self.assertTrue(species=="unknown")
 
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
@@ -43,6 +44,10 @@ class TestVJGeneTool(unittest.TestCase):
                 (["1", "2", "3"], 0, "K", ""),
                 "AYA", "alpaca", "identity")
 
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "A", ""),
+                "AYA", "alpaca", "identity")
 
 
     def test_gene_retrieval(self):
@@ -80,12 +85,17 @@ class TestVJGeneTool(unittest.TestCase):
         self.assertTrue(assn[0] != '')
         assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "alpaca")
         self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "unknown")
+        self.assertTrue(assn[0] != '')
 
         assn = vj_tool.assign_vj_genes(light_annotation, test_light, "human")
         self.assertTrue(assn[0] != '')
         assn = vj_tool.assign_vj_genes(light_annotation, test_light, "mouse")
         self.assertTrue(assn[0] != '')
         assn = vj_tool.assign_vj_genes(light_annotation, test_light, "rabbit")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light,
+                "unknown")
         self.assertTrue(assn[0] != '')
 
 
@@ -113,7 +123,7 @@ class TestVJGeneTool(unittest.TestCase):
             chain = alignment[2]
             fmt_seq = prep_sequence(seq, alignment)
 
-            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+            vpred, jpred, videntity, jidentity, _ = vj_tool.assign_vj_genes(alignment,
                     seq, "human")
 
             gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
@@ -169,7 +179,7 @@ class TestVJGeneTool(unittest.TestCase):
             chain = alignment[2]
             fmt_seq = prep_sequence(seq, alignment)
 
-            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+            vpred, jpred, videntity, jidentity, _ = vj_tool.assign_vj_genes(alignment,
                     seq, "human", "evalue")
 
             gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
@@ -222,7 +232,7 @@ class TestVJGeneTool(unittest.TestCase):
                 pid, chain, err = alignment[1], alignment[2], alignment[3]
                 if pid < 0.8 or err != "":
                     continue
-                pred_vgene, pred_jgene, pidv, pidj = vj_tool.assign_vj_genes(alignment,
+                pred_vgene, pred_jgene, pidv, pidj, _ = vj_tool.assign_vj_genes(alignment,
                         seq, "human", "identity")
 
                 if vgene in pred_vgene:
@@ -271,15 +281,18 @@ class TestVJGeneTool(unittest.TestCase):
                     annotation1 = imgt_aligner.analyze_seq(seq)
                     annotation2 = alternate_aligner.analyze_seq(seq)
 
-                    pred_vgene1, pred_jgene1, pidv1, pidj1 = imgt_tool.assign_vj_genes(annotation1,
+                    pred_vgene1, pred_jgene1, pidv1, pidj1, species1 = \
+                        imgt_tool.assign_vj_genes(annotation1,
                             seq, "human", "identity")
-                    pred_vgene2, pred_jgene2, pidv2, pidj2 = alternate_tool.assign_vj_genes(
+                    pred_vgene2, pred_jgene2, pidv2, pidj2, species2 = \
+                        alternate_tool.assign_vj_genes(
                             annotation2, seq, "human", "identity")
 
                     self.assertTrue(pred_vgene1==pred_vgene2)
                     self.assertTrue(pred_jgene1==pred_jgene2)
                     self.assertTrue(np.allclose(pidv1, pidv2))
                     self.assertTrue(np.allclose(pidj1, pidj2))
+                    self.assertTrue(species1==species2)
 
         os.chdir(current_dir)
 

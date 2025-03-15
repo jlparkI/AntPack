@@ -104,34 +104,107 @@ scheme(scheme) {
 
 
 
-std::tuple<std::string, std::string, double, double>
+/// @brief Assigns the correct VJ genes for a specified species -- or,
+/// if unknown is specified, tries to determine the correct species.
+/// This function is exposed to Python and to external classes.
+/// @param alignment A tuple of numbering, percent identity, chain and
+/// error message such as is returned by any of the Annotators.
+/// @param sequence The sequence to be checked.
+/// @param species A supported species OR "unknown". If "unknown",
+/// all available species will be checked.
+/// @param mode One of "identity", "evalue". Determines how the closest
+/// VJ gene is selected.
+/// @return Returns a tuple of v-genes (separated by _), j-genes (separated
+/// by _), score for closest v-genes, score for closest j-genes, species.
+/// More than one v and j gene is reported when multiple v-genes or j-genes
+/// tie for best score. Species is the same as the input species UNLESS
+/// the user has supplied unknown, in which case the best identified species
+/// is reported.
+std::tuple<std::string, std::string, double, double, std::string>
 VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
         double, std::string, std::string> alignment, std::string sequence,
         std::string species, std::string mode) {
+    if (species == "unknown") {
+        std::vector<std::string> subspecies_list = {"human", "mouse"};
+        std::tuple<std::string, std::string,
+                double, double, std::string> best_result =
+                {"", "", 0, 0, "unknown"};
 
+        for (const auto & subspecies : subspecies_list) {
+            std::tuple<std::string, std::string,
+                double, double, std::string> current_result =
+                    this->internal_vj_assignment(alignment,
+                            sequence, subspecies, mode);
+            if (std::get<2>(current_result) > std::get<2>(best_result) &&
+                    std::get<3>(current_result) > std::get<3>(best_result))
+                best_result = current_result;
+        }
+
+        return best_result;
+    } else if (species == "alpaca" && std::get<2>(alignment) != "H") {
+        throw std::runtime_error(std::string("For alpacas, only heavy "
+                    "chain sequences are allowed."));
+    } else if (species != "human" && species != "mouse"
+            && species != "alpaca" && species != "rabbit") {
+        throw std::runtime_error(std::string("Species for VJ gene "
+                    "assignment must be one of 'human', 'mouse', "
+                    "'alpaca', 'rabbit', 'unknown'."));
+    }
+    return this->internal_vj_assignment(alignment, sequence, species, mode);
+}
+
+
+
+/// @brief Assigns the correct VJ genes for a specified species. This
+/// function is wrapped by assign_vj_genes and is private so is not
+/// exposed to external callers.
+/// @param alignment A tuple of numbering, percent identity, chain and
+/// error message such as is returned by any of the Annotators.
+/// @param sequence The sequence to be checked.
+/// @param species A supported species. "unknown" is not allowed.
+/// @param mode One of "identity", "evalue". Determines how the closest
+/// VJ gene is selected.
+/// @return Returns a tuple of v-genes (separated by _), j-genes (separated
+/// by _), score for closest v-genes, score for closest j-genes, species.
+/// The species reported is the same as input (it is returned however for
+/// ease of use by caller, which may need to report species when evaluating
+/// multiple possibilities). More than one v and j gene is reported when
+/// multiple v-genes or j-genes tie for best score.
+std::tuple<std::string, std::string, double, double, std::string>
+VJMatchCounter::internal_vj_assignment(std::tuple<std::vector<std::string>,
+        double, std::string, std::string> &alignment,
+        std::string &sequence,
+        const std::string &species,
+        const std::string &mode) {
     if (species != "human" && species != "mouse"
             && species != "alpaca" && species != "rabbit") {
         throw std::runtime_error(std::string("Species for VJ gene "
                     "assignment must be one of 'human', 'mouse'."));
     }
-    if (species == "alpaca" && std::get<2>(alignment) != "H") {
-        throw std::runtime_error(std::string("For alpacas, only heavy "
-                    "chain sequences are allowed."));
-    }
 
-    if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&
+    if (std::get<2>(alignment) == "A" || std::get<2>(alignment) == "B" ||
+            std::get<2>(alignment) == "D" || std::get<2>(alignment) == "D") {
+        if (species != "human" && species != "mouse") {
+            throw std::runtime_error(std::string("For TCRs, species "
+                        "must be one of 'human', 'mouse'."));
+        }
+        if (this->scheme != "imgt") {
+            throw std::runtime_error(std::string("For TCRs, the only "
+                        "currently-supported scheme is IMGT."));
+        }
+    } else if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&
             std::get<2>(alignment) != "L") {
         return std::tuple<std::string, std::string,
-                double, double>{"", "", 0, 0};
+                double, double, std::string>{"", "", 0, 0, "unknown"};
     }
 
     if (sequence.length() != std::get<0>(alignment).size()) {
         return std::tuple<std::string, std::string,
-                double, double>{"", "", 0, 0};
+                double, double, std::string>{"", "", 0, 0, "unknown"};
     }
     if (!SequenceUtilities::validate_x_sequence(sequence)) {
         return std::tuple<std::string, std::string,
-                double, double>{"", "", 0, 0};
+                double, double, std::string>{"", "", 0, 0, "unknown"};
     }
 
     // Notice that for now we assume immunoglobulin (not TCR).
@@ -172,7 +245,7 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
     int err_code = this->prep_sequence(prepped_sequence, sequence, alignment);
     if (err_code != VALID_SEQUENCE) {
         return std::tuple<std::string, std::string,
-                double, double>{"", "", 0, 0};
+                double, double, std::string>{"", "", 0, 0, "unknown"};
     }
 
     if (vgenes.size() != vnames.size() || jgenes.size() != jnames.size()) {
@@ -201,22 +274,39 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
                         "not be encoded."));
         }
 
-        this->assign_gene_by_evalue(vgenes, vnames, encoded_query.get(),
-                videntity, vgene_name, 'v');
-        this->assign_gene_by_evalue(jgenes, jnames, encoded_query.get(),
-                jidentity, jgene_name, 'j');
+        if (!this->assign_gene_by_evalue(vgenes, vnames, encoded_query.get(),
+                videntity, vgene_name, 'v')) {
+            throw std::runtime_error(std::string("Invalid sequence supplied."));
+        }
+        if (!this->assign_gene_by_evalue(jgenes, jnames, encoded_query.get(),
+                jidentity, jgene_name, 'j')) {
+            throw std::runtime_error(std::string("Invalid sequence supplied."));
+        }
     } else {
         throw std::runtime_error(std::string("Unrecognized mode was supplied. "
                     "Mode should be one of 'identity', 'evalue'."));
     }
 
     return std::tuple<std::string, std::string,
-           double, double>{vgene_name, jgene_name,
-                videntity, jidentity};
+           double, double, std::string>{vgene_name, jgene_name,
+                videntity, jidentity, species};
 }
 
 
 
+/// @brief Finds the closest matching genes to a query sequence that
+/// has been converted to IMGT format with standard positions extracted,
+/// using a supplied list of gene sequences and names, and determining
+/// which is the best match using percent identity. This function is
+/// private, not accessible to outside callers.
+/// @param gene_seqs A list of V or J genes to which to match. These
+/// should be length 128 and appropriately gapped to match IMGT format.
+/// @param gene_names A list of gene names of the same length as gene_seqs.
+/// @param prepped_sequence An input sequence prepped so that the standard
+/// 128 imgt positions have been extracted.
+/// @param best_identity The score for the best match is stored here.
+/// @param best_gene_name The best gene name is stored here.
+/// @param gene_type Indicates whether this is v or j.
 void VJMatchCounter::assign_gene_by_identity(
 std::vector<std::string> &gene_seqs,
 std::vector<std::string> &gene_names,
@@ -286,6 +376,21 @@ char gene_type) {
 
 
 
+/// @brief Finds the closest matching genes to a query sequence that
+/// has been converted to IMGT format with standard positions extracted,
+/// using a supplied list of gene sequences and names, and determining
+/// which is the best match using BLOSUM score, which is the same as
+/// determining it by evalue. This function is private, not accessible
+/// to outside callers.
+/// @param gene_seqs A list of V or J genes to which to match. These
+/// should be length 128 and appropriately gapped to match IMGT format.
+/// @param gene_names A list of gene names of the same length as gene_seqs.
+/// @param prepped_sequence An input sequence prepped so that the standard
+/// 128 imgt positions have been extracted.
+/// @param best_identity The score for the best match is stored here.
+/// @param best_gene_name The best gene name is stored here.
+/// @param gene_type Indicates whether this is v or j.
+/// @return An error code to indicate success or failure.
 int VJMatchCounter::assign_gene_by_evalue(
 std::vector<std::string> &gene_seqs,
 std::vector<std::string> &gene_names,
@@ -418,6 +523,14 @@ char gene_type) {
 
 
 
+/// @brief Converts a sequence to a standard format by extracting the
+/// 128 standard IMGT positions for easy comparison to pre-gapped
+/// V and J genes.
+/// @param prepped_sequence The output is stored here.
+/// @param sequence The input sequence.
+/// @param alignment A tuple of numbering, percent identity, chain
+/// and error message such as is returned by the Annotator classes.
+/// @return An error code indicating success or failure.
 int VJMatchCounter::prep_sequence(std::string &prepped_sequence,
 std::string &sequence,
 std::tuple<std::vector<std::string>, double,
@@ -442,6 +555,16 @@ std::string, std::string> &alignment) {
         // to do alignments of VJ genes against the original sequence without
         // using numbering, and while some tools use this this is slow,
         // so we are not doing that here.
+
+        // Finally, it should be noted that for TCRs we currently only
+        // support IMGT and thus if the chain type indicates TCR should
+        // abort.
+        if (std::get<2>(alignment) == "A" || std::get<2>(alignment) == "B" ||
+                std::get<2>(alignment) == "D" ||
+                std::get<2>(alignment) == "G") {
+            throw std::runtime_error("For TCRs, only the IMGT scheme is "
+                    "currently supported.");
+        }
         std::vector<std::string> trimmed_numbering;
         std::vector<char> trimmed_seq_vector;
         int exstart, exend;
@@ -497,6 +620,11 @@ std::string, std::string> &alignment) {
 
 
 
+/// @brief Gets the sequence of a named V or J gene for an indicated species.
+/// @param query_name The name of the gene.
+/// @param species The name of the species.
+/// @return The sequence in gapped IMGT format. If the gene is not found,
+/// this string is empty.
 std::string VJMatchCounter::get_vj_gene_sequence(std::string query_name,
     std::string species) {
     size_t matchID;
