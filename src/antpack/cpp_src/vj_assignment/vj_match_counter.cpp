@@ -176,6 +176,9 @@ VJMatchCounter::internal_vj_assignment(std::tuple<std::vector<std::string>,
         std::string &sequence,
         const std::string &species,
         const std::string &mode) {
+    std::string vkey = species + "_IG" + std::get<2>(alignment) + "V";
+    std::string jkey = species + "_IG" + std::get<2>(alignment) + "J";
+
     if (species != "human" && species != "mouse"
             && species != "alpaca" && species != "rabbit") {
         throw std::runtime_error(std::string("Species for VJ gene "
@@ -192,6 +195,8 @@ VJMatchCounter::internal_vj_assignment(std::tuple<std::vector<std::string>,
             throw std::runtime_error(std::string("For TCRs, the only "
                         "currently-supported scheme is IMGT."));
         }
+        vkey = species + "_TR" + std::get<2>(alignment) + "V";
+        jkey = species + "_TR" + std::get<2>(alignment) + "J";
     } else if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&
             std::get<2>(alignment) != "L") {
         return std::tuple<std::string, std::string,
@@ -206,10 +211,6 @@ VJMatchCounter::internal_vj_assignment(std::tuple<std::vector<std::string>,
         return std::tuple<std::string, std::string,
                 double, double, std::string>{"", "", 0, 0, "unknown"};
     }
-
-    // Notice that for now we assume immunoglobulin (not TCR).
-    std::string vkey = species + "_IG" + std::get<2>(alignment) + "V";
-    std::string jkey = species + "_IG" + std::get<2>(alignment) + "J";
 
 
     std::map<std::string, std::vector<std::string>>::iterator
