@@ -17,42 +17,44 @@ class ReconfigParser(argparse.ArgumentParser):
 def gen_arg_parser():
     """Build the command line arg parser."""
     parser = ReconfigParser(description="Run AntPack from the command line "
-            "to number and provide VJ assignments for input AA sequences. "
-            "This command line tool first reads all input sequences into memory, "
-            "and writes them to a csv in a format that makes them easy to review "
-            "and compare (appropriate for small-moderate datasets). If you need to work "
-            "with a larger dataset or do a more customized or extensive analysis, "
-            "use the Python API instead.")
+            "to number and assign VJ genes for input mAbs and TCRs. "
+            "This command line tool writes its output to a csv or fasta. "
+            "It is appropriate for a generic analysis on datasets from 10^2 - 10^6 "
+            "sequences. If you need to work with a larger dataset or do a more "
+            "customized analysis, use the Python API instead.")
     parser.add_argument("input", nargs = 1, help=
-            "Input filepath. Must be in fasta format.")
+            "Input filepath. Must be a fasta file. The location of this file "
+            "will also be used for temporary files created during the sequence "
+            "processing.")
     parser.add_argument("output", nargs = 1, help=
-            "Output filepath. Two output files are created, one output "
-            "file with '_heavy.csv' appended to the output path for "
-            "heavy chains (if any) and one with '_light.csv' appended "
-            "to the output path for light chains (if any).")
+            "Output filepath. Two output files are created, one with '_heavy' "
+            "appended for heavy chains and one with '_light' appended for light "
+            "chains.")
     parser.add_argument("scheme", nargs = 1, help=
-            "The numbering scheme. One of aho, imgt, kabat or martin.")
+            "One of aho, imgt, kabat or martin. For "
+            "TCRs, only imgt is accepted.")
     parser.add_argument("--paired", action="store_true", help=
-            "AntPack will normally assume there is one variable region "
-            "per input sequence and try to extract it. If this "
-            "flag is supplied, it will instead assume each input "
-            "sequence contains a heavy chain and a light chain and "
-            "try to extract both. The --paired flag can still be "
-            "supplied if some of the sequences are single-chain.")
+            "This tool will normally assume there is one variable region "
+            "per input sequence. If this flag is supplied, it will instead "
+            "assume each input may contain a heavy chain, a light chain, or "
+            "both and try to extract whatever is present. Use this if at "
+            "least some of your sequences are paired chains.")
     parser.add_argument("--vj", nargs=2, help=
             "If this flag is supplied, AntPack will find the closest "
-            "VJ genes for the specified species and write these "
-            "into the output. There are two arguments. The first is "
-            "the species which must be either human or mouse. The "
-            "second is the mode which must be identity or evalue. ",
+            "VJ genes. There are two arguments. The first is "
+            "the species which should be human, mouse, alpaca, rabbit or "
+            "unknown. If unknown all species are checked. For TCRs, "
+            "alpaca and rabbit are not allowed. The second argument is "
+            "the mode which must be identity or evalue. This flag is ignored "
+            "if the --fasta flag is supplied.",
             metavar=("species", "mode"))
-    parser.add_argument("--chains", nargs=1, help=
-            "AntPack will normally look for an H, K or L chain in each "
-            "input sequence. If desired, you can instead restrict it to "
-            "search for a comma-separated list of specific chains (e.g. H or "
-            "K,L) by using this argument. If you supply the argument "
-            "--paired this argument is ignored.",
-            metavar=("chains"))
+    parser.add_argument("--tcrs", action="store_true", help=
+            "This tool will normally assume input sequences are mAbs. "
+            "If this flag is supplied it will instead assume all input "
+            "sequences are TCRs.")
+    parser.add_argument("--fasta", action="store_true", help=
+            "Output is normally written to a csv. If this flag is supplied, "
+            "output is instead written to a fasta file.")
     return parser
 
 
