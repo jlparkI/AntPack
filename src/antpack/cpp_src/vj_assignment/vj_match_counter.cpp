@@ -124,6 +124,7 @@ std::tuple<std::string, std::string, double, double, std::string>
 VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
         double, std::string, std::string> alignment, std::string sequence,
         std::string species, std::string mode) {
+
     if (species == "unknown") {
         std::vector<std::string> subspecies_list = {"human", "mouse"};
         std::tuple<std::string, std::string,
@@ -186,7 +187,7 @@ VJMatchCounter::internal_vj_assignment(std::tuple<std::vector<std::string>,
     }
 
     if (std::get<2>(alignment) == "A" || std::get<2>(alignment) == "B" ||
-            std::get<2>(alignment) == "D" || std::get<2>(alignment) == "D") {
+            std::get<2>(alignment) == "D" || std::get<2>(alignment) == "G") {
         if (species != "human" && species != "mouse") {
             throw std::runtime_error(std::string("For TCRs, species "
                         "must be one of 'human', 'mouse'."));

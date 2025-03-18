@@ -452,8 +452,10 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
     if (scheme == "aho")
         max_position = 149;
 
+    // Do not attempt to sort if no codes were supplied; simply
+    // return what we were given.
     if (position_codes.size() == 0)
-        return INVALID_SEQUENCE;
+        return VALID_SEQUENCE;
 
     // Map from a standard alphabet Our preference would be to
     // number insertions as _1, _2 etc, but most numbering programs
