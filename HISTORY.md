@@ -1,3 +1,15 @@
+### Version 0.3.8
+Updated PairedChainAnnotator, SingleChainAnnotator and VJGeneTool
+to accept and work with TCRs. Updated the command line interface
+to require species as an option, to allow for writing output to
+a fasta file, to allow TCRs as inputs, and to allow processing
+either in memory (suitable for smaller datasets, e.g. < 100K seqs)
+or on disk (a little slower but preferable for large datasets).
+Updated the VJGeneTool to allow the user to supply "unknown" for
+the species, in which case all species are checked. Removed support
+for the OGRDB database in VJGeneTool since we have found IMGT to
+be preferable.
+
 ### Version 0.3.7
 Add sensible defaults to build_msa and assign_vj_genes.
 Added support for DNA sequences by adding tools to determine
