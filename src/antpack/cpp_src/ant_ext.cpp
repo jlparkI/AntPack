@@ -187,7 +187,8 @@ NB_MODULE(antpack_cpp_ext, m) {
                 nb::arg("sequence"),
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
-        assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
+        may contain both a light ('K', 'L' for antibodies, 'B' or 'D' for TCRs)
+        region and a heavy ('H' for antibodies, 'A' or 'G' for TCRs) region.
         The extracted light or heavy chains that are returned can be passed to
         other tools like build_msa, trim_alignment, assign_cdr_labels and the
         VJGeneTool.
@@ -211,7 +212,8 @@ NB_MODULE(antpack_cpp_ext, m) {
                 nb::arg("sequences"),
      R"(
         Extracts and numbers the variable chain regions from a list of sequences
-        assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
+        may contain both a light ('K', 'L' for antibodies or 'B', 'D' for TCRs)
+        region and a heavy ('H' for antibodies or 'B', 'D' for TCRs) region.
         The extracted light or heavy chains that are returned can be passed to
         other tools like build_msa, trim_alignment, assign_cdr_labels and the
         VJGeneTool.
@@ -258,7 +260,11 @@ NB_MODULE(antpack_cpp_ext, m) {
                 or PairedChainAnnotator.
             sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
                 X is also allowed but should be used sparingly.
-            species (str): Currently must be one of 'human', 'mouse', 'alpaca', 'rabbit'.
+            species (str): Currently must be one of 'human', 'mouse',
+                'alpaca', 'rabbit' or 'unknown'. For TCRs only 'human', 'mouse',
+                'unknown' are allowed. If 'unknown', all species are checked
+                to find the closest match. Note that 'unknown' will be slightly
+                slower for this reason.
             mode (str): One of 'identity', 'evalue'. If 'identity' the highest
                 percent identity sequence(s) are identified. If 'evalue' the
                 lowest e-value (effectively best BLOSUM score) sequence(s)
@@ -278,7 +284,10 @@ NB_MODULE(antpack_cpp_ext, m) {
                 non-blank positions in the j-gene. If mode is 'evalue', the best BLOSUM
                 score (this can be converted to an e-value). If more than one j-gene
                 with the same score is found, multiple j-genes are returned as a single
-                string delimited with '_' to separate the different j-genes.)")
+                string delimited with '_' to separate the different j-genes.
+            species (str): The species. This will be the same as the input species
+                UNLESS your specified input species is unknown, in which case the
+                species that was identified will be returned.)")
         .def("get_vj_gene_sequence",
                 &VJAssignment::VJMatchCounter::get_vj_gene_sequence,
                 nb::arg("vj_gene_name"), nb::arg("species"),
@@ -296,8 +305,9 @@ NB_MODULE(antpack_cpp_ext, m) {
 
         Returns:
             sequence (str): The amino acid sequence of the V or J gene
-                that was requested. If that V or J gene name does not
-                match anything, None is returned.)")
+                that was requested, gapped to be length 128 consistent
+                with the IMGT numbering scheme. If that V or J gene name
+                does not match anything, None is returned.)")
         .def("get_seq_lists", &VJAssignment::VJMatchCounter::get_seq_lists);
 
 
@@ -314,7 +324,8 @@ NB_MODULE(antpack_cpp_ext, m) {
         development liabilities. Note that this may sometimes be a false positive;
         the presence of a possible N-glycosylation motif, for example, does
         not guarantee that N-glycosylation will occur. It does however identify
-        sites where there is a risk.
+        sites where there is a risk. Currently only antibodies are allowed; TCRs
+        are not supported.
 
         Args:
             sequence (str): A sequence containing the usual 20 amino acids -- no gaps.

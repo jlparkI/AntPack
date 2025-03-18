@@ -33,8 +33,10 @@ class TestAntPackCLI(unittest.TestCase):
 
 
         _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
-                "output_data", "imgt", "--paired"])
+                "output_data", "human", "imgt", "--paired"])
 
+        import pdb
+        pdb.set_trace()
         self.assertTrue("output_data_heavy.csv" in os.listdir())
         self.assertTrue("output_data_light.csv" in os.listdir())
 
@@ -52,7 +54,7 @@ class TestAntPackCLI(unittest.TestCase):
 
         with open("output_data_light.csv", "r",
                 encoding="utf-8") as fhandle:
-            temp = fhandle.readline()
+            _ = fhandle.readline()
             for i, line in enumerate(fhandle):
                 elements = line.strip().split(",")
                 self.assertTrue(elements[0] == f"this is sequence # {i}")
@@ -74,7 +76,7 @@ class TestAntPackCLI(unittest.TestCase):
         then use the CLI to do basic analysis written to a
         csv file with human VJ gene assignment."""
         merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = get_paired_seqs()
-        vj_tool = VJGeneTool(database="imgt", scheme="imgt")
+        vj_tool = VJGeneTool(scheme="imgt")
 
         heavy_code_map = create_manual_mapping(heavy_pc_annotations, pc_aligner)
         light_code_map = create_manual_mapping(light_pc_annotations, pc_aligner)
@@ -86,7 +88,7 @@ class TestAntPackCLI(unittest.TestCase):
 
 
         _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
-            "imgt", "--paired", "--vj", "human", "identity"])
+                "human", "imgt", "--paired"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
         self.assertTrue("output_data_light.csv" in os.listdir())
@@ -158,7 +160,7 @@ class TestAntPackCLI(unittest.TestCase):
                 fhandle.write(f">this is sequence # {i}\n{seq}\n")
 
         _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
-            "imgt"])
+            "human", "imgt"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
         self.assertTrue("output_data_light.csv" in os.listdir())
@@ -191,7 +193,7 @@ class TestAntPackCLI(unittest.TestCase):
         and write to fasta, using single chain containing sequences
         as input only."""
         seqs, annotations, sc_aligner = get_unpaired_seqs()
-        vj_tool = VJGeneTool(scheme="imgt", database="imgt")
+        vj_tool = VJGeneTool(scheme="imgt")
 
         heavy_code_map = create_manual_mapping([a for a in annotations if
             a[2] == 'H'], sc_aligner)
@@ -204,7 +206,7 @@ class TestAntPackCLI(unittest.TestCase):
                 fhandle.write(f">this is sequence # {i}\n{seq}\n")
 
         _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
-            "imgt", "--vj", "human", "identity"])
+            "human", "imgt", "identity"])
 
         self.assertTrue("output_data_heavy.csv" in os.listdir())
         self.assertTrue("output_data_light.csv" in os.listdir())
