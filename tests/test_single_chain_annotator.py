@@ -287,90 +287,97 @@ class TestSingleChainAnnotator(unittest.TestCase):
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
 
-        with gzip.open("test_data.csv.gz", "rt") as fhandle:
-            _ = fhandle.readline()
-            seqs = [line.strip().split(",")[0] for line in fhandle]
+        for receptor, testfile in [("mab", "test_data.csv.gz"),
+                ("tcr", "tcr_test_data.csv.gz")]:
+            with gzip.open(testfile, "rt") as fhandle:
+                _ = fhandle.readline()
+                seqs = [line.strip().split(",")[0] for line in fhandle]
 
-        imgt_labels = [(str(i), "fmwk1") for i in range(1,27)] + \
+            imgt_labels = [(str(i), "fmwk1") for i in range(1,27)] + \
                 [(str(i), "cdr1") for i in range(27,40)] + \
                 [(str(i), "fmwk2") for i in range(39,56)] + \
                 [(str(i), "cdr2") for i in range(56,66)] + \
                 [(str(i), "fmwk3") for i in range(66,105)] + \
                 [(str(i), "cdr3") for i in range(105,118)] + \
                 [(str(i), "fmwk4") for i in range(118,129)]
-        imgt_labels = {a:k for (a,k) in imgt_labels}
+            imgt_labels = {a:k for (a,k) in imgt_labels}
 
-        martin_heavy = [(str(i), "fmwk1") for i in range(1,26)] + \
+            martin_heavy = [(str(i), "fmwk1") for i in range(1,26)] + \
                 [(str(i), "cdr1") for i in range(26,33)] + \
                 [(str(i), "fmwk2") for i in range(33,52)] + \
                 [(str(i), "cdr2") for i in range(52,57)] + \
                 [(str(i), "fmwk3") for i in range(57,95)] + \
                 [(str(i), "cdr3") for i in range(95,103)] + \
                 [(str(i), "fmwk4") for i in range(103,114)]
-        martin_heavy = {a:k for (a,k) in martin_heavy}
-        martin_light = [(str(i), "fmwk1") for i in range(1,26)] + \
+            martin_heavy = {a:k for (a,k) in martin_heavy}
+            martin_light = [(str(i), "fmwk1") for i in range(1,26)] + \
                 [(str(i), "cdr1") for i in range(26,33)] + \
                 [(str(i), "fmwk2") for i in range(33,50)] + \
                 [(str(i), "cdr2") for i in range(50,53)] + \
                 [(str(i), "fmwk3") for i in range(53,91)] + \
                 [(str(i), "cdr3") for i in range(91,97)] + \
                 [(str(i), "fmwk4") for i in range(97,108)]
-        martin_light = {a:k for (a,k) in martin_light}
+            martin_light = {a:k for (a,k) in martin_light}
 
-        kabat_heavy = [(str(i), "fmwk1") for i in range(1,31)] + \
+            kabat_heavy = [(str(i), "fmwk1") for i in range(1,31)] + \
                 [(str(i), "cdr1") for i in range(31,36)] + \
                 [(str(i), "fmwk2") for i in range(36,50)] + \
                 [(str(i), "cdr2") for i in range(50,66)] + \
                 [(str(i), "fmwk3") for i in range(66,95)] + \
                 [(str(i), "cdr3") for i in range(95,103)] + \
                 [(str(i), "fmwk4") for i in range(103,114)]
-        kabat_heavy = {a:k for (a,k) in kabat_heavy}
-        kabat_light = [(str(i), "fmwk1") for i in range(1,24)] + \
+            kabat_heavy = {a:k for (a,k) in kabat_heavy}
+            kabat_light = [(str(i), "fmwk1") for i in range(1,24)] + \
                 [(str(i), "cdr1") for i in range(24,35)] + \
                 [(str(i), "fmwk2") for i in range(35,50)] + \
                 [(str(i), "cdr2") for i in range(50,57)] + \
                 [(str(i), "fmwk3") for i in range(57,89)] + \
                 [(str(i), "cdr3") for i in range(89,98)] + \
                 [(str(i), "fmwk4") for i in range(98,108)]
-        kabat_light = {a:k for (a,k) in kabat_light}
+            kabat_light = {a:k for (a,k) in kabat_light}
 
 
 
-        scheme_labels = {"imgt":{"H":imgt_labels, "K":imgt_labels,
-                "L":imgt_labels},
-            "martin":{"H":martin_heavy, "K":martin_light,
-                "L":martin_light},
-            "kabat":{"H":kabat_heavy, "K":kabat_light,
-                "L":kabat_light}
-            }
+            scheme_labels = {"imgt":{k:imgt_labels for k in
+                ["H", "K", "L", "A", "B", "D", "G"]},
+                "martin":{"H":martin_heavy, "K":martin_light,
+                    "L":martin_light},
+                "kabat":{"H":kabat_heavy, "K":kabat_light,
+                    "L":kabat_light}
+                }
 
 
-        def get_gt_regions(numbering, label_map):
-            gt_reg = []
-            for n in numbering:
-                if n == "-":
-                    gt_reg.append("-")
+            def get_gt_regions(numbering, label_map):
+                gt_reg = []
+                for n in numbering:
+                    if n == "-":
+                        gt_reg.append("-")
+                    else:
+                        gt_reg.append(label_map[regex.search(n).groups()[0]])
+                return gt_reg
+
+            for scheme in ["imgt", "martin", "kabat"]:
+                if receptor == "tcr":
+                    if scheme != "imgt":
+                        continue
+                    aligner = SingleChainAnnotator(
+                        chains=["A", "B", "D", "G"],
+                        scheme=scheme)
                 else:
-                    gt_reg.append(label_map[regex.search(n).groups()[0]])
-            return gt_reg
+                    aligner = SingleChainAnnotator(chains=["H", "K", "L"],
+                        scheme=scheme)
+                num_err = 0
 
-        os.chdir(current_dir)
+                for seq in seqs:
+                    numbering = aligner.analyze_seq(seq)
+                    labels = aligner.assign_cdr_labels(numbering[0],
+                            numbering[2])
 
-        for scheme in ["imgt", "martin", "kabat"]:
-            aligner = SingleChainAnnotator(chains=["H", "K", "L"],
-                    scheme=scheme)
-            num_err = 0
-
-            for seq in seqs:
-                numbering = aligner.analyze_seq(seq)
-                labels = aligner.assign_cdr_labels(numbering[0],
-                        numbering[2])
-
-                gt_regions = get_gt_regions(numbering[0],
-                        scheme_labels[scheme][numbering[2]])
-                if gt_regions != labels:
-                    num_err += 1
-            self.assertTrue(num_err == 0)
+                    gt_regions = get_gt_regions(numbering[0],
+                            scheme_labels[scheme][numbering[2]])
+                    if gt_regions != labels:
+                        num_err += 1
+                self.assertTrue(num_err == 0)
 
 
     def test_tcr_region_labeling(self):
