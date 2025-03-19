@@ -92,12 +92,17 @@ class AnnotatorBaseClassCpp {
     ///        the first element of the tuple returned by 'analyze_seq'.
     /// @param chain A valid chain ('H', 'K', 'L'). 'K' and 'L' are treated
     ///        as equivalent.
+    /// @param scheme Either "" or a valid scheme. If "", the scheme
+    ///        used when the class was created is used. Otherwise
+    ///        cross-scheme assignment occurs (the sequence was numbered
+    ///        using one scheme but the CDRs are assigned using another).
     /// @return Returns a vector of strings '-', 'fmwk1', 'cdr1',
     ///         'fmwk2', 'cdr2' etc. to indicate the region to which
     ///         each position belongs.
     std::vector<std::string> assign_cdr_labels(
             std::vector<std::string> numbering,
-                std::string chain);
+                std::string chain,
+                std::string scheme = "");
 
 
  protected:

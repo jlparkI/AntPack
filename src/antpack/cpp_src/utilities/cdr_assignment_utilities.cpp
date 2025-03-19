@@ -27,7 +27,7 @@
 #include "../annotator_classes/numbering_constants.inc"
 
 
-namespace SequenceUtilities {
+namespace CDRConversionUtilities {
 
 
 
@@ -39,10 +39,37 @@ namespace SequenceUtilities {
 ///        as equivalent.
 /// @param cdr_labels A vector in which the output will be stored.
 /// @param scheme The scheme -- one of 'imgt', 'aho', 'martin', 'kabat'.
+/// @param cdr_scheme The scheme -- one of 'imgt', 'aho', 'martin', 'kabat',
+///        'north' -- that should be used to construct CDRs. This may
+///        or may not be the same as scheme.
 void assign_cdr_labels(const std::vector<std::string> &numbering,
         const std::string &chain,
         std::vector<std::string> &cdr_labeling,
-        const std::string &scheme) {
+        const std::string &scheme,
+        const std::string &cdr_scheme) {
+    if (chain == "A" || chain == "D" || chain == "B" ||
+            chain == "G") {
+        if (scheme != "imgt" || cdr_scheme != "imgt") {
+            throw std::runtime_error(std::string("For TCRs, only 'imgt' "
+                        "is supported."));
+        }
+    } else if (chain == "H" || chain == "K" || chain == "L") {
+        if (scheme != "martin" && scheme != "kabat" && scheme != "imgt" &&
+                scheme != "aho") {
+            throw std::runtime_error(std::string("Unsupported numbering "
+                        "scheme."));
+        }
+        if (cdr_scheme != "martin" && cdr_scheme != "kabat" &&
+                cdr_scheme != "imgt" && cdr_scheme != "aho"
+                && cdr_scheme != "north") {
+            throw std::runtime_error(std::string("Unsupported cdr "
+                        "assignment scheme."));
+        }
+    } else {
+        throw std::runtime_error(std::string("Unrecognized chain or "
+                        "scheme supplied."));
+    }
+
     std::array<int, 6> current_breakpoints;
     int numeric_portion;
     std::string current_label;
@@ -53,13 +80,24 @@ void assign_cdr_labels(const std::vector<std::string> &numbering,
             "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"};
 
     if (scheme == "imgt") {
-        if (chain == "H" || chain == "L" || chain == "K" || chain == "A"
-                || chain == "B" || chain == "D" || chain == "G")
-            current_breakpoints = NumberingTools::IMGT_CDR_BREAKPOINTS;
-        else
-            throw std::runtime_error(std::string("Unrecognized chain or "
-                        "scheme supplied."));
-    } else if (scheme == "martin") {
+        if (cdr_scheme == "imgt") {
+            current_breakpoints = IMGT_CDR_BREAKPOINTS;
+        } else if (cdr_scheme == "kabat") {
+            if (chain == "H")
+                current_breakpoints = IMGT_NMBR_KABAT_H_CDR_BREAKPOINTS;
+            else
+                current_breakpoints = IMGT_NMBR_KABAT_L_CDR_BREAKPOINTS;
+        } else if (cdr_scheme == "martin") {
+            current_breakpoints = IMGT_NMBR_KABAT_CDR_BREAKPOINTS;
+        } else if (cdr_scheme == "aho") {
+            current_breakpoints = IMGT_NMBR_KABAT_CDR_BREAKPOINTS;
+        } else if (cdr_scheme == "north") {
+            current_breakpoints = IMGT_NMBR_KABAT_CDR_BREAKPOINTS;
+        } else {
+            throw std::runtime_error(std::string("Unrecognized chain or scheme."));
+        }
+    }
+    else if (scheme == "martin") {
         if (chain == "H")
             current_breakpoints = NumberingTools::MARTIN_HEAVY_CDR_BREAKPOINTS;
         else if (chain == "L" || chain == "K")

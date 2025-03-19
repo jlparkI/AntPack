@@ -81,13 +81,14 @@ NB_MODULE(antpack_cpp_ext, m) {
                 to form an MSA.)")
         .def("assign_cdr_labels", &SequenceAnnotators::AnnotatorBaseClassCpp::assign_cdr_labels,
                 nb::arg("numbering"), nb::arg("chain"),
+                nb::arg("scheme") = "",
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
         annotated using the "analyze_seq" or "analyze_seqs" commands. The
         labels indicate which framework region or CDR each amino acid / position
-        is in. The scheme that is used is the same as the one selected when
-        the annotator is constructed.
+        is in. This function can be used to assign CDRs with a different
+        scheme than the one used to number the sequence if desired.
 
         Args:
             numbering (list): A list containing valid codes for the scheme that was
@@ -95,10 +96,19 @@ NB_MODULE(antpack_cpp_ext, m) {
                 the analyze_seq method of SingleChainAnnotator or PairedChainAnnotator,
                 the numbering will be the first element of the tuple that is returned
                 (or the first element of both tuples for PairedChainAnnotator).
-            chain (str): A valid chain (e.g. 'H', 'K', 'L'). The assigned chain is the
+            chain (str): A valid chain (e.g. 'H', 'K', 'L', 'A'). The assigned chain is the
                 third element of the tuple returned by analyze_seq. For this function
                 only, 'K' and 'L' are equivalent since they both refer to a light chain,
                 so if your chain is light you can supply either for the same result.
+            scheme (str): Either "" or a valid scheme. If "" (default), the scheme that
+                is used is the same as the one selected when the annotator was constructed.
+                Using a different scheme can enable you to "cross-assign" CDRs and number
+                with one scheme while assigning CDRs with another. Valid schemes for this
+                function only are 'imgt', 'aho', 'kabat', 'martin', 'north'. Note that if
+                the scheme selected when the annotator was constructed and the one you
+                supply here are different, the annotator will assume that you numbered
+                the sequence using using the scheme selected when the annotator was
+                constructed.
 
         Returns:
             region_labels (list): A list of strings, each of which is one of

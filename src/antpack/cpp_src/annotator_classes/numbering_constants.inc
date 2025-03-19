@@ -100,27 +100,6 @@ static constexpr int HIGHLY_CONSERVED_KABAT_LIGHT_5 = 98;
 static constexpr int HIGHLY_CONSERVED_KABAT_LIGHT_6 = 100;
 
 
-// The start and end of CDRs in IMGT (ignoring insertions).
-static constexpr std::array<int, 6> IMGT_CDR_BREAKPOINTS = {27, 39,
-        56, 66, 105, 118};
-
-// The start and end of CDRs in AHO (ignoring insertions).
-static constexpr std::array<int, 6> AHO_CDR_BREAKPOINTS = {25, 41,
-        58, 78, 109, 138};
-
-
-// The start and end of CDRs in Kabat (ignoring insertions).
-static constexpr std::array<int, 6> KABAT_HEAVY_CDR_BREAKPOINTS = {31, 36,
-    50, 66, 95, 103};
-static constexpr std::array<int, 6> KABAT_LIGHT_CDR_BREAKPOINTS = {24, 35,
-    50, 57, 89, 98};
-
-// The start and end of CDRs in Martin (ignoring insertions).
-static constexpr std::array<int, 6> MARTIN_HEAVY_CDR_BREAKPOINTS = {26, 33,
-    52, 57, 95, 103};
-static constexpr std::array<int, 6> MARTIN_LIGHT_CDR_BREAKPOINTS = {26, 33,
-    50, 53, 91, 97};
-
 // Gap open vs extend penalties for c and n terminals.
 static constexpr int NTERMINAL_QUERY_GAP_PENALTY = -1;
 static constexpr int CTERMINAL_QUERY_GAP_PENALTY = -1;
