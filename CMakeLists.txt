@@ -68,7 +68,7 @@ nanobind_add_module(
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
   # does nothing on older Python versions
-  STABLE_ABI
+  # STABLE_ABI  #Removing this since it leads to compatibilit issues.
 
   NB_STATIC
 
@@ -94,24 +94,6 @@ nanobind_add_module(
     src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
 
 )
-#nanobind_add_module(
-#  antpack_gui_ext
-#
-#  # Target the stable ABI for Python 3.12+, which reduces
-#  # the number of binary wheels that must be built. This
-#  # does nothing on older Python versions
-#  STABLE_ABI
-#
-#  NB_STATIC
-#
-#    src/antpack/antpack_gui/antpack_gui_ext.cpp
-#    src/antpack/antpack_gui/gui_cpp_src/application_runner.cpp
-#    src/antpack/antpack_gui/gui_cpp_src/main_window.cpp
-#
-#)
-#
-#
-#target_link_libraries(antpack_gui_ext PRIVATE Qt6::Widgets Qt6::PrintSupport Qt6::Gui Qt6::Core)
 
 install(TARGETS antpack_cpp_ext
     LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
