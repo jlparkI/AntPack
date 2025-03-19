@@ -213,9 +213,10 @@ def process_fasta_offline(cli_args):
             sc_tool = SingleChainAnnotator(scheme=cli_args.scheme[0])
 
     try:
-        with open("ANTPACK_LIGHT_TEMP_FILE.txt", "w+",
+        with open("ANTPACK_light_TEMP_FILE.txt", "w+",
                 encoding="utf-8") as fhandle:
             pass
+        os.remove("ANTPACK_light_TEMP_FILE.txt")
     except:
         raise RuntimeError("Could not open a temporary file in "
                 "current working directory!")

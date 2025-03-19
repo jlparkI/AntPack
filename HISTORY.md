@@ -8,7 +8,15 @@ or on disk (a little slower but preferable for large datasets).
 Updated the VJGeneTool to allow the user to supply "unknown" for
 the species, in which case all species are checked. Removed support
 for the OGRDB database in VJGeneTool since we have found IMGT to
-be preferable.
+be preferable. Updated the assign_cdr_labels function to accept
+a scheme as input, defaulting to "" which indicates use same scheme
+as used to create class; if this scheme is DIFFERENT from the one
+used to create class, the set of CDR definitions used to assign
+cdr labels is different from the original numbering scheme (e.g.
+you can now number with IMGT but use Kabat CDR definitions to
+assign CDR labels). Updated the LiabilitySearchTool to allow user
+to specify a cdr assignment scheme (e.g. Kabat) that is different
+from the numbering scheme (e.g. IMGT).
 
 ### Version 0.3.7
 Add sensible defaults to build_msa and assign_vj_genes.

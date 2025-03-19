@@ -284,6 +284,7 @@ class TestSingleChainAnnotator(unittest.TestCase):
         regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
 
         for receptor, testfile in [("mab", "test_data.csv.gz"),
@@ -379,157 +380,56 @@ class TestSingleChainAnnotator(unittest.TestCase):
                 self.assertTrue(num_err == 0)
 
 
-
-    def test_cross_scheme_cdr_assignment(self):
-        """For antibodies, there is the possibility of numbering
-        using one scheme then assigning cdr labels using another.
-        This module tests whether this procedure works as
-        expected, by comparing it to a slow but easily
-        debugged ground-truth assignment. Since there are
-        many such possible conversions, we test the most
-        popular rather than exhaustively testing all of
-        them."""
+    def test_tcr_region_labeling(self):
+        """Ensure that the region labels assigned by the region labeling
+        procedure correspond to our expectations, using a fairly
+        inefficient procedure to determine ground-truth labeling.
+        This is very similar to mAbs but uses different test
+        data."""
         regex = re.compile(r"^(?P<numbers>\d*)(?P<letters>\w*)$")
 
         project_path = os.path.abspath(os.path.dirname(__file__))
+        current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
 
-        # In the following, the key is
-        # numbering-scheme_chain_cdr-scheme
-        scheme_labels = {
-                "kabat_H_imgt":dict(
-                [(str(i), "fmwk1") for i in range(1,26)] + \
-                [(str(i), "cdr1") for i in range(26,36)] + \
-                [(str(i), "fmwk2") for i in range(36,51)] + \
-                [(str(i), "cdr2") for i in range(51,58)] + \
-                [(str(i), "fmwk3") for i in range(58,93)] + \
-                [(str(i), "cdr3") for i in range(93,103)] + \
-                [(str(i), "fmwk4") for i in range(103,113)]
-                ),
-                "kabat_L_imgt":dict(
-                [(str(i), "fmwk1") for i in range(1,27)] + \
-                [(str(i), "cdr1") for i in range(27,33)] + \
-                [(str(i), "fmwk2") for i in range(33,50)] + \
-                [(str(i), "cdr2") for i in range(50,53)] + \
-                [(str(i), "fmwk3") for i in range(53,91)] + \
-                [(str(i), "cdr3") for i in range(91,97)] + \
-                [(str(i), "fmwk4") for i in range(97,107)]
-                ),
-                "imgt_H_kabat":dict(
-                [(str(i), "fmwk1") for i in range(1,32)] + \
-                [(str(i), "cdr1") for i in range(32,41)] + \
-                [(str(i), "fmwk2") for i in range(41,55)] + \
-                [(str(i), "cdr2") for i in range(55,75)] + \
-                [(str(i), "fmwk3") for i in range(75,107)] + \
-                [(str(i), "cdr3") for i in range(107,118)] + \
-                [(str(i), "fmwk4") for i in range(118,129)]
-                ),
-                "imgt_L_kabat":dict(
-                [(str(i), "fmwk1") for i in range(1,24)] + \
-                [(str(i), "cdr1") for i in range(24,41)] + \
-                [(str(i), "fmwk2") for i in range(41,56)] + \
-                [(str(i), "cdr2") for i in range(56,70)] + \
-                [(str(i), "fmwk3") for i in range(70,105)] + \
-                [(str(i), "cdr3") for i in range(105,118)] + \
-                [(str(i), "fmwk4") for i in range(118,129)]
-                ),
-                "imgt_H_north":dict(
-                [(str(i), "fmwk1") for i in range(1,24)] + \
-                [(str(i), "cdr1") for i in range(24,41)] + \
-                [(str(i), "fmwk2") for i in range(41,55)] + \
-                [(str(i), "cdr2") for i in range(55,67)] + \
-                [(str(i), "fmwk3") for i in range(67,105)] + \
-                [(str(i), "cdr3") for i in range(105,118)] + \
-                [(str(i), "fmwk4") for i in range(118,129)]
-                ),
-                "imgt_L_north":dict(
-                [(str(i), "fmwk1") for i in range(1,24)] + \
-                [(str(i), "cdr1") for i in range(24,41)] + \
-                [(str(i), "fmwk2") for i in range(41,55)] + \
-                [(str(i), "cdr2") for i in range(55,70)] + \
-                [(str(i), "fmwk3") for i in range(70,105)] + \
-                [(str(i), "cdr3") for i in range(105,118)] + \
-                [(str(i), "fmwk4") for i in range(118,129)]
-                ),
-                "kabat_H_north":dict(
-                [(str(i), "fmwk1") for i in range(1,23)] + \
-                [(str(i), "cdr1") for i in range(23,36)] + \
-                [(str(i), "fmwk2") for i in range(36,50)] + \
-                [(str(i), "cdr2") for i in range(50,59)] + \
-                [(str(i), "fmwk3") for i in range(59,93)] + \
-                [(str(i), "cdr3") for i in range(93,103)] + \
-                [(str(i), "fmwk4") for i in range(103,113)]
-                ),
-                "kabat_L_north":dict(
-                [(str(i), "fmwk1") for i in range(1,24)] + \
-                [(str(i), "cdr1") for i in range(24,35)] + \
-                [(str(i), "fmwk2") for i in range(35,49)] + \
-                [(str(i), "cdr2") for i in range(49,57)] + \
-                [(str(i), "fmwk3") for i in range(57,89)] + \
-                [(str(i), "cdr3") for i in range(89,98)] + \
-                [(str(i), "fmwk4") for i in range(98,107)]
-                ),
-                "imgt_H_aho":dict(
-                [(str(i), "fmwk1") for i in range(1,25)] + \
-                [(str(i), "cdr1") for i in range(25,39)] + \
-                [(str(i), "fmwk2") for i in range(39,56)] + \
-                [(str(i), "cdr2") for i in range(56,76)] + \
-                [(str(i), "fmwk3") for i in range(76,107)] + \
-                [(str(i), "cdr3") for i in range(107,117)] + \
-                [(str(i), "fmwk4") for i in range(117,129)]
-                ),
-                "aho_H_imgt":dict(
-                [(str(i), "fmwk1") for i in range(1,27)] + \
-                [(str(i), "cdr1") for i in range(27,41)] + \
-                [(str(i), "fmwk2") for i in range(41,58)] + \
-                [(str(i), "cdr2") for i in range(58,68)] + \
-                [(str(i), "fmwk3") for i in range(68,107)] + \
-                [(str(i), "cdr3") for i in range(107,139)] + \
-                [(str(i), "fmwk4") for i in range(139,149)]
-                ),
-            }
-
-        with gzip.open("test_data.csv.gz", "rt") as fhandle:
+        with gzip.open("tcr_test_data.csv.gz", "rt") as fhandle:
             _ = fhandle.readline()
             seqs = [line.strip().split(",")[0] for line in fhandle]
 
-            def get_gt_regions(numbering, label_map):
-                gt_reg = []
-                for n in numbering:
-                    if n == "-":
-                        gt_reg.append("-")
-                    else:
-                        gt_reg.append(label_map[regex.search(n).groups()[0]])
-                return gt_reg
+        imgt_labels = [(str(i), "fmwk1") for i in range(1,27)] + \
+                [(str(i), "cdr1") for i in range(27,40)] + \
+                [(str(i), "fmwk2") for i in range(39,56)] + \
+                [(str(i), "cdr2") for i in range(56,66)] + \
+                [(str(i), "fmwk3") for i in range(66,105)] + \
+                [(str(i), "cdr3") for i in range(105,118)] + \
+                [(str(i), "fmwk4") for i in range(118,129)]
+        imgt_labels = {a:k for (a,k) in imgt_labels}
 
-            for scheme in ["imgt", "kabat", "aho", "martin"]:
-                for cdr_scheme in ["aho", "imgt", "north",
-                        "martin", "kabat"]:
-                    if f"{scheme}_H_{cdr_scheme}" not in scheme_labels:
-                        print(f"{scheme}_{cdr_scheme} not tested")
-                        continue
-                    aligner = SingleChainAnnotator(chains=["H", "K", "L"],
-                            scheme=scheme)
-                    num_err = 0
 
-                    for seq in seqs:
-                        numbering = aligner.analyze_seq(seq)
-                        labels = aligner.assign_cdr_labels(numbering[0],
-                            numbering[2], scheme=cdr_scheme)
+        def get_gt_regions(numbering, label_map):
+            gt_reg = []
+            for n in numbering:
+                if n == "-":
+                    gt_reg.append("-")
+                else:
+                    gt_reg.append(label_map[regex.search(n).groups()[0]])
+            return gt_reg
 
-                        if scheme in ("aho", "imgt") and \
-                                cdr_scheme in ("aho", "imgt"):
-                            label_key = f"{scheme}_H_{cdr_scheme}"
-                        else:
-                            label_key = f"{scheme}_{numbering[2]}_{cdr_scheme}"
+        os.chdir(current_dir)
 
-                        gt_regions = get_gt_regions(numbering[0],
-                            scheme_labels[label_key])
-                        if gt_regions != labels:
-                            import pdb
-                            pdb.set_trace()
-                            num_err += 1
-                    self.assertTrue(num_err == 0)
+        aligner = SingleChainAnnotator(chains=["A", "B", "D", "G"])
+        num_err = 0
+
+        for seq in seqs:
+            numbering = aligner.analyze_seq(seq)
+            labels = aligner.assign_cdr_labels(numbering[0],
+                        numbering[2])
+
+            gt_regions = get_gt_regions(numbering[0],
+                    imgt_labels)
+            if gt_regions != labels:
+                num_err += 1
+        self.assertTrue(num_err == 0)
 
 
 

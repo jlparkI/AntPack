@@ -328,7 +328,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def("analyze_seq",
                 &LiabilitySearch::LiabilitySearchToolCpp::analyze_seq,
                 nb::arg("sequence"), nb::arg("alignment"),
-                nb::arg("scheme"),
+                nb::arg("scheme"), nb::arg("cdr_scheme"),
      R"(
         Searches for some common motifs which may correspond to possible
         development liabilities. Note that this may sometimes be a false positive;
@@ -349,6 +349,11 @@ NB_MODULE(antpack_cpp_ext, m) {
                 or 'martin'. It is very important to use the same scheme
                 that was used to number the sequence; using some other scheme
                 may lead to incorrect motif identification.
+            cdr_scheme (str): The scheme that is used for CDR definitions. This
+                can be one of 'imgt', 'aho', 'martin', 'kabat', 'north'. Note
+                that you can use a different set of CDR definitions than the
+                numbering scheme (e.g. number with IMGT and define CDRs using
+                Kabat) although usually this will be the same as 'scheme'.
 
         Returns:
             liabilities (list): A list of tuples. The first element of each

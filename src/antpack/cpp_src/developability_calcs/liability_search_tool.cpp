@@ -34,13 +34,34 @@ LiabilitySearchToolCpp::LiabilitySearchToolCpp() {
 }
 
 
+/// @brief Finds potential liabilities in the sequence.
+/// @param alignment A tuple containing the output of AntPack's single
+/// or paired chain annotator.
+/// @param sequence The sequence as a string. Should not contain gaps.
+/// @param scheme One of 'imgt', 'aho', 'martin', 'kabat'. This must be
+/// the scheme that was used to number the input sequence.
+/// @param cdr_scheme One of 'imgt', 'aho', 'martin', 'kabat', 'north.
+/// This is the cdr definitions that are used. Note that you can use
+/// a different set of cdr definitions than numbering scheme (e.g. number
+/// with IMGT and define CDRs using Kabat) although usually you will
+/// want this to be the same as 'scheme'.
+/// @return A vector of tuples. Each tuple contains a two-tuple of ints
+/// (the start and end of the liability) and a string describing
+/// the type of liability.
 std::vector<std::pair<std::pair<int, int>, std::string>>
 LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                 std::tuple<std::vector<std::string>,
                 double, std::string, std::string> alignment,
-                std::string scheme) {
+                std::string scheme,
+                std::string cdr_scheme) {
     // As always, exceptions thrown here get sent back to Python
     // if this is used within the Nanobind wrapper.
+
+    if (std::get<2>(alignment) != "H" && std::get<2>(alignment) != "K" &&
+            std::get<2>(alignment) != "L") {
+        throw std::runtime_error(std::string("Only antibody chains are "
+                    "supported."));
+    }
 
     if (sequence.length() != std::get<0>(alignment).size()) {
         throw std::runtime_error(std::string("Alignment and sequence "
@@ -49,11 +70,11 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
     // Note that the cdr_assignment_utilities functions check that the input
     // alignment and scheme are valid. If they are not they will throw an
     // exception, which if this is used within the Nanobind wrapper will get
-    // passed back to Python.
+    // passed back to Python. For these purposes we assume
     std::vector<std::string> cdr_labeling;
-    SequenceUtilities::assign_cdr_labels(std::get<0>(alignment),
+    CDRConversionUtilities::assign_cdr_labels(std::get<0>(alignment),
             std::get<2>(alignment), cdr_labeling,
-            scheme);
+            scheme, cdr_scheme);
 
     if (cdr_labeling.size() != sequence.length()) {
         throw std::runtime_error(std::string("Alignment and cdr labeling are "
