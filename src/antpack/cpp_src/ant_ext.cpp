@@ -95,7 +95,8 @@ NB_MODULE(antpack_cpp_ext, m) {
                 selected when this object was created. If you pass a sequence to
                 the analyze_seq method of SingleChainAnnotator or PairedChainAnnotator,
                 the numbering will be the first element of the tuple that is returned
-                (or the first element of both tuples for PairedChainAnnotator).
+                (or the first element of both tuples that are returned
+                for PairedChainAnnotator).
             chain (str): A valid chain (e.g. 'H', 'K', 'L', 'A'). The assigned chain is the
                 third element of the tuple returned by analyze_seq. For this function
                 only, 'K' and 'L' are equivalent since they both refer to a light chain,
@@ -103,12 +104,12 @@ NB_MODULE(antpack_cpp_ext, m) {
             scheme (str): Either "" or a valid scheme. If "" (default), the scheme that
                 is used is the same as the one selected when the annotator was constructed.
                 Using a different scheme can enable you to "cross-assign" CDRs and number
-                with one scheme while assigning CDRs with another. Valid schemes for this
-                function only are 'imgt', 'aho', 'kabat', 'martin', 'north'. Note that if
-                the scheme selected when the annotator was constructed and the one you
-                supply here are different, the annotator will assume that you numbered
-                the sequence using using the scheme selected when the annotator was
-                constructed.
+                with one scheme while assigning CDRs with another. So if you create an
+                annotator with "imgt" as the scheme then you are numbering using "imgt",
+                but by passing e.g. "kabat" to this function, you can use the kabat CDR
+                definitions instead of the IMGT ones. Valid schemes for this
+                function only are 'imgt', 'aho', 'kabat', 'martin', 'north'. For TCRs
+                only "" and "imgt" are accepted.
 
         Returns:
             region_labels (list): A list of strings, each of which is one of
@@ -148,7 +149,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def("analyze_seq", &SequenceAnnotators::SingleChainAnnotatorCpp::analyze_seq,
                 nb::arg("sequence"),
      R"(
-        Numbers and scores a single input sequence. A list of
+        Numbers a single input sequence. A list of
         outputs from this function can be passed to build_msa
         if desired. The output from this function can also be passed
         to trim_alignment, to assign_cdr_labels and to the VJGeneTool
@@ -167,7 +168,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def("analyze_seqs", &SequenceAnnotators::SingleChainAnnotatorCpp::analyze_seqs,
                 nb::arg("sequences"),
      R"(
-        Numbers and scores a list of input sequences. The outputs
+        Numbers a list of input sequences. The outputs
         can be passed to other functions like build_msa, trim_alignment,
         assign_cdr_labels and the VJGeneTool if desired.
 
@@ -379,7 +380,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         This function checks each possible reading frame (and if indicated the
         possible reading frames in the reverse complement) to see which is most
         likely to contain the mAb sequence based on the presence / absence
-        of kmers common in heavy and light chains. The DNA sequence must consist
+        of kmers common in mAbs and TCRs. The DNA sequence must consist
         of only A, C, T, G and N (any codon containing N will be translated
         to X, which is an allowed letter in the AntPack numbering tools) and
         should be uppercase letters. If you know which reading frame and/or

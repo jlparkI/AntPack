@@ -18,7 +18,7 @@ complement if you don't already know. It does this by checking
 all three possible reading frames (and doing the same for the
 reverse complement if you indicate that the reverse complement
 may contain the sequence) for kmers which are common in
-antibody sequences. This check can be done very quickly and
+antibody / TCR sequences. This check can be done very quickly and
 thus makes it easy to determine the correct reading frame
 without doing any expensive alignments.
 

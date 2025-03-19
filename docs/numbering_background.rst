@@ -1,4 +1,4 @@
-How antibody numbering in AntPack works
+How antibody / TCR numbering in AntPack works
 ===============================================
 
 Antibody numbering is essentially a form of multiple sequence alignment;
@@ -33,9 +33,14 @@ is very slow. ANARCI is available locally but is very slow. AbRSA is faster
 than ANARCI or AbNum but is not open source and is still relatively slow.
 
 In initial testing on about 1600 chains from PDB (see the links at the
-github repo for more), AntPack is > 50x faster than ANARCI and > 25x faster
+github repo for more), AntPack is > 100x faster than ANARCI and > 25x faster
 than AbRSA, taking < 0.2 seconds to align the same number of sequences that
 take > 35 seconds on ANARCI.
+
+TCRs are numbered using a different algorithm than the one used for antibodies
+which is somewhat slower, although it is still faster by orders of magnitude
+than ANARCI. There is plenty of room to further optimize the TCR alignment
+algorithm and we may be able to improve this considerably in future versions.
 
 ``SingleChainAnnotator`` and ``PairedChainAnnotator`` contain functionality
 for numbering sequences that may contain a single chain (heavy or light) or

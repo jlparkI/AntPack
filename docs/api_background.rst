@@ -21,6 +21,8 @@ numbered multiple sequence alignments; it also optionally assigns VJ genes.
 For more extensive analysis we suggest using the Python API, which is
 described in the remaining documentation.
 
-Starting in v0.3.7, you can also use the GUI. To launch the GUI type:::
+Starting in v0.3.7, you can also use the GUI. The GUI makes it easy to quickly
+view and compare a few sequences against each other or against their closest
+VJ genes in humans or mice. To launch the GUI type:::
 
   AntPack-GUI
