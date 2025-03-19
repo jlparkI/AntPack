@@ -8,59 +8,28 @@ and making more improvements periodically. We will try to avoid breaking
 changes but nonetheless recommend checking the docs after you install
 a new version to be sure the component you are using is unaffected.
 
-### Are there specific features / changes you'd like to see in AntPack?
+## What's new in v0.3.8
 
-If so, feel free to take our short [anonymous user survey!](https://www.surveymonkey.com/r/FWQJKZS)
-There are quite a few features we plan to add to AntPack --
-this survey will help us decide which we should prioritize /
-which should come first.
+v0.3.8 adds numbering (using the IMGT scheme) and VJ
+gene assignment for TCRs. TCR numbering is somewhat
+slower than antibody numbering but is still dramatically
+faster than other available tools. For both TCRs and mAbs, if
+you don't know which species to check for germline
+gene assignment, you can now check all of them by
+passing "unknown" for species. Humanness scoring
+is of course still restricted to mAbs. For mAbs, germline
+gene assignment for rabbits and alpacas (in addition
+to humans and mice) is now supported. It also now supports
+cross-scheme CDR assignment, i.e. you can number using
+one scheme but assign CDR labels using the CDR definitions
+from another (e.g. number using IMGT but assign CDR
+labels and search for liabilities using Kabat CDR definitions).
 
-## What's new in v0.3.7
-
-v0.3.7 contains some minor improvements to the API,
-specifically for `build_msa`, `assign_vj_genes` and
-the liability search tool. It also adds support for
-DNA sequences in the form of a tool that determines
-the correct reading frame and forward / reverse complement
-for an input DNA sequence and translates it to AAs
-(this is faster than aligning to / numbering the
-DNA sequence). We've added support for llama germline
-gene assignment (VHH only). Finally, we've added an
-experimental GUI which we plan to expand considerably
-in upcoming versions. You can quickly launch the GUI from
-the terminal by typing:
-```
-AntPack-GUI
-```
-
-whereas to run the command line interface use:
-```
-AntPack-CLI
-```
-
-For now, you can use the GUI to add and align / compare some arbitrary
-number of paired and/or single chain sequences. You
-can also retrieve the VJ gene assignments for an input sequence
-and see an alignment of your input sequence with those genes.
-
-![gui_example](https://github.com/jlparkI/AntPack/blob/main/docs/images/multiseq1.png)
-
-The command line interface is useful for some fairly standard
-analyses of moderate-large datasets, while the more powerful
-Python API is useful for building your own workflows and pipelines.
-The GUI (at least right now) is mostly useful for a fast analysis of a few
-sequences that you want to examine quickly without needing to
-start a Jupyter notebook and write code.
-
-## Coming soon
-
-We're planning to continue improving AntPack's numbering capabilities
-and fixing "edge cases" so that we keep improving speed and quality.
-We're also looking at adding support for TCR sequences, at least for
-numbering. We plan to extensively expand the GUI. We're also planning to link
-AntPack to a searchable online database of human antibody sequences
-and add tools for fast sequence clustering and stability prediction --
-coming soon.
+There are various other minor improvements to the API
+and to the GUI, which is useful for quickly viewing
+a few sequences and comparing them to their assigned
+VJ genes. There is significant additional functionality in
+the command line tool as well.
 
 ## Installation
 
@@ -90,13 +59,13 @@ Numbering antibody sequences is an important precursor for many statistical infe
 machine learning applications. AntPack is orders of magnitude faster for numbering
 antibody sequences than existing tools in the literature (e.g. ANARCI, AbRSA),
 while providing >= reliability. AntPack also provides tools for merging a list
-of numbered sequences into an MSA and for easy extraction of specific CDRs and
-framework regions.
+of numbered sequences into an MSA, for easy extraction of specific CDRs and
+framework regions, and for TCR numbering.
 
 
 #### V / J genes
 
-Identifying the most similar human/mouse/llama V / J gene sequences is useful
+Identifying the most similar human/mouse/llama/rabbit V / J gene sequences is useful
 for a variety of purposes. AntPack provides tools for determining which human
 V and J gene sequences are most similar to the variable region chain provided
 as input.
