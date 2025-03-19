@@ -71,6 +71,13 @@ void assign_cdr_labels(const std::vector<std::string> &numbering,
     }
 
     std::array<int, 6> current_breakpoints;
+    int numeric_portion;
+    std::string current_label;
+    size_t current_token = 0;
+    int next_breakpoint;
+
+    std::array<std::string, 7> cdr_region_labels = {"fmwk1", "cdr1",
+            "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"};
 
     // TODO: Replace this with a constexpr map -- the following has very
     // poor readability. There are no other scheme / cdr scheme conversions
@@ -193,13 +200,8 @@ void assign_cdr_labels(const std::vector<std::string> &numbering,
         }
     }
 
-    int numeric_portion;
-    std::array<std::string, 7> cdr_region_labels = {"fmwk1", "cdr1",
-            "fmwk2", "cdr2", "fmwk3", "cdr3", "fmwk4"};
-    size_t current_token = 0;
-    std::string current_label = cdr_region_labels.at(current_token);
-    int next_breakpoint = current_breakpoints.at(current_token);
-
+    next_breakpoint = current_breakpoints.at(current_token);
+    current_label = cdr_region_labels[current_token];
 
     for (size_t i=0; i < numbering.size(); i++) {
         if (numbering.at(i) == "-") {

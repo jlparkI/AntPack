@@ -68,9 +68,9 @@ static constexpr std::array<int, 6> AHO_NMBR_MARTIN_L_CDR_BREAKPOINTS =
 {26, 41, 58, 68, 109, 138};
 static constexpr std::array<int, 6> AHO_NMBR_IMGT_CDR_BREAKPOINTS =
 {27, 41, 58, 68, 107, 139};
-static constexpr std::array<int, 6> AHO_NORTH_H_CDR_BREAKPOINTS =
+static constexpr std::array<int, 6> AHO_NMBR_NORTH_H_CDR_BREAKPOINTS =
 {24, 43, 57, 69, 107, 139};
-static constexpr std::array<int, 6> AHO_NORTH_L_CDR_BREAKPOINTS =
+static constexpr std::array<int, 6> AHO_NMBR_NORTH_L_CDR_BREAKPOINTS =
 {24, 43, 57, 72, 107, 139};
 
 
