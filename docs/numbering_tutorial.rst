@@ -1,4 +1,4 @@
-Antibody numbering in AntPack
+Antibody and TCR numbering in AntPack
 ===============================================
 
 To start, use the ``SingleChainAnnotator`` or ``PairedChainAnnotator`` tools.
@@ -8,7 +8,8 @@ or MSA:::
 
   from antpack import SingleChainAnnotator, PairedChainAnnotator
   aligner = SingleChainAnnotator(chains=["H", "K", "L"], scheme="imgt")
-  paired_aligner = PairedChainAnnotator(scheme = "imgt")
+  paired_aligner = PairedChainAnnotator(scheme = "imgt",
+                        receptor_type="mab")
 
 Both tools have the same basic methods / functions available.
 
@@ -16,7 +17,10 @@ For single chains: if you don't know what type of chain you're working with, lea
 ``chains`` as default and SingleChainAnnotator will figure out the chain
 type. If you DO know that all of your chains are either
 heavy ["H"] or light ["K", "L"] set SingleChainAnnotator to only
-look for that chain.
+look for that chain. If you are interested in TCRs, supply ``chains`` as
+``["A", "B", "D", "G"]```. Note that TCR numbering is somewhat slower than
+antibody numbering in current versions of AntPack (we will likely improve
+TCR numbering speed in future).
 
 ``PairedChainAnnotator`` is designed to work with sequences that contain both a
 light and a heavy chain (in any order) but can also handle single chains. Keep in
@@ -24,6 +28,8 @@ mind that PairedChainAnnotator *will* try to find two chains in the input sequen
 so your clue that there is only one chain present will be a very low percent
 identity and/or an error message for one of the two chains. It is a little slower than
 ``SingleChainAnnotator`` because it has to do some additional operations.
+If you want to look at TCRs instead of antibodies, change ``receptor_type`` to
+``tcr``.
 
 Some prior versions accepted an option called ``compress_init_gaps``. This option
 is deprecated as of v0.3.6.
@@ -63,4 +69,9 @@ sorting; thus, if the list you pass to this function contains '-', that characte
 will be removed before sorting.
 
 ``assign_cdr_labels`` is useful to figure out which portions of a numbered sequence are
-cdr or framework.
+cdr or framework. As of v0.3.8, you can use a different set of CDR definitions than
+the numbering scheme. You can for example number using IMGT by creating a
+``PairedChainAnnotator`` or ``SingleChainAnnotator`` with ``"imgt"`` as the scheme
+and then call ``assign_cdr_labels`` but pass it an argumen of ``kabat`` for the
+cdr assignment scheme. This will number your sequences with IMGT but use Kabat
+CDR definitions.

@@ -1,5 +1,18 @@
-/* Contains the parent class for other annotator classes, which provides methods
- * that all annotator tools should expose to their callers.*/
+/* Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 // C++ headers
 #include <tuple>
 #include <vector>
@@ -11,16 +24,11 @@
 #include "annotator_base_class.h"
 #include "../utilities/cdr_assignment_utilities.h"
 
-namespace NumberingTools {
+namespace SequenceAnnotators {
 
 
-AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme,
-        std::string consensus_filepath,
-        std::unordered_map<std::string, size_t> nterm_kmers):
-    scheme(scheme) {
-    this->boundary_finder = std::make_unique
-        <PrefilteringRoutines::PrefilteringTool>(consensus_filepath,
-                nterm_kmers);
+AnnotatorBaseClassCpp::AnnotatorBaseClassCpp(std::string scheme):
+scheme(scheme) {
 }
 
 
@@ -41,10 +49,11 @@ std::vector<std::string> AnnotatorBaseClassCpp::sort_position_codes(
         if (code != "-")
             cleanedCodes.push_back(code);
     }
-    if (!SequenceUtilities::sort_position_codes_utility(cleanedCodes, this->scheme,
-            sortedCodes)) {
-        throw std::runtime_error(std::string("One or more of the supplied position "
-                    "codes is invalid given the specified scheme."));
+    if (!SequenceUtilities::sort_position_codes_utility(cleanedCodes,
+                this->scheme, sortedCodes)) {
+        throw std::runtime_error(std::string("One or more of the "
+                    "supplied position codes is invalid given the "
+                    "specified scheme."));
     }
     return sortedCodes;
 }
@@ -102,13 +111,17 @@ std::tuple<std::string, std::vector<std::string>, int, int>
 /// Wraps the assign_cdr_labels function in SequenceUtilities
 /// for access by Python callers.
 std::vector<std::string> AnnotatorBaseClassCpp::assign_cdr_labels(
-        std::tuple<std::vector<std::string>, 
-               double, std::string, std::string> alignment) {
-
+        std::vector<std::string> numbering, std::string chain,
+        std::string scheme) {
     std::vector<std::string> cdr_labeling;
-    SequenceUtilities::assign_cdr_labels(alignment,
-            cdr_labeling, this->scheme);
+    if (scheme == "") {
+        CDRConversionUtilities::assign_cdr_labels(numbering, chain,
+            cdr_labeling, this->scheme, this->scheme);
+    } else {
+        CDRConversionUtilities::assign_cdr_labels(numbering, chain,
+            cdr_labeling, this->scheme, scheme);
+    }
     return cdr_labeling;
 }
 
-}  // namespace NumberingTools
+}  // namespace SequenceAnnotators

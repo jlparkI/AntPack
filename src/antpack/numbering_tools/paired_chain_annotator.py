@@ -10,12 +10,15 @@ from antpack.antpack_cpp_ext import PairedChainAnnotatorCpp
 
 class PairedChainAnnotator(PairedChainAnnotatorCpp):
 
-    def __init__(self, scheme = "imgt"):
+    def __init__(self, scheme = "imgt", receptor_type="mab"):
         """Class constructor.
 
         Args:
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "martin", "kabat", "aho".
+                "martin", "kabat", "aho". If receptor_type is 'tcr'
+                only "imgt" is accepted.
+            receptor_type (str): One of "mab", "tcr". Default is "mab"
+                (antibody).
 
         Raises:
             RuntimeError: A RuntimeError is raised if unacceptable inputs are
@@ -24,4 +27,4 @@ class PairedChainAnnotator(PairedChainAnnotatorCpp):
         consensus_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                 "consensus_data")
         kmer_dict = _load_nterm_kmers()
-        super().__init__(scheme, consensus_path, kmer_dict)
+        super().__init__(scheme, consensus_path, kmer_dict, receptor_type)

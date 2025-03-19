@@ -11,12 +11,25 @@
  * This header ensures they are all in one convenient place.
  *************************************************/
 
-namespace NumberingTools{
+namespace NumberingTools {
 
+// Codes for the pathways that can link a score
+// to the best-scoring parent.
+static constexpr int LEFT_TRANSFER = 1;
+static constexpr int UP_TRANSFER = 2;
+static constexpr int DIAGONAL_TRANSFER = 0;
+
+// The columns of the score matrix that are accessed for gap penalties.
+static constexpr int QUERY_GAP_COLUMN = 21;
+static constexpr int TEMPLATE_GAP_COLUMN = 22;
 
 // We universally use 1 for valid result, 0 for error.
 static constexpr int VALID_SEQUENCE = 1;
 static constexpr int INVALID_SEQUENCE = 0;
+
+
+// The expected number of AAs.
+static constexpr int EXPECTED_NUM_AAS_FOR_ALIGNERS = 23;
 
 
 // The minimum number of amino acids in a sequence to try to align it.
@@ -86,27 +99,6 @@ static constexpr int HIGHLY_CONSERVED_KABAT_LIGHT_4 = 97;
 static constexpr int HIGHLY_CONSERVED_KABAT_LIGHT_5 = 98;
 static constexpr int HIGHLY_CONSERVED_KABAT_LIGHT_6 = 100;
 
-
-// The start and end of CDRs in IMGT (ignoring insertions).
-static constexpr std::array<int, 6> IMGT_CDR_BREAKPOINTS = {27, 39,
-        56, 66, 105, 118};
-
-// The start and end of CDRs in AHO (ignoring insertions).
-static constexpr std::array<int, 6> AHO_CDR_BREAKPOINTS = {25, 41,
-        58, 78, 109, 138};
-
-
-// The start and end of CDRs in Kabat (ignoring insertions).
-static constexpr std::array<int, 6> KABAT_HEAVY_CDR_BREAKPOINTS = {31, 36,
-    50, 66, 95, 103};
-static constexpr std::array<int, 6> KABAT_LIGHT_CDR_BREAKPOINTS = {24, 35,
-    50, 57, 89, 98};
-
-// The start and end of CDRs in Martin (ignoring insertions).
-static constexpr std::array<int, 6> MARTIN_HEAVY_CDR_BREAKPOINTS = {26, 33,
-    52, 57, 95, 103};
-static constexpr std::array<int, 6> MARTIN_LIGHT_CDR_BREAKPOINTS = {26, 33,
-    50, 53, 91, 97};
 
 // Gap open vs extend penalties for c and n terminals.
 static constexpr int NTERMINAL_QUERY_GAP_PENALTY = -1;

@@ -14,12 +14,17 @@ class SingleChainAnnotator(SingleChainAnnotatorCpp):
         """Class constructor.
 
         Args:
-            chains (list): A list of chains. Each must be one of "H", "K", "L".
-                If ["H", "K", "L"] (default), the annotator will automatically
-                determine the most appropriate chain type for each input
-                sequence.
+            chains (list): A list of chains. Each must EITHER be one of
+                "H", "K", "L" for antibodies or one of "A", "B", "D", "G"
+                for TCRs. If ["H", "K", "L"] (default) or ["A", "B", "D", "G"]
+                the annotator will automatically determine the most appropriate
+                chain type for each input sequence. You cannot supply a mixture
+                of TCR and antibody chains (e.g. ["H", "A"]) -- the list you
+                supply must contain either TCR or antibody chains but not
+                both.
             scheme (str): The numbering scheme. Must be one of "imgt",
-                "martin", "kabat", "aho".
+                "martin", "kabat", "aho". If TCR chains are supplied,
+                only "imgt" is accepted.
 
         Raises:
             ValueError: A ValueError is raised if unacceptable inputs are

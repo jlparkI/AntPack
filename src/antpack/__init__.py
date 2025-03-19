@@ -1,11 +1,10 @@
 # Used for determining the version if running setup.
 # Only change if building a new version.
-__version__ = "0.3.7"
+__version__ = "0.3.8"
 
 import importlib.util
 
 from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator
-#from .numbering_tools.consensus_update_tools import build_consensus_files
 from .numbering_tools.dna_sequence_translation import DNASeqTranslator
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool, HumanizationTool

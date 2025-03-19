@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
                     "You are currently viewing a VJ gene sequence comparison. "
                     "You must clear this before using the Add Sequence "
                     "option.", QMessageBox.Ok)
+                return
 
         dialog = AddSequenceDialog(self)
         if dialog.exec():
@@ -181,6 +182,7 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
             if self.selected_seqs is None:
                 self.selected_seqs = MultiSequenceData()
             err = ""
@@ -234,6 +236,7 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
             try:
                 self.selected_seqs = process_for_vj_comparison(seq, seq_type,
                     self.sc_annotator, self.pc_annotator,
@@ -288,7 +291,7 @@ class MainWindow(QMainWindow):
         else:
             self.light_chain_view.setRowCount(self.selected_seqs.get_num_light())
             light_nmbr = self.selected_seqs.get_light_numbering()
-            light_labels = self.sc_annotator.assign_cdr_labels((light_nmbr, 1, "L", ""))
+            light_labels = self.sc_annotator.assign_cdr_labels(light_nmbr, "L")
 
             self.light_chain_view.setColumnCount(len(light_nmbr) + 3)
             self.light_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))
@@ -322,7 +325,7 @@ class MainWindow(QMainWindow):
         else:
             self.heavy_chain_view.setRowCount(self.selected_seqs.get_num_heavy())
             heavy_nmbr = self.selected_seqs.get_heavy_numbering()
-            heavy_labels = self.sc_annotator.assign_cdr_labels((heavy_nmbr, 1, "H", ""))
+            heavy_labels = self.sc_annotator.assign_cdr_labels(heavy_nmbr, "H")
 
             self.heavy_chain_view.setColumnCount(len(heavy_nmbr) + 3)
             self.heavy_chain_view.setHorizontalHeaderItem(0, QTableWidgetItem("Description"))

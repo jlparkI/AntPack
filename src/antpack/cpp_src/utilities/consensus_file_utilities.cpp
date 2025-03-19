@@ -3,19 +3,44 @@
  * https://github.com/rogersce/cnpy library, which is very nice but
  * also contains functionality we do not need (writing npy files,
  * reading npy files with complex types etc.), so this has been
- * simplified somewhat. */
+ * simplified somewhat.
+ * Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+// C++ headers
+
+// Library headers
+
+// Project headers
 #include "consensus_file_utilities.h"
 
 
 
-// Reads a specially formatted text file into a vector of vectors of strings.
-// Each entry in the outer vector is a vector of amino acids allowed at that
-// position. Note that an empty vector at a given position indicates any AA is
-// tolerated at that position. Therefore, if a '-' is found at a given postiion,
-// assume any AA is tolerated there.
+/// @brief Reads a specially formatted text file into a
+/// vector of vectors of strings. Each entry in the outer
+/// vector is a vector of amino acids allowed at that
+/// position. Note that an empty vector at a given position
+/// indicates any AA is tolerated at that position. Therefore,
+/// if a '-' is found at a given postiion, assume any AA is
+/// tolerated there.
+/// @param consFPath The location of the consensus file.
+/// @param consensusAAs The list in which the results will
+/// be stored.
+/// @return An integer error code.
 int cnpy::read_consensus_file(std::filesystem::path consFPath,
         std::vector<std::vector<std::string>> &consensusAAs) {
-
     if (!std::filesystem::exists(consFPath))
         return INVALID_CONSENSUS_FILE;
 
@@ -23,24 +48,24 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
 
     int lastPosition = 0;
     bool readNow = false;
-    std::string currentLine;
+    std::string current_line;
 
-    while (std::getline(file, currentLine)) {
-        if (currentLine.at(0) == '#'){
+    while (std::getline(file, current_line)) {
+        if (current_line.at(0) == '#') {
             readNow = true;
             continue;
         }
-        if (currentLine.at(0) == '/')
+        if (current_line.at(0) == '/')
             break;
         if (!readNow)
             continue;
 
-        std::stringstream splitString(currentLine);
+        std::stringstream split_string(current_line);
         std::string segment;
         bool firstSegment = true, allAAsAllowed = false;
         std::vector<std::string> allowedAAs;
 
-        while (std::getline(splitString, segment, ',')) {
+        while (std::getline(split_string, segment, ',')) {
             if (firstSegment) {
                 int position = std::stoi(segment);
                 if (position - 1 != lastPosition)
@@ -63,6 +88,46 @@ int cnpy::read_consensus_file(std::filesystem::path consFPath,
 
     return VALID_CONSENSUS_FILE;
 }
+
+
+
+
+
+/// @brief Reads a specially formatted text file into a
+/// vector of strings. Each entry is a V-gene or J-gene,
+/// which must be of a prespecified length in order to
+/// be accepted.
+/// @param filepath The location of the file.
+/// @param gene_list The vector in which the results will
+/// be stored.
+/// @param expected_length Enforces that all loaded genes will
+/// be of an expected length.
+/// @return An integer error code.
+int cnpy::read_tcr_vj_gene_file(std::filesystem::path filepath,
+        std::vector<std::string> &gene_list,
+        size_t expected_length) {
+    if (!std::filesystem::exists(filepath))
+        return INVALID_CONSENSUS_FILE;
+
+    std::ifstream file(filepath.string());
+
+    int lastPosition = 0;
+    std::string current_line;
+
+    while (std::getline(file, current_line)) {
+        if (current_line.length() < 2)
+            break;
+
+        if (current_line.length() != expected_length)
+            return INVALID_CONSENSUS_FILE;
+
+        gene_list.push_back(current_line);
+    }
+
+    return VALID_CONSENSUS_FILE;
+}
+
+
 
 
 // Test for big-endianness.

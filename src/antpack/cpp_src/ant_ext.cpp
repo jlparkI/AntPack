@@ -33,12 +33,11 @@ namespace nb = nanobind;
 
 
 NB_MODULE(antpack_cpp_ext, m) {
-    nb::class_<NumberingTools::AnnotatorBaseClassCpp>(m,
+    nb::class_<SequenceAnnotators::AnnotatorBaseClassCpp>(m,
             "AnnotatorBaseClassCpp")
-        .def(nb::init<std::string, std::string,
-                std::unordered_map<std::string, size_t>>())
+        .def(nb::init<std::string>())
         .def("sort_position_codes",
-                &NumberingTools::AnnotatorBaseClassCpp::sort_position_codes,
+                &SequenceAnnotators::AnnotatorBaseClassCpp::sort_position_codes,
                 nb::arg("position_code_list"),
      R"(
         Takes an input list of position codes for a specified scheme and
@@ -52,7 +51,7 @@ NB_MODULE(antpack_cpp_ext, m) {
 
         Returns:
             sorted_codes (list): A list of sorted position codes.)")
-        .def("build_msa", &NumberingTools::AnnotatorBaseClassCpp::build_msa,
+        .def("build_msa", &SequenceAnnotators::AnnotatorBaseClassCpp::build_msa,
                 nb::arg("sequences"), nb::arg("annotations"),
                 nb::arg("add_unobserved_positions") = false,
      R"(
@@ -80,28 +79,43 @@ NB_MODULE(antpack_cpp_ext, m) {
                 scheme.
             aligned_seqs (list): A list of strings -- the input sequences all aligned
                 to form an MSA.)")
-        .def("assign_cdr_labels", &NumberingTools::AnnotatorBaseClassCpp::assign_cdr_labels,
-                nb::arg("alignment"),
+        .def("assign_cdr_labels", &SequenceAnnotators::AnnotatorBaseClassCpp::assign_cdr_labels,
+                nb::arg("numbering"), nb::arg("chain"),
+                nb::arg("scheme") = "",
      R"(
         Assigns a list of labels "-", "fmwk1", "cdr1", "fmwk2", "cdr2",
         "fmwk3", "cdr3", "fmwk4" to each amino acid in a sequence already
         annotated using the "analyze_seq" or "analyze_seqs" commands. The
         labels indicate which framework region or CDR each amino acid / position
-        is in. The scheme that is used is the same as the one selected when
-        the annotator is constructed.
+        is in. This function can be used to assign CDRs with a different
+        scheme than the one used to number the sequence if desired.
 
         Args:
-            alignment (tuple): A tuple containing (numbering,
-                percent_identity, chain_name, error_message). This tuple
-                is what you will get as output if you pass sequences to
-                the analyze_seq method of SingleChainAnnotator
-                or PairedChainAnnotator.
+            numbering (list): A list containing valid codes for the scheme that was
+                selected when this object was created. If you pass a sequence to
+                the analyze_seq method of SingleChainAnnotator or PairedChainAnnotator,
+                the numbering will be the first element of the tuple that is returned
+                (or the first element of both tuples that are returned
+                for PairedChainAnnotator).
+            chain (str): A valid chain (e.g. 'H', 'K', 'L', 'A'). The assigned chain is the
+                third element of the tuple returned by analyze_seq. For this function
+                only, 'K' and 'L' are equivalent since they both refer to a light chain,
+                so if your chain is light you can supply either for the same result.
+            scheme (str): Either "" or a valid scheme. If "" (default), the scheme that
+                is used is the same as the one selected when the annotator was constructed.
+                Using a different scheme can enable you to "cross-assign" CDRs and number
+                with one scheme while assigning CDRs with another. So if you create an
+                annotator with "imgt" as the scheme then you are numbering using "imgt",
+                but by passing e.g. "kabat" to this function, you can use the kabat CDR
+                definitions instead of the IMGT ones. Valid schemes for this
+                function only are 'imgt', 'aho', 'kabat', 'martin', 'north'. For TCRs
+                only "" and "imgt" are accepted.
 
         Returns:
             region_labels (list): A list of strings, each of which is one of
                 "fmwk1", "fmwk2", "fmwk3", "fmwk4", "cdr1", "cdr2", "cdr3" or "-".
                 This list will be of the same length as the input alignment.)")
-        .def("trim_alignment", &NumberingTools::AnnotatorBaseClassCpp::trim_alignment,
+        .def("trim_alignment", &SequenceAnnotators::AnnotatorBaseClassCpp::trim_alignment,
                 nb::arg("sequence"), nb::arg("alignment"),
      R"(
         Takes as input a sequence and a tuple produced by
@@ -127,15 +141,15 @@ NB_MODULE(antpack_cpp_ext, m) {
             exend (int): The last untrimmed position in the input sequence.
                 The trimmed sequence is sequence[exstart:exend].)");
 
-    nb::class_<NumberingTools::SingleChainAnnotatorCpp,
-        NumberingTools::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
+    nb::class_<SequenceAnnotators::SingleChainAnnotatorCpp,
+        SequenceAnnotators::AnnotatorBaseClassCpp>(m, "SingleChainAnnotatorCpp")
         .def(nb::init<std::vector<std::string>,
                 std::string, std::string,
                 std::unordered_map<std::string, size_t>>())
-        .def("analyze_seq", &NumberingTools::SingleChainAnnotatorCpp::analyze_seq,
+        .def("analyze_seq", &SequenceAnnotators::SingleChainAnnotatorCpp::analyze_seq,
                 nb::arg("sequence"),
      R"(
-        Numbers and scores a single input sequence. A list of
+        Numbers a single input sequence. A list of
         outputs from this function can be passed to build_msa
         if desired. The output from this function can also be passed
         to trim_alignment, to assign_cdr_labels and to the VJGeneTool
@@ -151,10 +165,10 @@ NB_MODULE(antpack_cpp_ext, m) {
                 message is "". An alignment with low percent identity (e.g. < 0.85)
                 may indicate a sequence that is not really an antibody, that contains
                 a large deletion, or is not of the selected chain type.)")
-        .def("analyze_seqs", &NumberingTools::SingleChainAnnotatorCpp::analyze_seqs,
+        .def("analyze_seqs", &SequenceAnnotators::SingleChainAnnotatorCpp::analyze_seqs,
                 nb::arg("sequences"),
      R"(
-        Numbers and scores a list of input sequences. The outputs
+        Numbers a list of input sequences. The outputs
         can be passed to other functions like build_msa, trim_alignment,
         assign_cdr_labels and the VJGeneTool if desired.
 
@@ -175,15 +189,17 @@ NB_MODULE(antpack_cpp_ext, m) {
 
 
 
-    nb::class_<NumberingTools::PairedChainAnnotatorCpp,
-        NumberingTools::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
+    nb::class_<SequenceAnnotators::PairedChainAnnotatorCpp,
+        SequenceAnnotators::AnnotatorBaseClassCpp>(m, "PairedChainAnnotatorCpp")
         .def(nb::init<std::string, std::string,
-                std::unordered_map<std::string, size_t>>())
-        .def("analyze_seq", &NumberingTools::PairedChainAnnotatorCpp::analyze_seq,
+                std::unordered_map<std::string, size_t>,
+                std::string>())
+        .def("analyze_seq", &SequenceAnnotators::PairedChainAnnotatorCpp::analyze_seq,
                 nb::arg("sequence"),
      R"(
         Extracts and numbers the variable chain regions from a sequence that is
-        assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
+        may contain both a light ('K', 'L' for antibodies, 'B' or 'D' for TCRs)
+        region and a heavy ('H' for antibodies, 'A' or 'G' for TCRs) region.
         The extracted light or heavy chains that are returned can be passed to
         other tools like build_msa, trim_alignment, assign_cdr_labels and the
         VJGeneTool.
@@ -203,11 +219,12 @@ NB_MODULE(antpack_cpp_ext, m) {
                 chain_name, error_message). Numbering is the same length as the input
                 sequence. A low percent identity or an error message may indicate a problem
                 with the input sequence. The error_message is "" unless some error occurred.)")
-        .def("analyze_seqs", &NumberingTools::PairedChainAnnotatorCpp::analyze_seqs,
+        .def("analyze_seqs", &SequenceAnnotators::PairedChainAnnotatorCpp::analyze_seqs,
                 nb::arg("sequences"),
      R"(
         Extracts and numbers the variable chain regions from a list of sequences
-        assumed to contain both a light ('K', 'L') region and a heavy ('H') region.
+        may contain both a light ('K', 'L' for antibodies or 'B', 'D' for TCRs)
+        region and a heavy ('H' for antibodies or 'B', 'D' for TCRs) region.
         The extracted light or heavy chains that are returned can be passed to
         other tools like build_msa, trim_alignment, assign_cdr_labels and the
         VJGeneTool.
@@ -254,7 +271,11 @@ NB_MODULE(antpack_cpp_ext, m) {
                 or PairedChainAnnotator.
             sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
                 X is also allowed but should be used sparingly.
-            species (str): Currently must be one of 'human', 'mouse', 'alpaca'.
+            species (str): Currently must be one of 'human', 'mouse',
+                'alpaca', 'rabbit' or 'unknown'. For TCRs only 'human', 'mouse',
+                'unknown' are allowed. If 'unknown', all species are checked
+                to find the closest match. Note that 'unknown' will be slightly
+                slower for this reason.
             mode (str): One of 'identity', 'evalue'. If 'identity' the highest
                 percent identity sequence(s) are identified. If 'evalue' the
                 lowest e-value (effectively best BLOSUM score) sequence(s)
@@ -267,20 +288,17 @@ NB_MODULE(antpack_cpp_ext, m) {
                 the numbered sequence matches the v-gene divided by the total number of
                 non-blank positions in the v-gene. If mode is 'evalue', the best BLOSUM
                 score (this can be converted to an e-value). If more than one v-gene
-                with the same score is found, multiple
-                v-genes are returned as a single string delimited with '_' to separate
-                the different v-genes. for the ogrdb database, where multiple names
-                have been assigned to the same aa sequence, these multiple names
-                are separated by ' ' in the output.
+                with the same score is found, multiple v-genes are returned as a single
+                string delimited with '_' to separate the different v-genes.
             j_pident (float): If mode is 'identity', the number of positions at which
                 the numbered sequence matches the j-gene divided by the total number of
                 non-blank positions in the j-gene. If mode is 'evalue', the best BLOSUM
                 score (this can be converted to an e-value). If more than one j-gene
-                with the same score is found, multiple
-                j-genes are returned as a single string delimited with '_' to separate
-                the different j-genes. for the ogrdb database, where multiple names
-                have been assigned to the same aa sequence, these multiple names
-                are separated by ' ' in the output.)") 
+                with the same score is found, multiple j-genes are returned as a single
+                string delimited with '_' to separate the different j-genes.
+            species (str): The species. This will be the same as the input species
+                UNLESS your specified input species is unknown, in which case the
+                species that was identified will be returned.)")
         .def("get_vj_gene_sequence",
                 &VJAssignment::VJMatchCounter::get_vj_gene_sequence,
                 nb::arg("vj_gene_name"), nb::arg("species"),
@@ -294,12 +312,13 @@ NB_MODULE(antpack_cpp_ext, m) {
         Args:
             query_name (str): A valid V or J gene name, as generated
                 by for example assign_sequence.
-            species (str): One of 'human', 'mouse', 'alpaca'.
+            species (str): One of 'human', 'mouse', 'alpaca', 'rabbit'.
 
         Returns:
             sequence (str): The amino acid sequence of the V or J gene
-                that was requested. If that V or J gene name does not
-                match anything, None is returned.)")
+                that was requested, gapped to be length 128 consistent
+                with the IMGT numbering scheme. If that V or J gene name
+                does not match anything, None is returned.)")
         .def("get_seq_lists", &VJAssignment::VJMatchCounter::get_seq_lists);
 
 
@@ -310,13 +329,14 @@ NB_MODULE(antpack_cpp_ext, m) {
         .def("analyze_seq",
                 &LiabilitySearch::LiabilitySearchToolCpp::analyze_seq,
                 nb::arg("sequence"), nb::arg("alignment"),
-                nb::arg("scheme"),
+                nb::arg("scheme"), nb::arg("cdr_scheme"),
      R"(
         Searches for some common motifs which may correspond to possible
         development liabilities. Note that this may sometimes be a false positive;
         the presence of a possible N-glycosylation motif, for example, does
         not guarantee that N-glycosylation will occur. It does however identify
-        sites where there is a risk.
+        sites where there is a risk. Currently only antibodies are allowed; TCRs
+        are not supported.
 
         Args:
             sequence (str): A sequence containing the usual 20 amino acids -- no gaps.
@@ -330,6 +350,11 @@ NB_MODULE(antpack_cpp_ext, m) {
                 or 'martin'. It is very important to use the same scheme
                 that was used to number the sequence; using some other scheme
                 may lead to incorrect motif identification.
+            cdr_scheme (str): The scheme that is used for CDR definitions. This
+                can be one of 'imgt', 'aho', 'martin', 'kabat', 'north'. Note
+                that you can use a different set of CDR definitions than the
+                numbering scheme (e.g. number with IMGT and define CDRs using
+                Kabat) although usually this will be the same as 'scheme'.
 
         Returns:
             liabilities (list): A list of tuples. The first element of each
@@ -355,7 +380,7 @@ NB_MODULE(antpack_cpp_ext, m) {
         This function checks each possible reading frame (and if indicated the
         possible reading frames in the reverse complement) to see which is most
         likely to contain the mAb sequence based on the presence / absence
-        of kmers common in heavy and light chains. The DNA sequence must consist
+        of kmers common in mAbs and TCRs. The DNA sequence must consist
         of only A, C, T, G and N (any codon containing N will be translated
         to X, which is an allowed letter in the AntPack numbering tools) and
         should be uppercase letters. If you know which reading frame and/or

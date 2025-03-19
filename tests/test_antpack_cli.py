@@ -17,226 +17,297 @@ class TestAntPackCLI(unittest.TestCase):
 
 
 
-    def test_paired_chain_csv(self):
+    def test_paired_chain(self):
         """Take test heavy and light chains and pair them,
         then use the CLI to do basic analysis written to a
-        csv file."""
-        merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = get_paired_seqs()
+        csv file with human VJ gene assignment. Do this for
+        both TCRs and mAbs."""
+        vj_tool = VJGeneTool(scheme="imgt")
 
-        heavy_code_map = create_manual_mapping(heavy_pc_annotations, pc_aligner)
-        light_code_map = create_manual_mapping(light_pc_annotations, pc_aligner)
+        for processing_mode in ["offline", "online"]:
+            for target_file, receptor in [("test_data.csv.gz", "mab"),
+                    ("tcr_test_data.csv.gz", "tcr")]:
+                merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = \
+                        get_paired_seqs(target_file, receptor)
 
-        # Create a temporary fasta input file.
-        with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
-            for i, merged_seq in enumerate(merged_seqs):
-                fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
+                heavy_code_map = create_manual_mapping(heavy_pc_annotations, pc_aligner)
+                light_code_map = create_manual_mapping(light_pc_annotations, pc_aligner)
+
+                # Create a temporary fasta input file.
+                with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
+                    for i, merged_seq in enumerate(merged_seqs):
+                        fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
+
+                if processing_mode == "online":
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--tcr"])
+                else:
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--offline"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--tcr", "--offline"])
+
+                self.assertTrue("output_data_heavy.csv" in os.listdir())
+                self.assertTrue("output_data_light.csv" in os.listdir())
+
+                with open("output_data_heavy.csv", "r",
+                        encoding="utf-8") as fhandle:
+                    _ = fhandle.readline()
+
+                    for i, line in enumerate(fhandle):
+                        elements = line.strip().split(",")
+                        self.assertTrue(elements[0] == f"this is sequence # {i}")
+                        self.assertTrue(elements[2] == "human")
+                        self.assertTrue(elements[3] == "identity")
+                        v_gene, j_gene, vident, jident, _ = \
+                                vj_tool.assign_vj_genes(heavy_pc_annotations[i],
+                                merged_seqs[i], "human", "identity")
+                        self.assertTrue(elements[4]==v_gene)
+                        self.assertTrue(np.allclose(float(elements[5]), vident))
+                        self.assertTrue(elements[6]==j_gene)
+                        self.assertTrue(np.allclose(float(elements[7]), jident))
+                        self.assertTrue("".join(elements[8:-1])==map_sequence(merged_seqs[i],
+                            heavy_pc_annotations[i], heavy_code_map))
+                        self.assertTrue(elements[-1]==heavy_pc_annotations[i][-1])
+
+                    self.assertTrue((i+1)==len(heavy_pc_annotations))
+
+                with open("output_data_light.csv", "r",
+                        encoding="utf-8") as fhandle:
+                    _ = fhandle.readline()
+                    for i, line in enumerate(fhandle):
+                        elements = line.strip().split(",")
+                        self.assertTrue(elements[0] == f"this is sequence # {i}")
+                        self.assertTrue(elements[2] == "human")
+                        self.assertTrue(elements[3] == "identity")
+                        v_gene, j_gene, vident, jident, _ = \
+                                vj_tool.assign_vj_genes(light_pc_annotations[i],
+                                merged_seqs[i], "human", "identity")
+                        self.assertTrue(elements[4]==v_gene)
+                        self.assertTrue(np.allclose(float(elements[5]), vident))
+                        self.assertTrue(elements[6]==j_gene)
+                        self.assertTrue(np.allclose(float(elements[7]), jident))
+                        self.assertTrue("".join(elements[8:-1])==map_sequence(merged_seqs[i],
+                            light_pc_annotations[i], light_code_map))
+                        self.assertTrue(elements[-1]==light_pc_annotations[i][-1])
+
+                    self.assertTrue((i+1)==len(light_pc_annotations))
+
+                os.remove("input_fasta_data.fasta")
+                os.remove("output_data_heavy.csv")
+                os.remove("output_data_light.csv")
 
 
-        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
-                "output_data", "imgt", "--paired"])
-
-        self.assertTrue("output_data_heavy.csv" in os.listdir())
-        self.assertTrue("output_data_light.csv" in os.listdir())
-
-        with open("output_data_heavy.csv", "r",
-                encoding="utf-8") as fhandle:
-            _ = fhandle.readline()
-            for i, line in enumerate(fhandle):
-                elements = line.strip().split(",")
-                self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue("".join(elements[2:-1])==map_sequence(merged_seqs[i],
-                    heavy_pc_annotations[i], heavy_code_map))
-                self.assertTrue(elements[-1]==heavy_pc_annotations[i][-1])
-
-            self.assertTrue((i+1)==len(heavy_pc_annotations))
-
-        with open("output_data_light.csv", "r",
-                encoding="utf-8") as fhandle:
-            temp = fhandle.readline()
-            for i, line in enumerate(fhandle):
-                elements = line.strip().split(",")
-                self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue("".join(elements[2:-1])==map_sequence(merged_seqs[i],
-                    light_pc_annotations[i], light_code_map))
-                self.assertTrue(elements[-1]==light_pc_annotations[i][-1])
-
-            self.assertTrue((i+1)==len(light_pc_annotations))
-
-        os.remove("input_fasta_data.fasta")
-        os.remove("output_data_heavy.csv")
-        os.remove("output_data_light.csv")
-
-
-
-
-    def test_paired_chain_vj(self):
+    def test_paired_chain_fasta(self):
         """Take test heavy and light chains and pair them,
         then use the CLI to do basic analysis written to a
-        csv file with human VJ gene assignment."""
-        merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = get_paired_seqs()
-        vj_tool = VJGeneTool(database="imgt", scheme="imgt")
+        fasta file, no VJ assignment. Do this for both
+        TCRs and mAbs."""
+        for processing_mode in ["offline", "online"]:
+            for target_file, receptor in [("test_data.csv.gz", "mab"),
+                    ("tcr_test_data.csv.gz", "tcr")]:
+                merged_seqs, heavy_pc_annotations, light_pc_annotations, pc_aligner = \
+                        get_paired_seqs(target_file, receptor)
 
-        heavy_code_map = create_manual_mapping(heavy_pc_annotations, pc_aligner)
-        light_code_map = create_manual_mapping(light_pc_annotations, pc_aligner)
+                heavy_code_map = create_manual_mapping(heavy_pc_annotations, pc_aligner)
+                light_code_map = create_manual_mapping(light_pc_annotations, pc_aligner)
 
-        # Create a temporary fasta input file.
-        with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
-            for i, merged_seq in enumerate(merged_seqs):
-                fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
+                # Create a temporary fasta input file.
+                with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
+                    for i, merged_seq in enumerate(merged_seqs):
+                        fhandle.write(f">this is sequence # {i}\n{merged_seq}\n")
 
+                if processing_mode == "online":
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--fasta"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--tcr", "--fasta"])
+                else:
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--offline", "--fasta"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
+                            "human", "imgt", "--paired", "--tcr", "--offline", "--fasta"])
 
-        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
-            "imgt", "--paired", "--vj", "human", "identity"])
+                self.assertTrue("output_data_heavy.fasta" in os.listdir())
+                self.assertTrue("output_data_light.fasta" in os.listdir())
 
-        self.assertTrue("output_data_heavy.csv" in os.listdir())
-        self.assertTrue("output_data_light.csv" in os.listdir())
+                with open("output_data_heavy.fasta", "r",
+                        encoding="utf-8") as fhandle:
+                    _ = fhandle.readline()
 
-        with open("output_data_heavy.csv", "r",
-                encoding="utf-8") as fhandle:
-            _ = fhandle.readline()
+                    counter = 0
+                    for line in fhandle:
+                        if line.startswith(">"):
+                            self.assertTrue(line.strip() == f">this is sequence # {counter}")
+                        else:
+                            self.assertTrue(line.strip()==map_sequence(merged_seqs[counter],
+                                heavy_pc_annotations[counter], heavy_code_map))
+                            counter += 1
 
-            for i, line in enumerate(fhandle):
-                elements = line.strip().split(",")
-                self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue(elements[2] == "human")
-                self.assertTrue(elements[3] == "identity")
-                v_gene, j_gene, vident, jident = vj_tool.assign_vj_genes(heavy_pc_annotations[i],
-                        merged_seqs[i], "human", "identity")
-                self.assertTrue(elements[4]==v_gene)
-                self.assertTrue(np.allclose(float(elements[5]), vident))
-                self.assertTrue(elements[6]==j_gene)
-                self.assertTrue(np.allclose(float(elements[7]), jident))
-                self.assertTrue("".join(elements[8:-1])==map_sequence(merged_seqs[i],
-                    heavy_pc_annotations[i], heavy_code_map))
-                self.assertTrue(elements[-1]==heavy_pc_annotations[i][-1])
+                    self.assertTrue(counter==len(heavy_pc_annotations))
 
-            self.assertTrue((i+1)==len(heavy_pc_annotations))
+                with open("output_data_light.fasta", "r",
+                        encoding="utf-8") as fhandle:
+                    _ = fhandle.readline()
 
-        with open("output_data_light.csv", "r",
-                encoding="utf-8") as fhandle:
-            _ = fhandle.readline()
-            for i, line in enumerate(fhandle):
-                elements = line.strip().split(",")
-                self.assertTrue(elements[0] == f"this is sequence # {i}")
-                self.assertTrue(elements[2] == "human")
-                self.assertTrue(elements[3] == "identity")
-                v_gene, j_gene, vident, jident = vj_tool.assign_vj_genes(light_pc_annotations[i],
-                        merged_seqs[i], "human", "identity")
-                self.assertTrue(elements[4]==v_gene)
-                self.assertTrue(np.allclose(float(elements[5]), vident))
-                self.assertTrue(elements[6]==j_gene)
-                self.assertTrue(np.allclose(float(elements[7]), jident))
-                self.assertTrue("".join(elements[8:-1])==map_sequence(merged_seqs[i],
-                    light_pc_annotations[i], light_code_map))
-                self.assertTrue(elements[-1]==light_pc_annotations[i][-1])
+                    counter = 0
+                    for line in fhandle:
+                        if line.startswith(">"):
+                            self.assertTrue(line.strip() == f">this is sequence # {counter}")
+                        else:
+                            self.assertTrue(line.strip()==map_sequence(merged_seqs[counter],
+                                light_pc_annotations[counter], light_code_map))
+                            counter += 1
 
-            self.assertTrue((i+1)==len(light_pc_annotations))
+                    self.assertTrue(counter==len(light_pc_annotations))
 
-        os.remove("input_fasta_data.fasta")
-        os.remove("output_data_heavy.csv")
-        os.remove("output_data_light.csv")
-
-
+                os.remove("input_fasta_data.fasta")
+                os.remove("output_data_heavy.fasta")
+                os.remove("output_data_light.fasta")
 
 
 
 
-    def test_single_chain_csv(self):
+    def test_single_chain(self):
         """Take test heavy and light chains,
-        then use the CLI to do basic analysis and write
-        to fasta, using single chain containing sequences
+        then use the CLI to do basic analysis plus vj assignment
+        and write to csv, using single chain containing sequences
         as input only."""
-        seqs, annotations, sc_aligner = get_unpaired_seqs()
-        heavy_code_map = create_manual_mapping([a for a in annotations if
-            a[2] == 'H'], sc_aligner)
-        light_code_map = create_manual_mapping([a for a in annotations if
-            a[2] != 'H'], sc_aligner)
+        vj_tool = VJGeneTool(scheme="imgt")
 
-        # Create a temporary fasta input file.
-        with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
-            for i, seq in enumerate(seqs):
-                fhandle.write(f">this is sequence # {i}\n{seq}\n")
+        for processing_mode in ["offline", "online"]:
+            for target_file, receptor in [("test_data.csv.gz", "mab"),
+                    ("tcr_test_data.csv.gz", "tcr")]:
+                seqs, annotations, sc_aligner = get_unpaired_seqs(target_file, receptor)
 
-        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
-            "imgt"])
+                heavy_code_map = create_manual_mapping([a for a in annotations if
+                    a[2] in ('H', 'A', 'G')], sc_aligner)
+                light_code_map = create_manual_mapping([a for a in annotations if
+                    a[2] not in ('H', 'A', 'G')], sc_aligner)
 
-        self.assertTrue("output_data_heavy.csv" in os.listdir())
-        self.assertTrue("output_data_light.csv" in os.listdir())
+                # Create a temporary fasta input file.
+                with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
+                    for i, seq in enumerate(seqs):
+                        fhandle.write(f">this is sequence # {i}\n{seq}\n")
 
-        ntot = 0
-        for chain_type, code_map in zip(["heavy", "light"], [heavy_code_map,
-            light_code_map]):
-            with open(f"output_data_{chain_type}.csv", "r",
-                    encoding="utf-8") as fhandle:
-                _ = fhandle.readline()
-                for i, line in enumerate(fhandle):
-                    ntot += 1
-                    elements = line.strip().split(",")
-                    code = int(elements[0].split("this is sequence # ")[1])
-                    self.assertTrue(annotations[code][-1] == elements[-1])
-                    self.assertTrue("".join(elements[2:-1])==map_sequence(seqs[code],
-                        annotations[code], code_map))
+                if processing_mode == "online":
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--tcr"])
+                else:
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--offline"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--tcr", "--offline"])
 
-        self.assertTrue(ntot==len(annotations))
+                self.assertTrue("output_data_heavy.csv" in os.listdir())
+                self.assertTrue("output_data_light.csv" in os.listdir())
 
-        os.remove("input_fasta_data.fasta")
-        os.remove("output_data_heavy.csv")
-        os.remove("output_data_light.csv")
+                ntot = 0
+                for chain_type, code_map in zip(["heavy", "light"], [heavy_code_map,
+                    light_code_map]):
+                    with open(f"output_data_{chain_type}.csv", "r",
+                            encoding="utf-8") as fhandle:
+                        _ = fhandle.readline()
+                        for i, line in enumerate(fhandle):
+                            ntot += 1
+                            elements = line.strip().split(",")
+                            code = int(elements[0].split("this is sequence # ")[1])
+                            self.assertTrue(elements[2] == "human")
+                            self.assertTrue(elements[3] == "identity")
+                            v_gene, j_gene, vident, jident, _ = \
+                                    vj_tool.assign_vj_genes(annotations[code],
+                                    seqs[code], "human", "identity")
+                            self.assertTrue(elements[4]==v_gene)
+                            self.assertTrue(np.allclose(float(elements[5]), vident))
+                            self.assertTrue(elements[6]==j_gene)
+                            self.assertTrue(np.allclose(float(elements[7]), jident))
+                            self.assertTrue(annotations[code][-1] == elements[-1])
+                            self.assertTrue("".join(elements[8:-1])==map_sequence(seqs[code],
+                                annotations[code], code_map))
+
+                self.assertTrue(ntot==len(annotations))
+
+                os.remove("input_fasta_data.fasta")
+                os.remove("output_data_heavy.csv")
+                os.remove("output_data_light.csv")
 
 
 
-    def test_single_chain_vj(self):
+
+    def test_single_chain_fasta(self):
         """Take test heavy and light chains,
         then use the CLI to do basic analysis plus vj assignment
         and write to fasta, using single chain containing sequences
         as input only."""
-        seqs, annotations, sc_aligner = get_unpaired_seqs()
-        vj_tool = VJGeneTool(scheme="imgt", database="imgt")
+        for processing_mode in ["offline", "online"]:
+            for target_file, receptor in [("test_data.csv.gz", "mab"),
+                    ("tcr_test_data.csv.gz", "tcr")]:
+                seqs, annotations, sc_aligner = get_unpaired_seqs(target_file, receptor)
 
-        heavy_code_map = create_manual_mapping([a for a in annotations if
-            a[2] == 'H'], sc_aligner)
-        light_code_map = create_manual_mapping([a for a in annotations if
-            a[2] != 'H'], sc_aligner)
+                heavy_code_map = create_manual_mapping([a for a in annotations if
+                    a[2] in ('H', 'A', 'G')], sc_aligner)
+                light_code_map = create_manual_mapping([a for a in annotations if
+                    a[2] not in ('H', 'A', 'G')], sc_aligner)
 
-        # Create a temporary fasta input file.
-        with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
-            for i, seq in enumerate(seqs):
-                fhandle.write(f">this is sequence # {i}\n{seq}\n")
+                # Create a temporary fasta input file.
+                with open("input_fasta_data.fasta", "w+", encoding="utf-8") as fhandle:
+                    for i, seq in enumerate(seqs):
+                        fhandle.write(f">this is sequence # {i}\n{seq}\n")
 
-        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta", "output_data",
-            "imgt", "--vj", "human", "identity"])
+                if processing_mode == "online":
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--fasta"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--tcr", "--fasta"])
+                else:
+                    if receptor == "mab":
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--offline", "--fasta"])
+                    else:
+                        _ = subprocess.run(["AntPack-CLI", "input_fasta_data.fasta",
+                        "output_data", "human", "imgt", "--tcr", "--offline", "--fasta"])
 
-        self.assertTrue("output_data_heavy.csv" in os.listdir())
-        self.assertTrue("output_data_light.csv" in os.listdir())
+                self.assertTrue("output_data_heavy.fasta" in os.listdir())
+                self.assertTrue("output_data_light.fasta" in os.listdir())
 
-        ntot = 0
-        for chain_type, code_map in zip(["heavy", "light"], [heavy_code_map,
-            light_code_map]):
-            with open(f"output_data_{chain_type}.csv", "r",
-                    encoding="utf-8") as fhandle:
-                _ = fhandle.readline()
-                for i, line in enumerate(fhandle):
-                    ntot += 1
-                    elements = line.strip().split(",")
-                    code = int(elements[0].split("this is sequence # ")[1])
-                    self.assertTrue(elements[2] == "human")
-                    self.assertTrue(elements[3] == "identity")
-                    v_gene, j_gene, vident, jident = vj_tool.assign_vj_genes(annotations[code],
-                            seqs[code], "human", "identity")
-                    self.assertTrue(elements[4]==v_gene)
-                    self.assertTrue(np.allclose(float(elements[5]), vident))
-                    self.assertTrue(elements[6]==j_gene)
-                    self.assertTrue(np.allclose(float(elements[7]), jident))
-                    self.assertTrue(annotations[code][-1] == elements[-1])
-                    self.assertTrue("".join(elements[8:-1])==map_sequence(seqs[code],
-                        annotations[code], code_map))
+                ntot = 0
+                for chain_type, code_map in zip(["heavy", "light"], [heavy_code_map,
+                    light_code_map]):
+                    with open(f"output_data_{chain_type}.fasta", "r",
+                            encoding="utf-8") as fhandle:
+                        code = 0
+                        for line in fhandle:
+                            if line.startswith(">"):
+                                code = int(line.strip().split("this is sequence # ")[1])
+                            else:
+                                self.assertTrue(line.strip()==map_sequence(seqs[code],
+                                    annotations[code], code_map))
+                                ntot += 1
 
-        self.assertTrue(ntot==len(annotations))
 
-        os.remove("input_fasta_data.fasta")
-        os.remove("output_data_heavy.csv")
-        os.remove("output_data_light.csv")
+                self.assertTrue(ntot==len(annotations))
 
+                os.remove("input_fasta_data.fasta")
+                os.remove("output_data_heavy.fasta")
+                os.remove("output_data_light.fasta")
 
 
 def create_manual_mapping(annotation_list, pc_tool,
@@ -269,25 +340,31 @@ def map_sequence(sequence, annotation, code_dict):
     return "".join(output_seq)
 
 
-def get_paired_seqs():
+def get_paired_seqs(target_file, receptor_type="mab"):
     """Get a set of paired chain sequences for testing."""
     project_path = os.path.abspath(os.path.dirname(__file__))
     current_dir = os.getcwd()
     os.chdir(os.path.join(project_path, "test_data"))
-    with gzip.open("test_data.csv.gz", "rt") as fhandle:
+    with gzip.open(target_file, "rt") as fhandle:
         _ = fhandle.readline()
         seqs = [line.strip().split(",")[0] for line in fhandle]
+
     os.chdir(current_dir)
 
-    sc_aligner = SingleChainAnnotator(scheme="imgt")
-    pc_aligner = PairedChainAnnotator(scheme="imgt")
+    if receptor_type == "tcr":
+        sc_aligner = SingleChainAnnotator(["A", "B", "D", "G"],
+                scheme="imgt")
+    else:
+        sc_aligner = SingleChainAnnotator(scheme="imgt")
+    pc_aligner = PairedChainAnnotator(scheme="imgt",
+            receptor_type=receptor_type)
 
     alignments = [sc_aligner.analyze_seq(seq) for seq in seqs]
 
     heavy_chains = [(seq, a) for a, seq in zip(alignments, seqs)
-                if a[2] == "H"]
+                if a[2] in ("H", "A", "G")]
     light_chains = [(seq, a) for a, seq in zip(alignments, seqs)
-                if a[2] != "H"]
+                if a[2] not in ("H", "A", "G")]
 
     random.seed(0)
 
@@ -306,17 +383,22 @@ def get_paired_seqs():
 
 
 
-def get_unpaired_seqs():
+def get_unpaired_seqs(target_file, receptor_type="mab"):
     """Get a set of paired chain sequences for testing."""
     project_path = os.path.abspath(os.path.dirname(__file__))
     current_dir = os.getcwd()
     os.chdir(os.path.join(project_path, "test_data"))
-    with gzip.open("test_data.csv.gz", "rt") as fhandle:
+
+    with gzip.open(target_file, "rt") as fhandle:
         _ = fhandle.readline()
         seqs = [line.strip().split(",")[0] for line in fhandle]
+
     os.chdir(current_dir)
 
-    sc_aligner = SingleChainAnnotator(scheme="imgt")
+    if receptor_type == "mab":
+        sc_aligner = SingleChainAnnotator(scheme="imgt")
+    else:
+        sc_aligner = SingleChainAnnotator(["A", "B", "D", "G"], scheme="imgt")
 
     annotations = [sc_aligner.analyze_seq(seq) for seq in seqs]
 

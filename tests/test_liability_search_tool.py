@@ -14,7 +14,8 @@ class TestLiabilitySearchTool(unittest.TestCase):
 
         generic_test_seq = "VHLQQSGAELMKPGASVKISCKASGYTFITYWIEWVKQRPGHGLEWIGDILPGSGSTNYNENFKGKATFTADSSSNTAYMQLSSLTSEDSAVYYCARSGYYGNSGFAYWGQGTLVTVSA"
         alignment = annotation_tool.analyze_seq(generic_test_seq)
-        result = search_tool.analyze_seq(generic_test_seq, alignment, "imgt")
+        result = search_tool.analyze_seq(generic_test_seq, alignment,
+                "imgt", "imgt")
         self.assertTrue(len(result)==3)
         self.assertTrue(result[0][1] == "Methionine / Tryptophan oxidation moderate risk")
         self.assertTrue(result[1][1] == "Deamidation (low risk)")
@@ -25,21 +26,21 @@ class TestLiabilitySearchTool(unittest.TestCase):
         corrected_seq = "".join(corrected_seq)
         alignment = annotation_tool.analyze_seq(corrected_seq)
         self.assertTrue(len(search_tool.analyze_seq(corrected_seq,
-            alignment, "imgt")) == 2)
+            alignment, "imgt", "imgt")) == 2)
 
         corrected_seq = list(corrected_seq)
         corrected_seq[31] = "A"
         corrected_seq = "".join(corrected_seq)
         alignment = annotation_tool.analyze_seq(corrected_seq)
         self.assertTrue(len(search_tool.analyze_seq(corrected_seq,
-            alignment, "imgt")) == 1)
+            alignment, "imgt", "imgt")) == 1)
 
         corrected_seq = list(corrected_seq)
         corrected_seq[56:58] = "AL"
         corrected_seq = "".join(corrected_seq)
         alignment = annotation_tool.analyze_seq(corrected_seq)
         self.assertTrue(len(search_tool.analyze_seq(corrected_seq,
-            alignment, "imgt")) == 0)
+            alignment, "imgt", "imgt")) == 0)
 
         corrected_seq = list(corrected_seq)
         liability_seq = corrected_seq.copy()
@@ -47,7 +48,7 @@ class TestLiabilitySearchTool(unittest.TestCase):
         liability_seq = "".join(liability_seq)
         alignment = annotation_tool.analyze_seq(liability_seq)
         result = search_tool.analyze_seq(liability_seq,
-                alignment, "imgt")
+                alignment, "imgt", "imgt")
         self.assertTrue(result[0][1] == "Unusual cysteine")
 
         liability_seq = corrected_seq.copy()
@@ -55,7 +56,7 @@ class TestLiabilitySearchTool(unittest.TestCase):
         liability_seq = "".join(liability_seq)
         alignment = annotation_tool.analyze_seq(liability_seq)
         result = search_tool.analyze_seq(liability_seq,
-                alignment, "imgt")
+                alignment, "imgt", "imgt")
         self.assertTrue(result[0][1] == "N-glycosylation risk")
 
         liability_seq = corrected_seq.copy()
@@ -63,7 +64,7 @@ class TestLiabilitySearchTool(unittest.TestCase):
         liability_seq = "".join(liability_seq)
         alignment = annotation_tool.analyze_seq(liability_seq)
         result = search_tool.analyze_seq(liability_seq,
-                alignment, "imgt")
+                alignment, "imgt", "imgt")
         self.assertTrue(len(result) == 0)
 
 

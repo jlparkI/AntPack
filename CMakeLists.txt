@@ -73,6 +73,7 @@ nanobind_add_module(
   NB_STATIC
 
     src/antpack/cpp_src/ant_ext.cpp
+    src/antpack/cpp_src/annotator_classes/vj_aligner.cpp
     src/antpack/cpp_src/annotator_classes/ig_aligner.cpp
     src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp
     src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp
@@ -84,6 +85,7 @@ nanobind_add_module(
 
     src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp
 
+    src/antpack/cpp_src/utilities/gzstream.cpp
     src/antpack/cpp_src/utilities/utilities.cpp
     src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
     src/antpack/cpp_src/utilities/consensus_file_utilities.cpp

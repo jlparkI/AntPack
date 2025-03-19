@@ -15,13 +15,20 @@ class TestVJGeneTool(unittest.TestCase):
         as such, and that deliberately invalid inputs are recognized."""
         # Pass dummy sequences with errors.
         vj_tool = VJGeneTool()
-        vgene, jgene, vident, jident = vj_tool.assign_vj_genes(
+        vgene, jgene, vident, jident, species = vj_tool.assign_vj_genes(
                 (["1", "2", "3"], 0, "H", ""),
                 "AYAYAYA", "human")
         self.assertTrue(vident==0)
         self.assertTrue(jident==0)
         self.assertTrue(vgene=="")
         self.assertTrue(jgene=="")
+        self.assertTrue(species=="unknown")
+
+        with self.assertRaises(RuntimeError):
+            tcr_tool = VJGeneTool(scheme = "aho")
+            tcr_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "A", ""),
+                "AYA", "human")
 
         with self.assertRaises(RuntimeError):
             vj_tool.assign_vj_genes(
@@ -43,6 +50,10 @@ class TestVJGeneTool(unittest.TestCase):
                 (["1", "2", "3"], 0, "K", ""),
                 "AYA", "alpaca", "identity")
 
+        with self.assertRaises(RuntimeError):
+            vj_tool.assign_vj_genes(
+                (["1", "2", "3"], 0, "A", ""),
+                "AYA", "alpaca", "identity")
 
 
     def test_gene_retrieval(self):
@@ -55,8 +66,43 @@ class TestVJGeneTool(unittest.TestCase):
         seq = vj_tool.get_vj_gene_sequence("IGHV1-1*01", "alpaca")
         self.assertTrue(seq == "QVQLVQPGA-ELRKPGALLKVSCKASGYTF----TSYYIDWVRQAPGQGLGWVGRIDPE--DGGTNYAQKFQ-GRVTLTADTSTSTAYVELSSLRSEDTAVCYCVR----------------------")
 
+        seq = vj_tool.get_vj_gene_sequence("IGHV1S26*01", "rabbit")
+        self.assertTrue(seq == "Q-SVKESEG-GLFKPTDTLTLTCTVSGFSL----SSYAISWVRQAPGNGLEWIGIINSY---GSTYYASWAK-SRSTITRNTNENTVTLKMTSLTAADTATYFCAR----------------------")
+
         seq = vj_tool.get_vj_gene_sequence("cow", "human")
         self.assertTrue(seq == "")
+
+
+    def test_species_recognition(self):
+        """Make sure that expected species are all recognized."""
+        vj_tool = VJGeneTool()
+        test_heavy = "QVQLLESGGGLVQPGGSLRLSCAASGFTFSTAAMSWVRQAPGKGLEWVSGISGSGSSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARELSYLYSGYYFDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVAVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALAAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK"
+        test_light = "DIELSQSPAILSASPGEKVTMTCRASSSVSYMHWYQQKPGSSPKPWIYAPSNLASGVPARFSGSGSGTSYSLTISRVEAEDAATYYCQQWSFNPPTFGAGTKLEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC"
+
+        sc_annotator = SingleChainAnnotator()
+        heavy_annotation = sc_annotator.analyze_seq(test_heavy)
+        light_annotation = sc_annotator.analyze_seq(test_light)
+
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "human")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "mouse")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "rabbit")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "alpaca")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(heavy_annotation, test_heavy, "unknown")
+        self.assertTrue(assn[0] != '')
+
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light, "human")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light, "mouse")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light, "rabbit")
+        self.assertTrue(assn[0] != '')
+        assn = vj_tool.assign_vj_genes(light_annotation, test_light,
+                "unknown")
+        self.assertTrue(assn[0] != '')
 
 
     def test_percent_ident_calc(self):
@@ -83,7 +129,7 @@ class TestVJGeneTool(unittest.TestCase):
             chain = alignment[2]
             fmt_seq = prep_sequence(seq, alignment)
 
-            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+            vpred, jpred, videntity, jidentity, _ = vj_tool.assign_vj_genes(alignment,
                     seq, "human")
 
             gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
@@ -139,7 +185,7 @@ class TestVJGeneTool(unittest.TestCase):
             chain = alignment[2]
             fmt_seq = prep_sequence(seq, alignment)
 
-            vpred, jpred, videntity, jidentity = vj_tool.assign_vj_genes(alignment,
+            vpred, jpred, videntity, jidentity, _ = vj_tool.assign_vj_genes(alignment,
                     seq, "human", "evalue")
 
             gpreds, gidentities = (vpred, jpred), (videntity, jidentity)
@@ -171,10 +217,9 @@ class TestVJGeneTool(unittest.TestCase):
 
     def test_vj_assignment(self):
         """Checks vj assignments against those done by other
-        tools to ensure that they are usually the same."""
-        vj_tool = VJGeneTool()
-        sc_annotator = SingleChainAnnotator()
-
+        tools to ensure that they are usually the same.
+        Also, test whether supplying 'unknown' for species yields
+        valid results."""
         project_path = os.path.abspath(os.path.dirname(__file__))
         current_dir = os.getcwd()
         os.chdir(os.path.join(project_path, "test_data"))
@@ -182,46 +227,58 @@ class TestVJGeneTool(unittest.TestCase):
         vhmatches, vklmatches, vhtests, vkltests = 0, 0, 0, 0
         jmatches, ntests = 0, 0
 
-        with gzip.open("vj_gene_testing.csv.gz", "rt") as fhandle:
-            _ = fhandle.readline()
+        for receptor, fname, species in (("tcr", "tcr_vj_gene_testing.csv.gz", "unknown"),
+                ("mab", "vj_gene_testing.csv.gz", "human"),
+                ("mab", "vj_gene_testing.csv.gz", "unknown")):
+            if receptor == "mab":
+                vj_tool = VJGeneTool()
+                sc_annotator = SingleChainAnnotator()
+            elif receptor == "tcr":
+                vj_tool = VJGeneTool()
+                sc_annotator = SingleChainAnnotator(["A", "B", "D", "G"])
 
-            for line in fhandle:
-                seq, vgene, jgene = line.strip().split(",")
-                # Eliminate problematic sequences (e.g. missing cysteine).
-                alignment = sc_annotator.analyze_seq(seq)
-                pid, chain, err = alignment[1], alignment[2], alignment[3]
-                if pid < 0.8 or err != "":
-                    continue
-                pred_vgene, pred_jgene, pidv, pidj = vj_tool.assign_vj_genes(alignment,
-                        seq, "human", "identity")
+            with gzip.open(fname, "rt") as fhandle:
+                _ = fhandle.readline()
 
-                if vgene in pred_vgene:
-                    if chain == "H":
-                        vhmatches += 1
+                for line in fhandle:
+                    seq, vgene, jgene = line.strip().split(",")
+                    # Eliminate problematic sequences (e.g. missing cysteine).
+                    alignment = sc_annotator.analyze_seq(seq)
+                    pid, chain, err = alignment[1], alignment[2], alignment[3]
+                    if pid < 0.8 or err != "":
+                        continue
+
+                    pred_vgene, pred_jgene, pidv, pidj, rs = \
+                            vj_tool.assign_vj_genes(alignment, seq,
+                                    species, "identity")
+
+                    if vgene in pred_vgene:
+                        if chain in ["H", "A", "G"]:
+                            vhmatches += 1
+                        else:
+                            vklmatches += 1
+                    if jgene in pred_jgene:
+                        jmatches += 1
+                    if chain in ["H", "A", "G"]:
+                        vhtests += 1
                     else:
-                        vklmatches += 1
-                if jgene in pred_jgene:
-                    jmatches += 1
-                if chain == "H":
-                    vhtests += 1
-                else:
-                    vkltests += 1
-                ntests += 1
+                        vkltests += 1
+                    ntests += 1
 
-        print(f"On {vhtests}, vhgene, {vhmatches} success.")
-        print(f"On {vkltests}, vklgene, {vklmatches} success.")
-        print(f"On {ntests}, jgene, {jmatches} success.")
+            print(f"{receptor}, {species} On {vhtests}, vhgene, {vhmatches} success.")
+            print(f"{receptor}, {species} On {vkltests}, vklgene, {vklmatches} success.")
+            print(f"{receptor}, {species} On {ntests}, jgene, {jmatches} success.")
 
-        self.assertTrue((vhmatches / vhtests) > 0.9)
-        self.assertTrue((vklmatches / vkltests) > 0.9)
-        self.assertTrue((jmatches / ntests) > 0.9)
+            self.assertTrue((vhmatches / vhtests) > 0.9)
+            self.assertTrue((vklmatches / vkltests) > 0.9)
+            self.assertTrue((jmatches / ntests) > 0.9)
 
-        os.chdir(current_dir)
 
 
     def test_scheme_switching(self):
         """Checks vj assignments using different schemes to
-        ensure they match."""
+        ensure they match. We do not need to test this for TCRs
+        at this time since at this time TCRs support IMGT only."""
         imgt_tool = VJGeneTool(scheme="imgt")
         imgt_aligner = SingleChainAnnotator(scheme="imgt")
 
@@ -241,15 +298,18 @@ class TestVJGeneTool(unittest.TestCase):
                     annotation1 = imgt_aligner.analyze_seq(seq)
                     annotation2 = alternate_aligner.analyze_seq(seq)
 
-                    pred_vgene1, pred_jgene1, pidv1, pidj1 = imgt_tool.assign_vj_genes(annotation1,
+                    pred_vgene1, pred_jgene1, pidv1, pidj1, species1 = \
+                        imgt_tool.assign_vj_genes(annotation1,
                             seq, "human", "identity")
-                    pred_vgene2, pred_jgene2, pidv2, pidj2 = alternate_tool.assign_vj_genes(
+                    pred_vgene2, pred_jgene2, pidv2, pidj2, species2 = \
+                        alternate_tool.assign_vj_genes(
                             annotation2, seq, "human", "identity")
 
                     self.assertTrue(pred_vgene1==pred_vgene2)
                     self.assertTrue(pred_jgene1==pred_jgene2)
                     self.assertTrue(np.allclose(pidv1, pidv2))
                     self.assertTrue(np.allclose(pidj1, pidj2))
+                    self.assertTrue(species1==species2)
 
         os.chdir(current_dir)
 

@@ -1,4 +1,17 @@
-/* Utilities, tools and other extensions for sequence processing.
+/* Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 // C++ headers
 #include <set>
@@ -439,8 +452,10 @@ int sort_position_codes_utility(std::vector<std::string> &position_codes,
     if (scheme == "aho")
         max_position = 149;
 
+    // Do not attempt to sort if no codes were supplied; simply
+    // return what we were given.
     if (position_codes.size() == 0)
-        return INVALID_SEQUENCE;
+        return VALID_SEQUENCE;
 
     // Map from a standard alphabet Our preference would be to
     // number insertions as _1, _2 etc, but most numbering programs
@@ -583,19 +598,41 @@ int build_msa_utility(std::vector<std::string> &sequences,
         if (std::get<2>(annotation) == "H") {
             if (chain_type > 0 && chain_type != MSA_HEAVY_CHAIN_ONLY) {
                 throw std::runtime_error(std::string("An MSA can only be built "
-                            "from either heavy chains or light chains."));
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
             } else {
                 chain_type = MSA_HEAVY_CHAIN_ONLY;
             }
-        }
-        else if (std::get<2>(annotation) == "K" ||
+        } else if (std::get<2>(annotation) == "K" ||
                 std::get<2>(annotation) == "L") {
             if (chain_type > 0 && chain_type != MSA_LIGHT_CHAIN_ONLY) {
                 throw std::runtime_error(std::string("An MSA can only be built "
-                            "from either heavy chains or light chains."));
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
             } else {
                 chain_type = MSA_LIGHT_CHAIN_ONLY;
             }
+        } else if (std::get<2>(annotation) == "B" ||
+                std::get<2>(annotation) == "D") {
+            if (chain_type > 0 && chain_type != MSA_TCR_LIGHT_CHAIN_ONLY) {
+                throw std::runtime_error(std::string("An MSA can only be built "
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
+            } else {
+                chain_type = MSA_TCR_LIGHT_CHAIN_ONLY;
+            }
+        } else if (std::get<2>(annotation) == "A" ||
+                std::get<2>(annotation) == "G") {
+            if (chain_type > 0 && chain_type != MSA_TCR_HEAVY_CHAIN_ONLY) {
+                throw std::runtime_error(std::string("An MSA can only be built "
+                        "from either heavy chains or light chains. TCRs and "
+                        "mAbs cannot be combined into an MSA."));
+            } else {
+                chain_type = MSA_TCR_HEAVY_CHAIN_ONLY;
+            }
+        } else {
+                throw std::runtime_error(std::string("An unrecognized chain "
+                            "code was supplied."));
         }
     }
 
@@ -685,7 +722,7 @@ int build_msa_utility(std::vector<std::string> &sequences,
             if (code_to_location.find(pos_code) == code_to_location.end())
                 throw std::runtime_error(std::string("Invalid position codes "
                             "were supplied."));
-            
+
             int location = code_to_location[pos_code];
             aligned_seq[location] = sequences[i][j];
         }

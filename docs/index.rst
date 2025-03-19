@@ -1,8 +1,8 @@
 AntPack
 =====================================================
 Tools for numbering, sequence analysis and statistical
-modeling / ML for antibodies, using amino acid sequences
-(not nucleotides).
+modeling / ML for antibodies and TCRs, using amino acid
+sequences, with some limited support for DNA sequences.
 
 .. toctree::
   :maxdepth: 1

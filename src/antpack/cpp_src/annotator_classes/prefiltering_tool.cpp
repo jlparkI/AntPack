@@ -1,3 +1,18 @@
+/* Copyright (C) 2025 Jonathan Parkinson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "prefiltering_tool.h"
 
 // C++ headers
@@ -13,9 +28,10 @@ namespace PrefilteringRoutines {
 PrefilteringTool::PrefilteringTool(std::string consensus_filepath,
         std::unordered_map<std::string, size_t> nterm_kmers) {
 
-    std::filesystem::path extensionPath = consensus_filepath;
+    std::filesystem::path extension_path = consensus_filepath;
+    extension_path = extension_path / "mabs";
     std::string npyFName = "CTERMFINDER_CONSENSUS_H.npy";
-    std::filesystem::path npyFPath = extensionPath / npyFName;
+    std::filesystem::path npyFPath = extension_path / npyFName;
     cnpy::NpyArray raw_score_arr;
 
     try {
@@ -40,7 +56,7 @@ PrefilteringTool::PrefilteringTool(std::string consensus_filepath,
     for (size_t i=0; i < boundary_chains.size(); i++) {
         std::string npyFName = "CTERMFINDER_CONSENSUS_" +
             boundary_chains[i] + ".npy";
-        std::filesystem::path npyFPath = extensionPath / npyFName;
+        std::filesystem::path npyFPath = extension_path / npyFName;
 
         try {
             raw_score_arr = cnpy::npy_load(npyFPath.string());
@@ -244,11 +260,7 @@ int PrefilteringTool::find_start_end_zones(std::string &query_sequence,
         for (int j=0; j < this->num_positions; j++) {
             // This is a little clunky and introduces unnecessary
             // branching. TODO: Break into two loops so we don't
-            // have to do this. Also note that this can be greatly
-            // accelerated by simply adding the next letter score
-            // and removing the last one on each pass -- have not
-            // done this yet since likely "premature optimization"
-            // but TODO.
+            // have to do this.
             if (i + j >= query_sequence.length())
                 break;
 
