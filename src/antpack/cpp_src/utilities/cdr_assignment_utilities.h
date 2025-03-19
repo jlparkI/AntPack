@@ -55,22 +55,73 @@ static constexpr std::array<int, 6> IMGT_NMBR_NORTH_H_CDR_BREAKPOINTS =
 static constexpr std::array<int, 6> IMGT_NMBR_NORTH_L_CDR_BREAKPOINTS =
 {24, 41, 55, 70, 105, 118};
 
-// The start and end of CDRs in AHO, single scheme (ignoring insertions).
-static constexpr std::array<int, 6> AHO_CDR_BREAKPOINTS = {25, 41,
-        58, 78, 109, 138};
+// ************** NUMBERED WITH AHO ************************ //
+static constexpr std::array<int, 6> AHO_CDR_BREAKPOINTS =
+{25, 41, 58, 78, 109, 138};
+static constexpr std::array<int, 6> AHO_NMBR_KABAT_H_CDR_BREAKPOINTS =
+{32, 43, 57, 77, 109, 139};
+static constexpr std::array<int, 6> AHO_NMBR_KABAT_L_CDR_BREAKPOINTS =
+{24, 43, 58, 72, 107, 139};
+static constexpr std::array<int, 6> AHO_NMBR_MARTIN_H_CDR_BREAKPOINTS =
+{27, 40, 59, 67, 109, 139};
+static constexpr std::array<int, 6> AHO_NMBR_MARTIN_L_CDR_BREAKPOINTS =
+{26, 41, 58, 68, 109, 138};
+static constexpr std::array<int, 6> AHO_NMBR_IMGT_CDR_BREAKPOINTS =
+{27, 41, 58, 68, 107, 139};
+static constexpr std::array<int, 6> AHO_NORTH_H_CDR_BREAKPOINTS =
+{24, 43, 57, 69, 107, 139};
+static constexpr std::array<int, 6> AHO_NORTH_L_CDR_BREAKPOINTS =
+{24, 43, 57, 72, 107, 139};
 
 
-// The start and end of CDRs in Kabat, single scheme (ignoring insertions).
-static constexpr std::array<int, 6> KABAT_HEAVY_CDR_BREAKPOINTS = {31, 36,
-    50, 66, 95, 103};
-static constexpr std::array<int, 6> KABAT_LIGHT_CDR_BREAKPOINTS = {24, 35,
-    50, 57, 89, 98};
+// ************** NUMBERED WITH KABAT ************************ //
+static constexpr std::array<int, 6> KABAT_HEAVY_CDR_BREAKPOINTS =
+{31, 36, 50, 66, 95, 103};
+static constexpr std::array<int, 6> KABAT_LIGHT_CDR_BREAKPOINTS =
+{24, 35, 50, 57, 89, 98};
+static constexpr std::array<int, 6> KABAT_NMBR_MARTIN_H_CDR_BREAKPOINTS =
+{26, 36, 52, 57, 95, 103};
+static constexpr std::array<int, 6> KABAT_NMBR_MARTIN_L_CDR_BREAKPOINTS =
+{26, 33, 50, 53, 91, 97};
+static constexpr std::array<int, 6> KABAT_NMBR_IMGT_H_CDR_BREAKPOINTS =
+{26, 36, 51, 58, 93, 103};
+static constexpr std::array<int, 6> KABAT_NMBR_IMGT_L_CDR_BREAKPOINTS =
+{27, 33, 50, 53, 89, 98};
+static constexpr std::array<int, 6> KABAT_NMBR_AHO_H_CDR_BREAKPOINTS =
+{24, 36, 51, 67, 95, 102};
+static constexpr std::array<int, 6> KABAT_NMBR_AHO_L_CDR_BREAKPOINTS =
+{25, 33, 50, 62, 91, 97};
+static constexpr std::array<int, 6> KABAT_NMBR_NORTH_H_CDR_BREAKPOINTS =
+{23, 36, 50, 59, 93, 103};
+static constexpr std::array<int, 6> KABAT_NMBR_NORTH_L_CDR_BREAKPOINTS =
+{24, 35, 49, 57, 89, 98};
 
-// The start and end of CDRs in Martin, single scheme (ignoring insertions).
-static constexpr std::array<int, 6> MARTIN_HEAVY_CDR_BREAKPOINTS = {26, 33,
-    52, 57, 95, 103};
-static constexpr std::array<int, 6> MARTIN_LIGHT_CDR_BREAKPOINTS = {26, 33,
-    50, 53, 91, 97};
+
+
+
+// ************** NUMBERED WITH MARTIN ************************ //
+static constexpr std::array<int, 6> MARTIN_HEAVY_CDR_BREAKPOINTS =
+{26, 33, 52, 57, 95, 103};
+static constexpr std::array<int, 6> MARTIN_LIGHT_CDR_BREAKPOINTS =
+{26, 33, 50, 53, 91, 97};
+static constexpr std::array<int, 6> MARTIN_NMBR_KABAT_H_CDR_BREAKPOINTS =
+{31, 36, 50, 66, 95, 103};
+static constexpr std::array<int, 6> MARTIN_NMBR_KABAT_L_CDR_BREAKPOINTS =
+{24, 35, 50, 57, 89, 98};
+static constexpr std::array<int, 6> MARTIN_NMBR_IMGT_H_CDR_BREAKPOINTS =
+{26, 34, 51, 58, 93, 103};
+static constexpr std::array<int, 6> MARTIN_NMBR_IMGT_L_CDR_BREAKPOINTS =
+{27, 33, 50, 53, 89, 98};
+static constexpr std::array<int, 6> MARTIN_NMBR_AHO_H_CDR_BREAKPOINTS =
+{24, 34, 51, 67, 95, 102};
+static constexpr std::array<int, 6> MARTIN_NMBR_AHO_L_CDR_BREAKPOINTS =
+{25, 33, 50, 62, 91, 97};
+static constexpr std::array<int, 6> MARTIN_NMBR_NORTH_H_CDR_BREAKPOINTS =
+{23, 36, 50, 59, 93, 103};
+static constexpr std::array<int, 6> MARTIN_NMBR_NORTH_L_CDR_BREAKPOINTS =
+{24, 35, 49, 57, 89, 98};
+
+
 
 /// @brief Assigns cdr labels to an input sequence.
 /// @param numbering A list of numbering codes valid for the
