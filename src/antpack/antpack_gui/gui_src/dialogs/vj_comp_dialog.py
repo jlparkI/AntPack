@@ -53,7 +53,7 @@ class VJComparisonDialog(QDialog):
 
         species_label = QLabel("Select species for VJ genes:")
         self.species_menu = QComboBox()
-        self.species_list = ["human", "mouse"]
+        self.species_list = ["human", "mouse", "unknown"]
         for species in self.species_list:
             self.species_menu.addItem(species)
 
@@ -73,7 +73,7 @@ class VJComparisonDialog(QDialog):
             return None, None, None, None
 
         species = self.species_list[self.species_menu.currentIndex()]
-        if species not in ("human", "mouse"):
+        if species not in ("human", "mouse", "unknown"):
             return None, None, None, None
 
         pid_thresh = self.pid_edit.text()

@@ -236,6 +236,7 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
             try:
                 self.selected_seqs = process_for_vj_comparison(seq, seq_type,
                     self.sc_annotator, self.pc_annotator,

@@ -18,7 +18,7 @@ def process_for_vj_comparison(seq, seq_type,
     if seq_type == "single":
         nmbr = sc_annotator.analyze_seq(seq)
         if nmbr[1] >= pid_threshold:
-            if nmbr[2] == "H":
+            if nmbr[2] in ("H", "A", "G"):
                 heavy_nmbr = nmbr
             else:
                 light_nmbr = nmbr
@@ -121,7 +121,7 @@ class VJComparisonData:
 
         if len(vjgenes) > 0:
             for vgene in vjgenes:
-                vseq = vj_tool.get_vj_gene_sequence(vgene, species)
+                vseq = vj_tool.get_vj_gene_sequence(vgene, vj[-1])
                 if vseq != "":
                     seqs.append(vseq)
                     numbering.append( ([str(z) for z in range(1,129)], 0.,
@@ -153,6 +153,8 @@ class MultiSequenceData:
         self.light_err = []
         self.light_align = []
         self.light_nmbr = []
+
+        self.receptor_type = ""
 
 
     def get_num_heavy(self):
@@ -194,7 +196,7 @@ class MultiSequenceData:
         if seq_type == "single":
             nmbr = sc_annotator.analyze_seq(seq)
             if nmbr[1] >= pid_threshold:
-                if nmbr[2] == "H":
+                if nmbr[2] in ("H", "A", "G"):
                     heavy_nmbr = nmbr
                 else:
                     light_nmbr = nmbr
