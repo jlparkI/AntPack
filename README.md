@@ -1,23 +1,18 @@
 # AntPack
 
-AntPack is a toolkit for antibody numbering, data processing, statistical inference and
-machine learning for antibody sequences. For usage,
+AntPack is a Python package / toolkit for antibody numbering, data processing,
+statistical inference and machine learning for antibody sequences. For usage,
 see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 It is currently in active development, so we are adding new features
-and making more improvements periodically. We will try to avoid breaking
-changes but nonetheless recommend checking the docs after you install
-a new version to be sure the component you are using is unaffected.
+and making more improvements periodically.
 
 ## What's new in v0.3.8
 
 v0.3.8 adds numbering (using the IMGT scheme) and VJ
-gene assignment for TCRs. TCR numbering is somewhat
-slower than antibody numbering but is still dramatically
-faster than other available tools. For both TCRs and mAbs, if
+gene assignment for TCRs. For both TCRs and mAbs, if
 you don't know which species to check for germline
 gene assignment, you can now check all of them by
-passing "unknown" for species. Humanness scoring
-is of course still restricted to mAbs. For mAbs, germline
+passing "unknown" for species. For mAbs, germline
 gene assignment for rabbits and alpacas (in addition
 to humans and mice) is now supported. It also now supports
 cross-scheme CDR assignment, i.e. you can number using
@@ -25,11 +20,10 @@ one scheme but assign CDR labels using the CDR definitions
 from another (e.g. number using IMGT but assign CDR
 labels and search for liabilities using Kabat CDR definitions).
 
-There are various other minor improvements to the API
-and to the GUI, which is useful for quickly viewing
+There are various other minor improvements to the Python API, the CLI
+and the GUI, which is useful for quickly viewing
 a few sequences and comparing them to their assigned
-VJ genes. There is significant additional functionality in
-the command line tool as well.
+VJ genes.
 
 ## Installation
 
