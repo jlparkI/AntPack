@@ -126,7 +126,7 @@ VJMatchCounter::assign_vj_genes(std::tuple<std::vector<std::string>,
         std::string species, std::string mode) {
 
     if (species == "unknown") {
-        std::vector<std::string> subspecies_list = {"human", "mouse"};
+        std::vector<std::string> subspecies_list = {"human", "mouse", "alpaca", "rabbit"};
         std::tuple<std::string, std::string,
                 double, double, std::string> best_result =
                 {"", "", 0, 0, "unknown"};
