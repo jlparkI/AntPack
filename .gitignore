@@ -6,6 +6,9 @@ __pycache__/
 # Model data files
 *.pk
 
+# text editor files
+*.swp
+
 # C extensions
 *.so
 
