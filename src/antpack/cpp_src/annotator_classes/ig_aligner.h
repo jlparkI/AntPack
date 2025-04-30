@@ -69,7 +69,8 @@ class IGAligner {
     enum allowedErrorCodes {noError = 0, invalidSequence = 1,
         fatalRuntimeError = 2,
         tooManyInsertions  = 3, alignmentWrongLength = 4,
-        unacceptableConservedPositions = 5};
+        unacceptableConservedPositions = 5,
+        unacceptableFWGxG = 6};
 
 
  protected:
@@ -88,12 +89,15 @@ class IGAligner {
 
     std::vector<std::set<char>> consensus_map;
     std::vector<int> highly_conserved_positions;
-    std::array<std::string, 6> error_code_to_message {{"",
+    std::vector<int> fwgxg_conserved_positions;
+
+    std::array<std::string, 7> error_code_to_message {{"",
         "Sequence contains invalid characters",
         "Fatal runtime error in IGAligner. Unusual. Please report",
         "> max allowed insertions -- suggests alignment error or unusual sequence",
         "Alignment length != length of input sequence. Unusual. Please report.",
-        "Unexpected AA at conserved position."}};
+        "Unexpected AA at conserved position (conserved cysteine or tryptophan missing).",
+        "Unexpected AA: the FWGxG conserved region has been modified."}};
 
 
     // Alphabet for numbering insertions. Our preference would
