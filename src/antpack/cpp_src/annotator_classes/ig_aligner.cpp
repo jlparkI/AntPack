@@ -74,9 +74,9 @@ scheme(scheme) {
     // positions according to the selected scheme.
     if (scheme == "imgt") {
         this->highly_conserved_positions = {HIGHLY_CONSERVED_IMGT_1,
-            HIGHLY_CONSERVED_IMGT_2, HIGHLY_CONSERVED_IMGT_3,
-            HIGHLY_CONSERVED_IMGT_4, HIGHLY_CONSERVED_IMGT_5,
-            HIGHLY_CONSERVED_IMGT_6};
+            HIGHLY_CONSERVED_IMGT_2, HIGHLY_CONSERVED_IMGT_3};
+        this->fwgxg_conserved_positions = {HIGHLY_CONSERVED_IMGT_4,
+            HIGHLY_CONSERVED_IMGT_5, HIGHLY_CONSERVED_IMGT_6};
         if (this->score_arr_shape[0] != NUM_HEAVY_IMGT_POSITIONS &&
                 this->score_arr_shape[0] != NUM_LIGHT_IMGT_POSITIONS) {
             throw std::runtime_error(std::string("The score_array passed to "
@@ -91,9 +91,9 @@ scheme(scheme) {
         }
     } else if (scheme == "aho") {
         this->highly_conserved_positions = {HIGHLY_CONSERVED_AHO_1,
-            HIGHLY_CONSERVED_AHO_2, HIGHLY_CONSERVED_AHO_3,
-            HIGHLY_CONSERVED_AHO_4, HIGHLY_CONSERVED_AHO_5,
-            HIGHLY_CONSERVED_AHO_6};
+            HIGHLY_CONSERVED_AHO_2, HIGHLY_CONSERVED_AHO_3};
+        this->fwgxg_conserved_positions = {HIGHLY_CONSERVED_AHO_4,
+            HIGHLY_CONSERVED_AHO_5, HIGHLY_CONSERVED_AHO_6};
         if (this->score_arr_shape[0] != NUM_HEAVY_AHO_POSITIONS &&
                 this->score_arr_shape[0] != NUM_LIGHT_AHO_POSITIONS) {
             throw std::runtime_error(std::string("The score_array passed to "
@@ -109,14 +109,14 @@ scheme(scheme) {
     } else if (scheme == "martin" || scheme == "kabat") {
         if (chain_name == "L" || chain_name == "K") {
             this->highly_conserved_positions = {HIGHLY_CONSERVED_KABAT_LIGHT_1,
-                HIGHLY_CONSERVED_KABAT_LIGHT_2, HIGHLY_CONSERVED_KABAT_LIGHT_3,
-                HIGHLY_CONSERVED_KABAT_LIGHT_4, HIGHLY_CONSERVED_KABAT_LIGHT_5,
-                HIGHLY_CONSERVED_KABAT_LIGHT_6};
+                HIGHLY_CONSERVED_KABAT_LIGHT_2, HIGHLY_CONSERVED_KABAT_LIGHT_3};
+            this->fwgxg_conserved_positions = {HIGHLY_CONSERVED_KABAT_LIGHT_4,
+                HIGHLY_CONSERVED_KABAT_LIGHT_5, HIGHLY_CONSERVED_KABAT_LIGHT_6};
         } else if (chain_name == "H") {
             this->highly_conserved_positions = {HIGHLY_CONSERVED_KABAT_HEAVY_1,
-                HIGHLY_CONSERVED_KABAT_HEAVY_2, HIGHLY_CONSERVED_KABAT_HEAVY_3,
-                HIGHLY_CONSERVED_KABAT_HEAVY_4, HIGHLY_CONSERVED_KABAT_HEAVY_5,
-                HIGHLY_CONSERVED_KABAT_HEAVY_6};
+                HIGHLY_CONSERVED_KABAT_HEAVY_2, HIGHLY_CONSERVED_KABAT_HEAVY_3};
+            this->fwgxg_conserved_positions = {HIGHLY_CONSERVED_KABAT_HEAVY_4,
+                HIGHLY_CONSERVED_KABAT_HEAVY_5, HIGHLY_CONSERVED_KABAT_HEAVY_6};
         }
 
         if (this->score_arr_shape[0] != NUM_HEAVY_MARTIN_KABAT_POSITIONS &&
@@ -376,6 +376,7 @@ void IGAligner::align(std::string query_sequence,
     // those positions.
 
     int num_required_positions_found = 0;
+    int num_fwgxg_positions_found = 0;
 
     for (size_t k=0; k < position_key.size(); k++) {
         int scheme_std_position = position_key[k];
@@ -392,6 +393,10 @@ void IGAligner::align(std::string query_sequence,
                     this->highly_conserved_positions.end(),
                     scheme_std_position)) {
                 num_required_positions_found += 1;
+            } else if (std::binary_search(this->fwgxg_conserved_positions.begin(),
+                        this->fwgxg_conserved_positions.end(),
+                        scheme_std_position)) {
+                num_fwgxg_positions_found += 1;
             }
         }
     }
@@ -408,8 +413,15 @@ void IGAligner::align(std::string query_sequence,
         return;
     }
 
-    if (num_required_positions_found != 6)
+    // If we are missing one or more of the highly conserved positions,
+    // report this as the most important error. Otherwise, if we are
+    // missing one of the FWGxG positions (which occasionally happens
+    // and is more common than missing a highly conserved cysteine or
+    // tryptophan), report this as the error.
+    if (num_required_positions_found != 3)
         error_code = unacceptableConservedPositions;
+    else if (num_fwgxg_positions_found != 3)
+        error_code = unacceptableFWGxG;
 
     error_message = this->error_code_to_message[error_code];
 }

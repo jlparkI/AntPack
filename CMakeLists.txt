@@ -95,5 +95,11 @@ nanobind_add_module(
 
 )
 
+
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(antpack_cpp_ext PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 install(TARGETS antpack_cpp_ext
     LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

@@ -67,10 +67,31 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
         throw std::runtime_error(std::string("Alignment and sequence "
                     "must have the same size."));
     }
+
+    std::string cysteine_positions[2];
+    if (scheme == "aho") {
+        cysteine_positions[0] = "23";
+        cysteine_positions[1] = "106";
+    } else if (scheme == "imgt") {
+        cysteine_positions[0] = "23";
+        cysteine_positions[1] = "104";
+    } else if (scheme == "kabat" || scheme == "chothia" || scheme == "martin") {
+        if (std::get<2>(alignment) == "H") {
+            cysteine_positions[0] = "22";
+            cysteine_positions[1] = "92";
+        } else {
+            cysteine_positions[0] = "23";
+            cysteine_positions[1] = "88";
+        }
+    } else {
+        throw std::runtime_error(std::string("Numbering scheme must be "
+                    "one of aho, martin, kabat, imgt."));
+    }
+
     // Note that the cdr_assignment_utilities functions check that the input
     // alignment and scheme are valid. If they are not they will throw an
     // exception, which if this is used within the Nanobind wrapper will get
-    // passed back to Python. For these purposes we assume
+    // passed back to Python.
     std::vector<std::string> cdr_labeling;
     CDRConversionUtilities::assign_cdr_labels(std::get<0>(alignment),
             std::get<2>(alignment), cdr_labeling,
@@ -84,6 +105,12 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
 
     size_t sequence_length = sequence.length();
     std::vector<std::pair<std::pair<int, int>, std::string>> output;
+
+    // Notice that in this loop, for each if statement there is a comment
+    // with a regex. This was originally implemented in Python using regex,
+    // so when rewriting in C++ we pased the original regexes here to double
+    // check that they match the C++ logic. These do not have any function
+    // other than sanity checking and should be left commented.
 
     for (size_t i=0; i < sequence_length; i++) {
         if (cdr_labeling.at(i) == "-" || cdr_labeling.at(i).length() < 4)
@@ -174,10 +201,19 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
             }
         }
         if (sequence.at(i) == 'C') {
-            if (std::get<0>(alignment).at(i) != "23" &&
-                    std::get<0>(alignment).at(i) != "104") {
+            if (std::get<0>(alignment).at(i) != cysteine_positions[0] &&
+                    std::get<0>(alignment).at(i) != cysteine_positions[1]) {
                 std::pair<std::pair<int, int>, std::string> error =
-                        { {i, i+3}, "Unusual cysteine"};
+                        { {i, i+1}, "Unusual cysteine"};
+                output.push_back(error);
+            }
+        }
+        if (std::get<0>(alignment).at(i) == cysteine_positions[0] ||
+                std::get<0>(alignment).at(i) == cysteine_positions[1]) {
+            if (sequence.at(i) != 'C') {
+                std::pair<std::pair<int, int>, std::string> error =
+                        { {i, i+3}, "Cysteine missing at one of the "
+                            "two key conserved cysteine positions."};
                 output.push_back(error);
             }
         }

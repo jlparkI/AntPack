@@ -6,7 +6,7 @@ see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 It is currently in active development, so we are adding new features
 and making more improvements periodically.
 
-## What's new in v0.3.8
+## What's new in v0.3.8.5
 
 v0.3.8 adds numbering (using the IMGT scheme) and VJ
 gene assignment for TCRs. For both TCRs and mAbs, if
@@ -24,6 +24,11 @@ There are various other minor improvements to the Python API, the CLI
 and the GUI, which is useful for quickly viewing
 a few sequences and comparing them to their assigned
 VJ genes.
+
+v0.3.8.5 contains a couple of minor bug fixes and error messages
+that are more clear when a highly conserved residue is missing
+(the message now more clearly indicates which group of highly
+conserved residues was altered).
 
 ## Installation
 
