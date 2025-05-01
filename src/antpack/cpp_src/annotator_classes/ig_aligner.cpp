@@ -395,7 +395,7 @@ void IGAligner::align(std::string query_sequence,
                 num_required_positions_found += 1;
             } else if (std::binary_search(this->fwgxg_conserved_positions.begin(),
                         this->fwgxg_conserved_positions.end(),
-                        scheme_std_position) {
+                        scheme_std_position)) {
                 num_fwgxg_positions_found += 1;
             }
         }
