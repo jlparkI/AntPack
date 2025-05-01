@@ -1,3 +1,13 @@
+### Version 0.3.8.5
+Minor updates to the LiabilitySearchTool. Updated error messages
+from numbering to distinguish between situations where one of
+the three most highly conserved residues is altered (the two
+cysteines and trytophan) and situations where the FWGxG motif
+nearly always (though not ALWAYS) present near the end of the
+sequence has been altered. Fixed a bug in the VJGeneTool that
+caused it to search human and mouse only when all species were
+specified (and should have been searched).
+
 ### Version 0.3.8
 Updated PairedChainAnnotator, SingleChainAnnotator and VJGeneTool
 to accept and work with TCRs. Updated the command line interface
