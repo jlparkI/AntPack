@@ -204,7 +204,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
             if (std::get<0>(alignment).at(i) != cysteine_positions[0] &&
                     std::get<0>(alignment).at(i) != cysteine_positions[1]) {
                 std::pair<std::pair<int, int>, std::string> error =
-                        { {i, i+3}, "Unusual cysteine"};
+                        { {i, i+1}, "Unusual cysteine"};
                 output.push_back(error);
             }
         }
