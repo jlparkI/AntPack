@@ -1,6 +1,3 @@
-[submodule "extern/cnpy"]
-	path = extern/cnpy
-	url = https://github.com/rogersce/cnpy
 [submodule "extern/nanobind"]
 	path = extern/nanobind
 	url = https://github.com/wjakob/nanobind
