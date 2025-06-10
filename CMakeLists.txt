@@ -26,7 +26,7 @@ if (NOT SKBUILD)
 endif()
 
 
-project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
+project(${SKBUILD_PROJECT_NAME} LANGUAGES C CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 #set(QT_DEBUG_FIND_PACKAGE ON)
@@ -72,26 +72,41 @@ nanobind_add_module(
 
   NB_STATIC
 
-    src/antpack/cpp_src/ant_ext.cpp
-    src/antpack/cpp_src/annotator_classes/vj_aligner.cpp
-    src/antpack/cpp_src/annotator_classes/ig_aligner.cpp
-    src/antpack/cpp_src/annotator_classes/annotator_base_class.cpp
-    src/antpack/cpp_src/annotator_classes/single_chain_annotator.cpp
-    src/antpack/cpp_src/annotator_classes/paired_chain_annotator.cpp
+    extern/antpack_private/src/ant_ext.cpp
+    extern/antpack_private/src/annotator_classes/vj_aligner.cpp
+    extern/antpack_private/src/annotator_classes/ig_aligner.cpp
+    extern/antpack_private/src/annotator_classes/annotator_base_class.cpp
+    extern/antpack_private/src/annotator_classes/single_chain_annotator.cpp
+    extern/antpack_private/src/annotator_classes/paired_chain_annotator.cpp
 
-    src/antpack/cpp_src/vj_assignment/vj_match_counter.cpp
+    extern/antpack_private/src/vj_assignment/vj_match_counter.cpp
 
-    src/antpack/cpp_src/developability_calcs/liability_search_tool.cpp
+    extern/antpack_private/src/developability_calcs/liability_search_tool.cpp
 
-    src/antpack/cpp_src/dna_read_handling/dna_sequence_handling.cpp
+    extern/antpack_private/src/dna_read_handling/dna_sequence_handling.cpp
 
-    src/antpack/cpp_src/utilities/utilities.cpp
-    src/antpack/cpp_src/utilities/cdr_assignment_utilities.cpp
-    src/antpack/cpp_src/utilities/consensus_file_utilities.cpp
-    src/antpack/cpp_src/utilities/dna_sequence_utilities.cpp
+    extern/antpack_private/src/utilities/utilities.cpp
+    extern/antpack_private/src/utilities/cdr_assignment_utilities.cpp
+    extern/antpack_private/src/utilities/consensus_file_utilities.cpp
+    extern/antpack_private/src/utilities/dna_sequence_utilities.cpp
 
-    src/antpack/cpp_src/humanness_calcs/responsibility_calcs.cpp
-    src/antpack/cpp_src/annotator_classes/prefiltering_tool.cpp
+    extern/antpack_private/src/humanness_calcs/responsibility_calcs.cpp
+    extern/antpack_private/src/annotator_classes/prefiltering_tool.cpp
+
+
+    extern/antpack_private/src/license_key_handling/key_check_routines.cpp
+    extern/antpack_private/src/license_key_handling/pub_private_utilities.cpp
+
+    extern/antpack_private/src/license_key_handling/crypto_support/add_scalar.c
+    extern/antpack_private/src/license_key_handling/crypto_support/fe.c
+    extern/antpack_private/src/license_key_handling/crypto_support/ge.c
+    extern/antpack_private/src/license_key_handling/crypto_support/key_exchange.c
+    extern/antpack_private/src/license_key_handling/crypto_support/keypair.c
+    extern/antpack_private/src/license_key_handling/crypto_support/sc.c
+    extern/antpack_private/src/license_key_handling/crypto_support/seed.c
+    extern/antpack_private/src/license_key_handling/crypto_support/sha512.c
+    extern/antpack_private/src/license_key_handling/crypto_support/sign.c
+    extern/antpack_private/src/license_key_handling/crypto_support/verify.c
 
 )
 
