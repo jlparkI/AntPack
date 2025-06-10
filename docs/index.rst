@@ -1,4 +1,4 @@
-AntPack
+AntPack NonCommercial Use (v0.3.9 onwards)
 =====================================================
 Tools for numbering, sequence analysis and statistical
 modeling / ML for antibodies and TCRs, using amino acid
