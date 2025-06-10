@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and test wheels
+      - name: Build but don't test wheels
         env:
           CIBW_SKIP: "pp* cp36* cp37* *musllinux*"
           CIBW_BUILD_FRONTEND: "build"

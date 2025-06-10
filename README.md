@@ -1,36 +1,44 @@
 # AntPack
 
 AntPack is a Python package / toolkit for antibody numbering, data processing,
-statistical inference and machine learning for antibody sequences. For usage,
-see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
+statistical inference and machine learning for antibody sequences and TCRs.
 It is currently in active development, so we are adding new features
 and making more improvements periodically.
 
-## What's new in v0.3.8.5
+## Usage
 
-v0.3.8 adds numbering (using the IMGT scheme) and VJ
-gene assignment for TCRs. For both TCRs and mAbs, if
-you don't know which species to check for germline
-gene assignment, you can now check all of them by
-passing "unknown" for species. For mAbs, germline
-gene assignment for rabbits and alpacas (in addition
-to humans and mice) is now supported. It also now supports
-cross-scheme CDR assignment, i.e. you can number using
-one scheme but assign CDR labels using the CDR definitions
-from another (e.g. number using IMGT but assign CDR
-labels and search for liabilities using Kabat CDR definitions).
+For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocumentationlatest.pages.dev/)
+[You can find the docs here for older versions.](https://antpackdocumentation.pages.dev/)
 
-There are various other minor improvements to the Python API, the CLI
-and the GUI, which is useful for quickly viewing
-a few sequences and comparing them to their assigned
-VJ genes.
+## Major updates in v0.3.9
 
-v0.3.8.5 contains a couple of minor bug fixes and error messages
-that are more clear when a highly conserved residue is missing
-(the message now more clearly indicates which group of highly
-conserved residues was altered).
+As we continue to add features to AntPack, we are finding some
+features that we will add in upcoming versions useful for our own
+discovery efforts. Consequently we have reluctantly decided starting
+with v0.3.9 to license AntPack for noncommercial use only. This was
+not an easy decision and not one that we took lightly.
+
+Prior versions were made available under the GPL, which means they
+can be used it for your own data analysis in any manner you wish
+whether you work in academia or industry,
+but any software built using AntPack and intended for sale or distribution 
+must also be open-source under the GPL license. Therefore if
+you are currently using e.g. v0.3.8 for data analysis,
+you should feel free to continue to do so under the
+terms of your existing license.
 
 ## Installation
+
+Starting with v0.3.9, AntPack is only available for noncommercial
+academic use. To use AntPack versions
+v0.3.9 or later, you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/).
+To install AntPack, run:
+```
+pip install antpack
+AntPack-setup
+```
+
+then paste in the license key and your email address when prompted.
 
 The only required dependency is numpy. If you want to run the GUI,
 however, there are two additional dependencies you'll need to install
@@ -40,10 +48,6 @@ pip install pyside6 qt_material
 ```
 
 If you don't plan to use the GUI, you don't need those dependencies.
-Either way, to install antpack run:
-```
-pip install antpack
-```
 
 AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8,
 so installation should be very straightforward. A source distribution is also available
@@ -91,19 +95,6 @@ that identifying liabilities through finding motifs in this way is known to be p
 to false positives (an N-glycosylation motif, for example, will not always be glycosylated).
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
-
-
-### Licensing
-
-AntPack is licensed under a GPL license, which means that you are free to
-use it for your own data analysis in any manner you like irrespective of
-whether you work on academic research or industrial R&D / QC.
-
-If you are writing software intended for sale & distribution, however,
-any software you create that uses AntPack must also be open-source, must
-use the GPL license and must acknowledge AntPack appropriately. If you
-are interested in using AntPack in a closed-source software product,
-please contact us to obtain a version of AntPack licensed for this use.
 
 
 ### Citing this work

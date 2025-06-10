@@ -1,3 +1,6 @@
+### Version 0.3.9
+Relicensed for noncommercial use only.
+
 ### Version 0.3.8.5
 Minor updates to the LiabilitySearchTool. Updated error messages
 from numbering to distinguish between situations where one of
