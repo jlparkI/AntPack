@@ -1,3 +1,6 @@
 [submodule "extern/nanobind"]
 	path = extern/nanobind
 	url = https://github.com/wjakob/nanobind
+[submodule "extern/antpack_private"]
+	path = extern/antpack_private
+	url = https://github.com/jlparkI/antpack_private
