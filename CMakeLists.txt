@@ -29,13 +29,9 @@ endif()
 project(${SKBUILD_PROJECT_NAME} LANGUAGES C CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
-#set(QT_DEBUG_FIND_PACKAGE ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-#set(CMAKE_AUTOUIC ON)
-#set(CMAKE_AUTOMOC ON)
-#set(CMAKE_AUTORCC ON)
 # Extremely annoying but for some reason MSVC requires an additional flag
 # to be set.
 if (MSVC)
@@ -53,12 +49,7 @@ execute_process(
 find_package(nanobind CONFIG REQUIRED)
 
 
-# Now add requirements for Qt.
-#find_package(Qt6 COMPONENTS Widgets PrintSupport Core REQUIRED)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-INCLUDE_DIRECTORIES(src/antpack/antpack_gui)
-#INCLUDE_DIRECTORIES(${Qt6Widgets_INCLUDE_DIRS})
 
 
 
