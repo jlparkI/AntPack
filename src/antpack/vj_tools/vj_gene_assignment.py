@@ -4,6 +4,7 @@ only. Bear in mind that tools which offer a probabilistic assigment
 (e.g. IGOR) may be more informative."""
 import os
 import numpy as np
+from ..antpack_license import get_license_key_info
 from ..utilities.vj_utilities import load_vj_gene_consensus_db
 from antpack.antpack_cpp_ext import VJMatchCounter
 
@@ -24,6 +25,8 @@ class VJGeneTool(VJMatchCounter):
                 Determines the numbering scheme that will be used
                 when assigning vj genes based on alignments.
         """
+        license_key, user_email = get_license_key_info()
+
         project_path = os.path.abspath(os.path.dirname(__file__))
         db_path = os.path.join(project_path, "consensus_data")
         vj_names, vj_seqs, retrieved_dates = load_vj_gene_consensus_db(os.getcwd(),
@@ -36,7 +39,8 @@ class VJGeneTool(VJMatchCounter):
         ig_aligner_consensus_path = os.path.join(project_path, "..", "numbering_tools",
                 "consensus_data")
         super().__init__(vj_names, vj_seqs, blosum_matrix,
-                scheme, ig_aligner_consensus_path)
+                scheme, ig_aligner_consensus_path,
+                license_key, user_email)
 
 
 

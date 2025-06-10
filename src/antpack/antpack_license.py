@@ -17,3 +17,16 @@ def run_license_key_setter():
         fhandle.write("\t".join([license_key, email]))
 
     print("License key has been saved.")
+
+
+def get_license_key_info():
+    """Retrieves a saved license key."""
+    fpath = os.path.abspath(os.path.dirname(__file__))
+    if not os.path.exists(os.path.join(fpath, "license_keys.txt")):
+        raise RuntimeError("License key not found! Please run AntPack-setup "
+                "first. If you need a license key, please see the docs.")
+    with open(os.path.join(fpath, "license_keys.txt"), "r",
+            encoding="utf-8") as fhandle:
+        license_key, email = fhandle.readline().strip().split()
+
+    return license_key, email
