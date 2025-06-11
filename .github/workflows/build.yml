@@ -34,7 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ssh-key: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
+          token: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
+          submodules: true
 
       - name: Build sdist
         run: |
