@@ -24,9 +24,13 @@ can be used it for your own data analysis in any manner you wish
 whether you work in academia or industry,
 but any software built using AntPack and intended for sale or distribution 
 must also be open-source under the GPL license. Therefore if
-you are currently using e.g. v0.3.8 for data analysis,
+you are currently using e.g. v0.3.8.5 for data analysis,
 you should feel free to continue to do so under the
-terms of your existing license.
+terms of your existing license. Also note that v0.3.8.5 is still
+available on PyPi and can be installed using:
+```
+pip install antpack==0.3.8.5
+```
 
 ## Installation
 

@@ -27,7 +27,7 @@ AntPack-setup = "antpack:run_license_key_setter"
 
 [project.urls]
 Homepage = "https://github.com/jlparkI/AntPack"
-Documentation = "https://antpack.readthedocs.io/en/latest/index.html"
+Documentation = "https://antpackdocumentationlatest.pages.dev/"
 
 
 [tool.scikit-build]
