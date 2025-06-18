@@ -32,8 +32,7 @@ find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-# Extremely annoying but for some reason MSVC requires an additional flag
-# to be set.
+# Extremely annoying but MSVC requires an additional flag to be set.
 if (MSVC)
     add_compile_options("/Zc:__cplusplus" "/permissive-")
 endif()
@@ -59,7 +58,7 @@ nanobind_add_module(
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
   # does nothing on older Python versions
-  # STABLE_ABI  #Removing this since it leads to compatibilit issues.
+  # STABLE_ABI  #Removing this since it leads to compatibility issues.
 
   NB_STATIC
 

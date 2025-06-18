@@ -12,7 +12,6 @@ class TestSequenceScoringTool(unittest.TestCase):
     def test_error_checking(self):
         """Check that invalid data passed to the sequence scoring
         tool raises expected exceptions."""
-        return
         score_tool = SequenceScoringTool()
         humanization_tool = HumanizationTool()
 
@@ -56,7 +55,6 @@ class TestSequenceScoringTool(unittest.TestCase):
     def test_sequence_extraction(self):
         """Make sure the sequence prep feature is providing expected
         results."""
-        return
         score_tool = SequenceScoringTool()
 
         start_dir = os.path.abspath(os.path.dirname(__file__))

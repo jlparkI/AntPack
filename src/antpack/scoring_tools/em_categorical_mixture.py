@@ -67,7 +67,7 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         Raises:
             ValueError: Raised if unexpected inputs are supplied.
         """
-        cluster_assignments = np.zeros((xdata.shape[0]))
+        cluster_assignments = np.zeros((xdata.shape[0]), dtype=np.int64)
 
         if mask is not None or mask_terminal_dels or mask_gaps:
             xmasked = xdata.copy()
