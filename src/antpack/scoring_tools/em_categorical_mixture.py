@@ -2,7 +2,7 @@
 fitted via EM."""
 import os
 import numpy as np
-from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp, logsumexp_axis0
+from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp
 
 
 class EMCategoricalMixture(EMCategoricalMixtureCpp):
@@ -22,6 +22,16 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         """
         super().__init__(n_components, 21, sequence_length,
                 max_threads)
+
+
+    def get_model_parameters(self):
+        """Returns the cluster parameters followed by
+        the mixture weights as two numpy arrays."""
+        n_components, sequence_length, n_aas = self.get_specs()
+        mu_mix = np.zeros((n_components, sequence_length, n_aas))
+        mix_weights = np.zeros((n_components))
+        self.get_model_parameters_cpp(mu_mix, mix_weights)
+        return mu_mix, mix_weights
 
 
     def predict(self, xdata, mask = None, mask_terminal_dels = False,
@@ -105,7 +115,7 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         Raises:
             ValueError: Raised if unexpected inputs are supplied.
         """
-        proba = np.zeros((self.n_components, xdata.shape[0]))
+        proba = np.zeros((self.get_specs()[0], xdata.shape[0]))
 
         if mask is not None or mask_terminal_dels or mask_gaps:
             xmasked = xdata.copy()
@@ -158,7 +168,7 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         Raises:
             ValueError: Raised if unexpected inputs are supplied.
         """
-        loglik = np.zeros((self.log_mu_mix.shape[0], xdata.shape[0]))
+        loglik = np.zeros((xdata.shape[0]))
         if mask is not None or mask_terminal_dels or mask_gaps:
             xmasked = xdata.copy()
             if mask is not None:

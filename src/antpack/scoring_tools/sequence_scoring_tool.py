@@ -45,7 +45,8 @@ class SequenceScoringTool():
             self.models = {
                     "human":{"H":load_model(project_dir, "heavy",
                                                 max_threads=max_threads),
-                        "L":load_model(project_dir, "light", max_threads)},
+                        "L":load_model(project_dir, "light",
+                                                max_threads=max_threads)},
                     "mouse":{"H":load_model(project_dir, "heavy", species="mouse",
                                                 max_threads=max_threads),
                         "L":load_model(project_dir, "light", species="mouse",
