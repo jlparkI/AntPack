@@ -81,7 +81,6 @@ nanobind_add_module(
     extern/antpack_private/src/utilities/consensus_file_utilities.cpp
     extern/antpack_private/src/utilities/dna_sequence_utilities.cpp
 
-    extern/antpack_private/src/humanness_calcs/responsibility_calcs.cpp
     extern/antpack_private/src/annotator_classes/prefiltering_tool.cpp
 
     extern/antpack_private/src/categorical_mixtures/base_categorical_mixture_class.cpp
