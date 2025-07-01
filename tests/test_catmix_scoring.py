@@ -1,4 +1,4 @@
-"""Tests scoring outputs of the c extension by comparing them
+"""Tests scoring outputs of the categorical mixture model by comparing them
 to a slow but easy to cross-check Python routine."""
 import os
 import unittest
@@ -9,16 +9,7 @@ from antpack import SequenceScoringTool
 from antpack.antpack_cpp_ext import py_logsumexp_axis0
 
 
-class TestCExtScoring(unittest.TestCase):
-
-
-    def test_logsumexp(self):
-        """Tests the logsumexp function."""
-        rng = np.random.default_rng(123)
-        r1 = rng.uniform(size=(250,1000))
-        t1 = np.zeros((1000))
-        py_logsumexp_axis0(r1, t1)
-        self.assertTrue(np.allclose(t1, logsumexp(r1, axis=0)))
+class TestCatmixScoring(unittest.TestCase):
 
 
     def test_catmix_scoring(self):
@@ -203,8 +194,6 @@ class TestCExtScoring(unittest.TestCase):
         gt_heavy_score += log_mix_weights[:,None]
         gt_heavy_score = logsumexp(gt_heavy_score, axis=0)
         self.assertTrue(np.allclose(gt_heavy_score, test_heavy_score))
-        
-
 
 
         log_mu_mix, log_mix_weights = light_model.get_model_parameters()

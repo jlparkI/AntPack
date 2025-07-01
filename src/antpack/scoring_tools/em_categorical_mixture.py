@@ -10,7 +10,7 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
     the EM algorithm."""
 
     def __init__(self, n_components, sequence_length,
-            max_threads):
+            max_threads, verbose = True):
         """Constructor.
 
         Args:
@@ -19,9 +19,11 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 sequences.
             max_threads (int): The maximum number of threads
                 to use.
+            verbose (bool): If True, print loss on every fitting
+                iteration.
         """
         super().__init__(n_components, 21, sequence_length,
-                max_threads)
+                max_threads, verbose)
 
 
     def get_model_parameters(self):
@@ -32,6 +34,80 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         mix_weights = np.zeros((n_components))
         self.get_model_parameters_cpp(mu_mix, mix_weights)
         return mu_mix, mix_weights
+
+
+    def get_model_specs(self):
+        """Returns n_components, sequence_length and
+        the maximum number of allowed aas (generally 21)."""
+        return self.get_specs()
+
+
+    def fit(self, xdata, max_iter=150, tol=1e-3,
+            n_restarts=3, random_state=123,
+            prune_after_fitting=True):
+        """Fits the mixture model to either a list of filepaths
+        representing numpy arrays saved as npy files OR an
+        input numpy array.
+
+        Args:
+            xdata: Either a list of filepaths, each of which is a
+                2d numpy array of type uint8 saved as a .npy file,
+                or a 2d numpy array of type np.uint8.
+            max_iter (int): The maximum number of iterations to run
+                per restart.
+            tol (float): If the loss changes by less than this amount,
+                assume convergence and end the restart.
+            n_restarts (int): The number of times to re-run fitting
+                with randomly reinitialized weights.
+            random_state (int): The random seed.
+            prune_after_fitting (bool): If True, empty clusters are
+                removed at the end of fitting. This will change
+                the n_components of the model. Call self.get_model_specs()
+                to get the new n_components value.
+        """
+        if isinstance(xdata, list):
+            self.fit_offline(xdata, max_iter, tol,
+                    n_restarts, random_state, prune_after_fitting)
+        else:
+            self.fit_online(xdata, max_iter, tol,
+                    n_restarts, random_state, prune_after_fitting)
+
+    
+    def BIC(self, xdata):
+        """Calculates the BIC or Bayes information criterion for
+        a fitted model.
+
+        Args:
+            xdata: Either a list of filepaths, each of which is a
+                2d numpy array of type uint8 saved as a .npy file,
+                or a 2d numpy array of type np.uint8.
+
+        Returns:
+            bic (float): The Bayes information criterion for the input
+                dataset.
+        """
+        if isinstance(xdata, list):
+            self.BIC_offline(xdata)
+        else:
+            self.BIC_online(xdata)
+
+    
+    def AIC(self, xdata):
+        """Calculates the AIC or Akaike information criterion for
+        a fitted model.
+
+        Args:
+            xdata: Either a list of filepaths, each of which is a
+                2d numpy array of type uint8 saved as a .npy file,
+                or a 2d numpy array of type np.uint8.
+
+        Returns:
+            aic (float): The AIC for the input dataset.
+        """
+        if isinstance(xdata, list):
+            self.AIC_offline(xdata)
+        else:
+            self.AIC_online(xdata)
 
 
     def predict(self, xdata, mask = None, mask_terminal_dels = False,
