@@ -87,9 +87,8 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 dataset.
         """
         if isinstance(xdata, list):
-            self.BIC_offline(xdata)
-        else:
-            self.BIC_online(xdata)
+            return self.BIC_offline(xdata)
+        return self.BIC_online(xdata)
 
     
     def AIC(self, xdata):
@@ -105,9 +104,8 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
             aic (float): The AIC for the input dataset.
         """
         if isinstance(xdata, list):
-            self.AIC_offline(xdata)
-        else:
-            self.AIC_online(xdata)
+            return self.AIC_offline(xdata)
+        return self.AIC_online(xdata)
 
 
     def predict(self, xdata, mask = None, mask_terminal_dels = False,

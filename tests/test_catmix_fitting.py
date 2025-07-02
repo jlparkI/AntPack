@@ -60,41 +60,32 @@ class TestCatmixFitting(unittest.TestCase):
         self.assertTrue(np.allclose(gt_net_resp, net_resp))
 
 
-    def test_online_fit(self):
+    def test_fitting_procedure(self):
         """Runs some quick and dirty sanity checks on the
         fitting procedure for in-memory and on-disk data."""
-        xdata, _ = load_test_data()
+        xdata, xfiles = load_test_data()
         base_model = build_default_model()
 
-        init_bic = base_model.BIC_online(xdata)
-        init_aic = base_model.AIC_online(xdata)
+        init_bic = base_model.BIC(xdata)
+        init_aic = base_model.AIC(xdata)
 
-        base_model.fit_online(xdata, max_iter = 150, n_restarts=3,
+        base_model.fit(xdata, max_iter = 150, n_restarts=3,
                 prune_after_fitting = False)
-        final_bic = base_model.BIC_online(xdata)
-        final_aic = base_model.AIC_online(xdata)
+        final_bic = base_model.BIC(xdata)
+        final_aic = base_model.AIC(xdata)
 
         self.assertTrue(final_bic < init_bic)
         self.assertTrue(final_aic < init_aic)
 
-
-
-    def test_offline_fit(self):
-        """Runs some quick and dirty sanity checks on the
-        fitting procedure for on-disk data."""
-        _, xfiles = load_test_data()
-        base_model = build_default_model()
-
-        init_bic = base_model.BIC_offline(xfiles)
-        init_aic = base_model.AIC_offline(xfiles)
-
-        base_model.fit_offline(xfiles, max_iter = 150, n_restarts=3,
+        base_model.fit(xfiles, max_iter = 150, n_restarts=3,
                 prune_after_fitting = False)
-        final_bic = base_model.BIC_offline(xfiles)
-        final_aic = base_model.AIC_offline(xfiles)
+        final_offline_bic = base_model.BIC(xdata)
+        final_offline_aic = base_model.AIC(xdata)
 
         self.assertTrue(final_bic < init_bic)
         self.assertTrue(final_aic < init_aic)
+        self.assertTrue(np.allclose(final_bic, final_offline_bic))
+        self.assertTrue(np.allclose(final_aic, final_offline_aic))
 
 
 
