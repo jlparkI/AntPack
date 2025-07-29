@@ -12,7 +12,7 @@ class SequenceScoringTool():
     """Tool for scoring sequences."""
 
     def __init__(self, offer_classifier_option = False,
-            normalization = "none"):
+            normalization = "none", max_threads = 2):
         """Class constructor.
 
         Args:
@@ -29,8 +29,9 @@ class SequenceScoringTool():
                 different chains, compare scores across chains, or compare
                 scores for different regions, in which case one of the
                 other two options is recommended.
+            max_threads (int): The maximum number of threads to use when
+                making predictions.
         """
-
         project_dir = os.path.abspath(os.path.dirname(__file__))
 
         self.position_dict = {"H":get_position_dict("heavy")[0],
@@ -42,17 +43,26 @@ class SequenceScoringTool():
 
         if offer_classifier_option:
             self.models = {
-                    "human":{"H":load_model(project_dir, "heavy"),
-                        "L":load_model(project_dir, "light")},
-                    "mouse":{"H":load_model(project_dir, "heavy", species="mouse"),
-                        "L":load_model(project_dir, "light", species="mouse")},
-                    "rhesus":{"H":load_model(project_dir, "heavy", species="rhesus"),
-                        "L":load_model(project_dir, "light", species="rhesus")},
-                    "rat":{"H":load_model(project_dir, "heavy", species="rat") }
+                    "human":{"H":load_model(project_dir, "heavy",
+                                                max_threads=max_threads),
+                        "L":load_model(project_dir, "light",
+                                                max_threads=max_threads)},
+                    "mouse":{"H":load_model(project_dir, "heavy", species="mouse",
+                                                max_threads=max_threads),
+                        "L":load_model(project_dir, "light", species="mouse",
+                                                max_threads=max_threads)},
+                    "rhesus":{"H":load_model(project_dir, "heavy", species="rhesus",
+                                                max_threads=max_threads),
+                        "L":load_model(project_dir, "light", species="rhesus",
+                                                max_threads=max_threads)},
+                    "rat":{"H":load_model(project_dir, "heavy", species="rat",
+                                                max_threads=max_threads) }
                 }
         else:
-            self.models = {"human":{"H":load_model(project_dir, "heavy"),
-                        "L":load_model(project_dir, "light")} }
+            self.models = {"human":{"H":load_model(project_dir, "heavy",
+                                    max_threads=max_threads),
+                        "L":load_model(project_dir, "light",
+                                    max_threads=max_threads)} }
 
         self.aa_list = constants.aa_list
         self.aa_dict = {aa:i for (i, aa) in enumerate(self.aa_list)}
@@ -408,8 +418,7 @@ class SequenceScoringTool():
                     "belong as a heavy or light chain.")
 
         # We can flatten here, because only one sequence is used as input.
-        cluster_probs = self.models["human"][chain_name].predict(arr,
-                return_raw_probs=True).flatten()
+        cluster_probs = self.models["human"][chain_name].predict_proba(arr).flatten()
         best_clusters = np.argsort(cluster_probs)[-nclusters:]
 
         if return_ids_only:
@@ -469,8 +478,7 @@ class SequenceScoringTool():
 
     def _batch_score(self, seq_array:list, output_scores:list,
             assigned_idx:list, chain_type:str, mode:str = "score",
-            mask = None, mask_terminal_dels = False, mask_gaps = False,
-            nthreads:int = 2):
+            mask = None, mask_terminal_dels = False, mask_gaps = False):
         """Scores a batch of sequences -- either heavy or light --
         with the provided mixmodel. Operations are in place so nothing
         is returned.
@@ -498,22 +506,17 @@ class SequenceScoringTool():
             mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
                 are ignored when calculating the score. This is useful when your
                 sequence has unusual deletions and you would like to ignore these.
-            nthreads (int): The number of threads to use.
         """
         input_array = np.vstack(seq_array)
-
-        n_threads = min(nthreads, len(seq_array))
 
         if mode == "classifier":
             scores = []
             for species in ("human", "mouse", "rhesus"):
                 scores.append(self.models[species][chain_type].score(input_array,
-                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores,
-                        n_threads = n_threads))
+                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores))
             if chain_type == "H":
                 scores.append(self.models["rat"]["H"].score(input_array,
-                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores,
-                        n_threads = n_threads))
+                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores))
             else:
                 scores.append(None)
 
@@ -522,20 +525,18 @@ class SequenceScoringTool():
 
         elif mode == "score":
             scores = self.models["human"][chain_type].score(input_array, mask,
-                    mask_terminal_dels, mask_gaps, self.normalize_scores,
-                    n_threads = n_threads)
+                    mask_terminal_dels, mask_gaps, self.normalize_scores)
             if not self.normalize_scores:
                 scores -= self.score_adjustments[chain_type]
 
         elif mode == "assign":
             scores = self.models["human"][chain_type].predict(input_array, mask = mask,
                     mask_terminal_dels = mask_terminal_dels,
-                    mask_gaps = mask_gaps, n_threads = n_threads)
+                    mask_gaps = mask_gaps)
         elif mode == "assign_no_weights":
             scores = self.models["human"][chain_type].predict(input_array, mask = mask,
                     mask_terminal_dels = mask_terminal_dels,
-                    mask_gaps = mask_gaps, n_threads = n_threads,
-                    use_mixweights = False)
+                    mask_gaps = mask_gaps, use_mixweights = False)
 
         for i, score in enumerate(scores.tolist()):
             output_scores[assigned_idx[i]] = score
@@ -548,7 +549,7 @@ class SequenceScoringTool():
         rule classifier score. Should only be used for testing,
         since a classification approach of this kind is not
         useful for sequences of unknown origin."""
-        num_positions = self.models["human"][chain_type].sequence_length
+        num_positions = self.models["human"][chain_type].get_specs()[1]
 
         #This is a default probability assuming equal probability of all
         #amino acids at all positions.

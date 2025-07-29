@@ -1,12 +1,12 @@
 """Contains utilities useful for loading fitted models."""
 import os
-import gzip
 import numpy as np
-from ..scoring_tools.categorical_mix import CategoricalMixture
+from ..clustering_tools.em_categorical_mixture import EMCategoricalMixture
 from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip
 
 
-def load_model(start_dir, chain_type="heavy", species="human"):
+def load_model(start_dir, chain_type="heavy",
+        species="human", max_threads=2):
     """Loads the model for the specified species."""
     current_dir = os.getcwd()
     os.chdir(os.path.join(start_dir, "model_data"))
@@ -24,8 +24,9 @@ def load_model(start_dir, chain_type="heavy", species="human"):
     except Exception as exc:
         raise ValueError("Final run not present in expected location.") from exc
 
-    model = CategoricalMixture(mixweights.shape[0], num_possible_items = 21,
-                         sequence_length = sequence_length)
+    model = EMCategoricalMixture(mixweights.shape[0],
+            sequence_length=sequence_length,
+            max_threads=max_threads)
 
     model.load_params(mu, mixweights)
 

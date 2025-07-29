@@ -32,8 +32,7 @@ find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-# Extremely annoying but for some reason MSVC requires an additional flag
-# to be set.
+# Extremely annoying but MSVC requires an additional flag to be set.
 if (MSVC)
     add_compile_options("/Zc:__cplusplus" "/permissive-")
 endif()
@@ -59,7 +58,7 @@ nanobind_add_module(
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
   # does nothing on older Python versions
-  # STABLE_ABI  #Removing this since it leads to compatibilit issues.
+  # STABLE_ABI  #Removing this since it leads to compatibility issues.
 
   NB_STATIC
 
@@ -81,9 +80,14 @@ nanobind_add_module(
     extern/antpack_private/src/utilities/consensus_file_utilities.cpp
     extern/antpack_private/src/utilities/dna_sequence_utilities.cpp
 
-    extern/antpack_private/src/humanness_calcs/responsibility_calcs.cpp
     extern/antpack_private/src/annotator_classes/prefiltering_tool.cpp
 
+    extern/antpack_private/src/categorical_mixtures/base_categorical_mixture_class.cpp
+    extern/antpack_private/src/categorical_mixtures/em_categorical_mixture.cpp
+    extern/antpack_private/src/categorical_mixtures/em_update_calcs.cpp
+    extern/antpack_private/src/categorical_mixtures/weight_responsibility_calcs.cpp
+    extern/antpack_private/src/categorical_mixtures/mixture_utilities.cpp
+    extern/antpack_private/src/categorical_mixtures/test_wrappers.cpp
 
     extern/antpack_private/src/license_key_handling/key_check_routines.cpp
     extern/antpack_private/src/license_key_handling/pub_private_utilities.cpp
@@ -100,6 +104,13 @@ nanobind_add_module(
     extern/antpack_private/src/license_key_handling/crypto_support/verify.c
 
 )
+
+
+# Ordinarily these should be disabled. Uncomment these if we
+# want profiling.
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+#SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+#SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 
 find_package(OpenMP)
