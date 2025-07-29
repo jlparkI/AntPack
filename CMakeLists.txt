@@ -89,8 +89,11 @@ nanobind_add_module(
     extern/antpack_private/src/categorical_mixtures/mixture_utilities.cpp
     extern/antpack_private/src/categorical_mixtures/test_wrappers.cpp
 
+    extern/antpack_private/src/data_management/template_aligner.cpp
+
     extern/antpack_private/src/license_key_handling/key_check_routines.cpp
     extern/antpack_private/src/license_key_handling/pub_private_utilities.cpp
+
 
     extern/antpack_private/src/license_key_handling/crypto_support/add_scalar.c
     extern/antpack_private/src/license_key_handling/crypto_support/fe.c
