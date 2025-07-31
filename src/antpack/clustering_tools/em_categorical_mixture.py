@@ -3,6 +3,8 @@ fitted via EM."""
 import os
 import numpy as np
 from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp
+from ..cli_tools import read_fasta
+
 
 
 class EMCategoricalMixture(EMCategoricalMixtureCpp):
@@ -12,7 +14,8 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
     def __init__(self, n_components:int, sequence_length:int=0,
             numbering:list=None, numbering_scheme:str="imgt",
             cdr_scheme:str="imgt", region:str="all",
-            max_threads:int=2, verbose:bool=True):
+            max_threads:int=2, convert_x_to_gap:bool=False,
+            verbose:bool=True):
         """Constructor.
 
         Args:
@@ -56,6 +59,10 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
             max_threads (int): The maximum number of threads
                 to use. The tool will use up to this number of threads
                 wherever it makes sense to do so.
+            convert_x_to_gap (bool): If True, any "X" values found in
+                input sequences are converted to gaps. If False,
+                an exception is raised when "X" is found in an
+                input sequence.
             verbose (bool): If True, print loss on every fitting
                 iteration.
         """
@@ -390,4 +397,29 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 (all different lengths, unexpected characters etc)
                 are found in the fasta file.
         """
-        return []
+        if chunk_size <= 0:
+            raise RuntimeError("Chunk size must be a positive integer.")
+        sequence_list, output_filepaths = [], []
+        file_counter = 0
+
+        for _, sequence in read_fasta(fasta_filepath):
+            sequence_list.append(sequence)
+            if len(sequence_list) >= chunk_size:
+                xdata = np.zeros((len(sequence_list), self.get_model_specs()[1] ))
+                self.extract_and_encode(sequence_list, xdata)
+
+                output_filepaths.append( os.path.join(temporary_dir,
+                        f"ENCODED_SEQUENCE_DATA_{file_counter}.npy") )
+                np.save(output_filepaths[-1], xdata)
+                file_counter += 1
+                sequence_list = []
+
+        if len(sequence_list) > 0:
+            xdata = np.zeros((len(sequence_list), self.get_model_specs()[1] ))
+            self.extract_and_encode(sequence_list, xdata)
+
+            output_filepaths.append( os.path.join(temporary_dir,
+                    f"ENCODED_SEQUENCE_DATA_{file_counter}.npy") )
+            np.save(output_filepaths[-1], xdata)
+
+        return output_filepaths
