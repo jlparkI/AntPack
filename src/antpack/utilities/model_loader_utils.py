@@ -12,9 +12,9 @@ def load_model(start_dir, chain_type="heavy",
     os.chdir(os.path.join(start_dir, "model_data"))
 
     if chain_type == "heavy":
-        sequence_length = len(ahip.heavy_allowed_positions)
+        allowed_positions = ahip.heavy_allowed_positions
     elif chain_type == "light":
-        sequence_length = len(ahip.light_allowed_positions)
+        allowed_positions = ahip.light_allowed_positions
     else:
         raise ValueError("Unrecognized chain type supplied.")
 
@@ -25,8 +25,8 @@ def load_model(start_dir, chain_type="heavy",
         raise ValueError("Final run not present in expected location.") from exc
 
     model = EMCategoricalMixture(mixweights.shape[0],
-            sequence_length=sequence_length,
-            max_threads=max_threads)
+            numbering=allowed_positions,
+            region="all", max_threads=max_threads)
 
     model.load_params(mu, mixweights)
 

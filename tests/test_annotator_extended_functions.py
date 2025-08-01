@@ -41,18 +41,6 @@ class TestAnnotatorExtendedFunctions(unittest.TestCase):
             _ = aligner.trim_alignment("AAAAAA",
                 (["1", "2", "3", "4", "5"], 0.2, "H", "") )
 
-        with self.assertRaises(RuntimeError):
-            _ = aligner.slice_msa(["AA--AA", "AATTAAA"],
-                    ["1", "2", "3", "4", "5", "6"],
-                    "H", "all")
-        with self.assertRaises(RuntimeError):
-            _ = aligner.slice_msa(["AA--AA", "AATTAA"],
-                    ["1", "2", "3", "4", "5", "6"],
-                    "H", "dummy")
-        with self.assertRaises(RuntimeError):
-            _ = aligner.slice_msa(["AA--AA", "AATTAA"],
-                    ["1", "2", "3", "4", "5", "6"],
-                    "H", "fmwk1", "hobgoblin")
 
         with self.assertRaises(RuntimeError):
             _ = aligner.build_distance_matrix(np.empty((2,2)),
@@ -178,10 +166,6 @@ class TestAnnotatorExtendedFunctions(unittest.TestCase):
                             seq, cdr_labels) if c[:len(region)] ==
                                 region])
                             for seq in seqs]
-
-                cpp_slice = aligner.slice_msa(
-                        seqs, poscodes, chain_type, region)
-                self.assertTrue(python_slice == cpp_slice)
 
                 py_dist_mat = np.empty((len(seqs), len(seqs)))
                 cpp_dist_mat = py_dist_mat.copy()

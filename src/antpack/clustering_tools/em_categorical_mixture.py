@@ -2,20 +2,20 @@
 fitted via EM."""
 import os
 import numpy as np
-from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp
+from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp, SequenceTemplateAligner
 from ..cli_tools import read_fasta
 
 
 
-class EMCategoricalMixture(EMCategoricalMixtureCpp):
+class EMCategoricalMixture():
     """A categorical mixture model that is fitted using
     the EM algorithm."""
 
     def __init__(self, n_components:int, sequence_length:int=0,
-            numbering:list=None, numbering_scheme:str="imgt",
+            numbering:list=None, chain_type:str="H",
+            numbering_scheme:str="imgt",
             cdr_scheme:str="imgt", region:str="all",
-            max_threads:int=2, convert_x_to_gap:bool=False,
-            verbose:bool=True):
+            max_threads:int=2, verbose:bool=True):
         """Constructor.
 
         Args:
@@ -31,11 +31,13 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 then this numbering list would be the list of position
                 codes for the MSA (use SingleChainAnnotator's build_msa
                 function to see an example). This argument does not have
-                to be supplied -- you can leave this as an empty list.
-                If it is an empty list however you must supply a number
+                to be supplied. If it is None however you must supply a number
                 for sequence length. The advantage to supplying numbering
                 is that you can use it to cluster just one region of your
                 input sequences (e.g. the CDRs) if desired.
+            chain_type (str): The chain this clustering will be for (e.g.
+                one of "H", "K", "L", "A" etc.) This argument is ignored
+                and is not required if numbering is None.
             numbering_scheme (str): A valid numbering scheme; one of
                 'imgt', 'aho', 'martin', 'kabat'. If you supply a numbering
                 list and a region (see below) this will be used to determine
@@ -55,35 +57,96 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 "cdr" to cluster all cdrs, then the model will extract
                 just that region during fitting and prediction. If this
                 argument is NOT "all", you must supply the 'numbering',
-                'numbering_scheme' and 'cdr_scheme' arguments.
+                'numbering_scheme', 'chain_type' and 'cdr_scheme' arguments.
             max_threads (int): The maximum number of threads
                 to use. The tool will use up to this number of threads
                 wherever it makes sense to do so.
-            convert_x_to_gap (bool): If True, any "X" values found in
-                input sequences are converted to gaps. If False,
-                an exception is raised when "X" is found in an
-                input sequence.
             verbose (bool): If True, print loss on every fitting
                 iteration.
         """
-        super().__init__(n_components, 21, sequence_length,
-                max_threads, verbose)
+        self.region = region
+
+        if isinstance(numbering, list):
+            if region == "all":
+                self.template_aligner = None
+                seqlen = len(numbering)
+            else:
+                self.template_aligner = SequenceTemplateAligner(
+                    numbering, chain_type, numbering_scheme,
+                    cdr_scheme)
+                seqlen = self.template_aligner.get_region_size(region)
+                if seqlen <= 0:
+                    raise RuntimeError("The region code supplied together with the "
+                        "numbering supplied would result in extracting "
+                        "a region of length 0.")
+            self.em_cat_mixture_model = EMCategoricalMixtureCpp(
+                    n_components, 21, seqlen,
+                    max_threads, verbose)
+
+        elif sequence_length > 0:
+            self.template_aligner = None
+            self.em_cat_mixture_model = EMCategoricalMixtureCpp(
+                    n_components, 21, sequence_length,
+                    max_threads, verbose)
+        else:
+            raise RuntimeError("sequence_length cannot be zero "
+                    "if no numbering is supplied.")
+
 
 
     def get_model_parameters(self):
         """Returns the cluster parameters followed by
         the mixture weights as two numpy arrays."""
-        n_components, sequence_length, n_aas = self.get_specs()
+        n_components, sequence_length, n_aas = \
+                self.em_cat_mixture_model.get_specs()
         mu_mix = np.zeros((n_components, sequence_length, n_aas))
         mix_weights = np.zeros((n_components))
-        self.get_model_parameters_cpp(mu_mix, mix_weights)
+        self.em_cat_mixture_model.get_model_parameters_cpp(mu_mix, mix_weights)
         return mu_mix, mix_weights
+
+
+    def load_params(self, mu_mix, mix_weights):
+        """Loads user-supplied parameters for a model that
+        has already been fitted.
+
+        Args:
+            mu_mix (ndarray): The mixture model parameters.
+            mix_weights (ndarray): The mixture weights.
+        """
+        self.em_cat_mixture_model.load_params(mu_mix, mix_weights)
 
 
     def get_model_specs(self):
         """Returns n_components, sequence_length and
         the maximum number of allowed aas (generally 21)."""
-        return self.get_specs()
+        return self.em_cat_mixture_model.get_specs()
+
+
+    def _prep_xdata(self, sequences):
+        """Converts input sequences into a numpy array,
+        slicing to extract a region of interest if appropriate.
+
+        Args:
+            sequences (list): A list of sequences to be sliced and
+                encoded.
+
+        Returns:
+            encoded_sequences (ndarray): The sliced encoded sequences
+                as a numpy array of type np.uint8.
+        """
+        xdata = np.zeros((len(sequences),
+            self.em_cat_mixture_model.get_specs()[1] ), dtype=np.uint8)
+
+        if self.template_aligner is None or self.region == "all":
+            self.em_cat_mixture_model.encode_input_seqs(sequences,
+                xdata)
+        else:
+            sliced_sequences = self.template_aligner.slice_msa(
+                sequences, self.region)
+            self.em_cat_mixture_model.encode_input_seqs(sliced_sequences,
+                xdata)
+        return xdata
+
 
 
     def fit(self, sequences:list=None, filepaths:list=None,
@@ -121,17 +184,18 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 to get the new n_components value.
         """
         if isinstance(sequences, list):
-            self.fit_online(sequences, max_iter, tol,
+            xdata = self._prep_xdata(sequences)
+            self.em_cat_mixture_model.fit_online(xdata, max_iter, tol,
                     n_restarts, random_state, prune_after_fitting)
         elif isinstance(filepaths, list):
-            self.fit_offline(filepaths, max_iter, tol,
+            self.em_cat_mixture_model.fit_offline(filepaths, max_iter, tol,
                     n_restarts, random_state, prune_after_fitting)
         else:
             raise RuntimeError("sequences and filepaths cannot both "
                     "be None.")
 
 
-    def BIC(self, sequences, filepaths):
+    def BIC(self, sequences:list=None, filepaths:list=None):
         """Calculates the BIC or Bayes information criterion for
         a fitted model.
 
@@ -155,13 +219,14 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
                 dataset.
         """
         if isinstance(sequences, list):
-            return self.BIC_online(sequences)
+            xdata = self._prep_xdata(sequences)
+            return self.em_cat_mixture_model.BIC_online(xdata)
         if isinstance(filepaths, list):
-            return self.BIC_offline(filepaths)
+            return self.em_cat_mixture_model.BIC_offline(filepaths)
         raise RuntimeError("sequences and filepaths cannot both be None.")
 
 
-    def AIC(self, sequences, filepaths):
+    def AIC(self, sequences:list=None, filepaths:list=None):
         """Calculates the AIC or Akaike information criterion for
         a fitted model.
 
@@ -184,9 +249,10 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
             aic (float): The AIC for the input dataset.
         """
         if isinstance(sequences, list):
-            return self.AIC_online(sequences)
+            xdata = self._prep_xdata(sequences)
+            return self.em_cat_mixture_model.AIC_online(xdata)
         if isinstance(filepaths, list):
-            return self.AIC_offline(filepaths)
+            return self.em_cat_mixture_model.AIC_offline(filepaths)
         raise RuntimeError("sequences and filepaths cannot both be None.")
 
 
@@ -225,23 +291,23 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         Raises:
             RuntimeError: Raised if unexpected inputs are supplied.
         """
-        xdata = np.zeros((len(sequences), self.get_extract_length() ))
-        self.extract_and_encode(sequences, xdata)
+        xdata = self._prep_xdata(sequences)
         cluster_assignments = np.zeros((xdata.shape[0]), dtype=np.int64)
 
         if mask is not None or mask_terminal_dels or mask_gaps:
             xmasked = xdata.copy()
             if mask is not None:
-                self.apply_mask_to_input_data(mask, xmasked)
+                self.em_cat_mixture_model.apply_mask_to_input_data(mask, xmasked)
             if mask_terminal_dels:
-                self.mask_terminal_deletions(xdata, xmasked)
+                self.em_cat_mixture_model.mask_terminal_deletions(xdata, xmasked)
             if mask_gaps:
-                self.mask_gaps(xdata, xmasked)
-            self.predict_cpp(xmasked, cluster_assignments,
+                self.em_cat_mixture_model.mask_gaps(xdata, xmasked)
+            self.em_cat_mixture_model.predict_cpp(xmasked, cluster_assignments,
                     use_mixweights, True)
 
         else:
-            self.predict_cpp(xdata, cluster_assignments, use_mixweights)
+            self.em_cat_mixture_model.predict_cpp(xdata,
+                    cluster_assignments, use_mixweights)
 
         return cluster_assignments
 
@@ -275,23 +341,23 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         Raises:
             RuntimeError: Raised if unexpected inputs are supplied.
         """
-        xdata = np.zeros((len(sequences), self.get_extract_length() ))
-        self.extract_and_encode(sequences, xdata)
-        proba = np.zeros((self.get_specs()[0], xdata.shape[0]))
+        xdata = self._prep_xdata(sequences)
+        proba = np.zeros((self.em_cat_mixture_model.get_specs()[0], xdata.shape[0]))
 
         if mask is not None or mask_terminal_dels or mask_gaps:
             xmasked = xdata.copy()
             if mask is not None:
-                self.apply_mask_to_input_data(mask, xmasked)
+                self.em_cat_mixture_model.apply_mask_to_input_data(mask, xmasked)
             if mask_terminal_dels:
-                self.mask_terminal_deletions(xdata, xmasked)
+                self.em_cat_mixture_model.mask_terminal_deletions(xdata, xmasked)
             if mask_gaps:
-                self.mask_gaps(xdata, xmasked)
-            self.predict_proba_cpp(xmasked, proba,
+                self.em_cat_mixture_model.mask_gaps(xdata, xmasked)
+            self.em_cat_mixture_model.predict_proba_cpp(xmasked, proba,
                     use_mixweights, True)
 
         else:
-            self.predict_proba_cpp(xdata, proba, use_mixweights)
+            self.em_cat_mixture_model.predict_proba_cpp(xdata,
+                    proba, use_mixweights)
 
         return proba
 
@@ -330,23 +396,23 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         Raises:
             RuntimeError: Raised if unexpected inputs are supplied.
         """
-        xdata = np.zeros((len(sequences), self.get_extract_length() ))
-        self.extract_and_encode(sequences, xdata)
+        xdata = self._prep_xdata(sequences)
 
         loglik = np.zeros((xdata.shape[0]))
         if mask is not None or mask_terminal_dels or mask_gaps:
             xmasked = xdata.copy()
             if mask is not None:
-                self.apply_mask_to_input_data(mask, xmasked)
+                self.em_cat_mixture_model.apply_mask_to_input_data(mask, xmasked)
             if mask_terminal_dels:
-                self.mask_terminal_deletions(xdata, xmasked)
+                self.em_cat_mixture_model.mask_terminal_deletions(xdata, xmasked)
             if mask_gaps:
-                self.mask_gaps(xdata, xmasked)
-            self.score_cpp(xmasked, loglik,
+                self.em_cat_mixture_model.mask_gaps(xdata, xmasked)
+            self.em_cat_mixture_model.score_cpp(xmasked, loglik,
                     normalize_scores, True)
 
         else:
-            self.score_cpp(xdata, loglik, normalize_scores)
+            self.em_cat_mixture_model.score_cpp(xdata,
+                    loglik, normalize_scores)
 
         return loglik
 
@@ -405,21 +471,18 @@ class EMCategoricalMixture(EMCategoricalMixtureCpp):
         for _, sequence in read_fasta(fasta_filepath):
             sequence_list.append(sequence)
             if len(sequence_list) >= chunk_size:
-                xdata = np.zeros((len(sequence_list), self.get_model_specs()[1] ))
-                self.extract_and_encode(sequence_list, xdata)
+                xdata = self._prep_xdata(sequence_list)
 
-                output_filepaths.append( os.path.join(temporary_dir,
-                        f"ENCODED_SEQUENCE_DATA_{file_counter}.npy") )
+                output_filepaths.append( os.path.abspath(os.path.join(temporary_dir,
+                        f"ENCODED_SEQUENCE_DATA_{file_counter}.npy")) )
                 np.save(output_filepaths[-1], xdata)
                 file_counter += 1
                 sequence_list = []
 
         if len(sequence_list) > 0:
-            xdata = np.zeros((len(sequence_list), self.get_model_specs()[1] ))
-            self.extract_and_encode(sequence_list, xdata)
-
-            output_filepaths.append( os.path.join(temporary_dir,
-                    f"ENCODED_SEQUENCE_DATA_{file_counter}.npy") )
+            xdata = self._prep_xdata(sequence_list)
+            output_filepaths.append( os.path.abspath(os.path.join(temporary_dir,
+                    f"ENCODED_SEQUENCE_DATA_{file_counter}.npy")) )
             np.save(output_filepaths[-1], xdata)
 
         return output_filepaths

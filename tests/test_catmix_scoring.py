@@ -5,8 +5,10 @@ import unittest
 import numpy as np
 import pandas as pd
 from scipy.special import logsumexp
-from antpack import SequenceScoringTool
-from antpack.antpack_cpp_ext import py_logsumexp_axis0
+from antpack.scoring_tools.scoring_constants import allowed_imgt_pos as ahip
+from antpack import (SequenceScoringTool, SingleChainAnnotator,
+        SequenceTemplateAligner)
+
 
 
 class TestCatmixScoring(unittest.TestCase):
@@ -21,23 +23,17 @@ class TestCatmixScoring(unittest.TestCase):
         raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
             "imgt_comp_scoring.csv.gz"))
 
-        heavy_chains = raw_data[raw_data["chain_types"]=="H"]
-        light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])]
-
-        heavy_arr = [score_tool._simple_prep_sequence(s)[1] for s
-                in heavy_chains["sequences"].tolist()[:10]]
-        light_arr = [score_tool._simple_prep_sequence(s)[1] for s
-                in light_chains["sequences"].tolist()[:10]]
-
-        heavy_arr = np.vstack(heavy_arr)
-        light_arr = np.vstack(light_arr)
+        heavy_seqs, heavy_arr = prep_sequences(
+                raw_data[raw_data["chain_types"]=="H"].sequences.tolist()[:10])
+        light_seqs, light_arr = prep_sequences(
+                raw_data[raw_data["chain_types"]!="H"].sequences.tolist()[:10])
         heavy_model = score_tool.models["human"]["H"]
         light_model = score_tool.models["human"]["L"]
 
 
-        gt_heavy_score = np.zeros((heavy_model.get_specs()[0],
+        gt_heavy_score = np.zeros((heavy_model.get_model_specs()[0],
             heavy_arr.shape[0]))
-        gt_light_score = np.zeros((light_model.get_specs()[0],
+        gt_light_score = np.zeros((light_model.get_model_specs()[0],
             light_arr.shape[0]))
 
         log_mu_mix, log_mix_weights = heavy_model.get_model_parameters()
@@ -51,17 +47,17 @@ class TestCatmixScoring(unittest.TestCase):
 
         # Check predict proba.
         gt_heavy_score += log_mix_weights[:,None]
-        test_heavy_score = heavy_model.predict_proba(heavy_arr)
+        test_heavy_score = heavy_model.predict_proba(heavy_seqs)
         self.assertTrue(np.allclose(gt_heavy_score, test_heavy_score))
 
         # Now check predict.
-        test_heavy_preds = heavy_model.predict(heavy_arr)
+        test_heavy_preds = heavy_model.predict(heavy_seqs)
         gt_heavy_preds = np.argmax(gt_heavy_score, axis=0)
         self.assertTrue(np.allclose(gt_heavy_preds, test_heavy_preds))
 
         # Now check score.
         gt_heavy_score = logsumexp(gt_heavy_score, axis=0)
-        test_heavy_score = heavy_model.score(heavy_arr)
+        test_heavy_score = heavy_model.score(heavy_seqs)
         self.assertTrue(np.allclose(gt_heavy_score, test_heavy_score))
 
 
@@ -79,17 +75,17 @@ class TestCatmixScoring(unittest.TestCase):
 
         # Check predict_proba.
         gt_light_score += log_mix_weights[:,None]
-        test_light_score = light_model.predict_proba(light_arr)
+        test_light_score = light_model.predict_proba(light_seqs)
         self.assertTrue(np.allclose(gt_light_score, test_light_score))
 
         # Now check predict.
         gt_light_preds = np.argmax(gt_light_score, axis=0)
-        test_light_preds = light_model.predict(light_arr)
+        test_light_preds = light_model.predict(light_seqs)
         self.assertTrue(np.allclose(gt_light_preds, test_light_preds))
 
         # Now check score.
         gt_light_score = logsumexp(gt_light_score, axis=0)
-        test_light_score = light_model.score(light_arr)
+        test_light_score = light_model.score(light_seqs)
         self.assertTrue(np.allclose(gt_light_score, test_light_score))
 
 
@@ -103,25 +99,17 @@ class TestCatmixScoring(unittest.TestCase):
         raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
             "imgt_comp_scoring.csv.gz"))
 
-        heavy_chains = raw_data[raw_data["chain_types"]=="H"].sequences.tolist()
-        light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])].sequences.tolist()
-
-        heavy_chains[0] = heavy_chains[0][10:]
-        heavy_chains[1] = heavy_chains[1][:-10]
-        light_chains[0] = light_chains[0][10:]
-        light_chains[1] = light_chains[1][:-25]
-
-        heavy_arr = [score_tool._simple_prep_sequence(s)[1] for s
-                in heavy_chains[:10]]
-        light_arr = [score_tool._simple_prep_sequence(s)[1] for s
-                in light_chains[:10]]
-        heavy_arr = np.vstack(heavy_arr)
-        light_arr = np.vstack(light_arr)
+        _, heavy_arr = prep_sequences(
+                raw_data[raw_data["chain_types"]=="H"].sequences.tolist()[:10])
+        _, light_arr = prep_sequences(
+                raw_data[raw_data["chain_types"]!="H"].sequences.tolist()[:10])
 
         dummy_heavy_arr = heavy_arr.copy()
         dummy_light_arr = light_arr.copy()
-        score_tool.models["human"]["H"].mask_terminal_deletions(heavy_arr, dummy_heavy_arr)
-        score_tool.models["human"]["H"].mask_terminal_deletions(light_arr, dummy_light_arr)
+        score_tool.models["human"]["H"].em_cat_mixture_model.mask_terminal_deletions(
+                heavy_arr, dummy_heavy_arr)
+        score_tool.models["human"]["H"].em_cat_mixture_model.mask_terminal_deletions(
+                light_arr, dummy_light_arr)
 
         for i in range(light_arr.shape[0]):
             for k in range(light_arr.shape[1]):
@@ -156,15 +144,11 @@ class TestCatmixScoring(unittest.TestCase):
         raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
             "imgt_comp_scoring.csv.gz"))
 
-        heavy_chains = raw_data[raw_data["chain_types"]=="H"]
-        light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])]
+        heavy_seqs, heavy_arr = prep_sequences(
+                raw_data[raw_data["chain_types"]=="H"].sequences.tolist()[:10])
+        light_seqs, light_arr = prep_sequences(
+                raw_data[raw_data["chain_types"]!="H"].sequences.tolist()[:10])
 
-        heavy_arr = [score_tool._simple_prep_sequence(s)[1] for s
-                in heavy_chains["sequences"].tolist()[:10]]
-        light_arr = [score_tool._simple_prep_sequence(s)[1] for s
-                in light_chains["sequences"].tolist()[:10]]
-        heavy_arr = np.vstack(heavy_arr)
-        light_arr = np.vstack(light_arr)
 
         heavy_masks, light_masks = [], []
 
@@ -174,8 +158,10 @@ class TestCatmixScoring(unittest.TestCase):
         heavy_model = score_tool.models["human"]["H"]
         light_model = score_tool.models["human"]["L"]
 
-        gt_heavy_score = np.zeros((heavy_model.get_specs()[0], heavy_arr.shape[0]))
-        gt_light_score = np.zeros((light_model.get_specs()[0], light_arr.shape[0]))
+        gt_heavy_score = np.zeros((heavy_model.get_model_specs()[0],
+            heavy_arr.shape[0]))
+        gt_light_score = np.zeros((light_model.get_model_specs()[0],
+            light_arr.shape[0]))
 
         log_mu_mix, log_mix_weights = heavy_model.get_model_parameters()
         log_mu_mix = np.log(log_mu_mix)
@@ -189,7 +175,8 @@ class TestCatmixScoring(unittest.TestCase):
                     gt_heavy_score[k,i] += log_mu_mix[k,j,heavy_arr[i,j]]
 
         heavy_masks = np.array(heavy_masks, dtype=bool)
-        test_heavy_score = heavy_model.score(heavy_arr, heavy_masks)
+        test_heavy_score = heavy_model.score(
+                heavy_seqs, heavy_masks)
 
         gt_heavy_score += log_mix_weights[:,None]
         gt_heavy_score = logsumexp(gt_heavy_score, axis=0)
@@ -208,12 +195,44 @@ class TestCatmixScoring(unittest.TestCase):
                     gt_light_score[k,i] += log_mu_mix[k,j,light_arr[i,j]]
 
         light_masks = np.array(light_masks, dtype=bool)
-        test_light_score = light_model.score(light_arr, light_masks)
+        test_light_score = light_model.score(
+                light_seqs, light_masks)
 
         gt_light_score += log_mix_weights[:,None]
         gt_light_score = logsumexp(gt_light_score, axis=0)
         self.assertTrue(np.allclose(gt_light_score, test_light_score))
 
+
+
+
+def prep_sequences(input_seqs):
+    """Converts input sequences to an MSA and encodes them
+    for use in testing functions."""
+    sca = SingleChainAnnotator()
+    annotations = sca.analyze_seqs(input_seqs)
+    if annotations[0][2] == "H":
+        chain_type = "H"
+        allowed_positions = ahip.heavy_allowed_positions
+    else:
+        chain_type = "L"
+        allowed_positions = ahip.light_allowed_positions
+
+    sta = SequenceTemplateAligner(allowed_positions, chain_type,
+            "imgt")
+
+    seqs = [sta.align_sequence(s, n[0], False) for s,n in zip(
+        input_seqs, annotations)]
+
+    AA_CODES = {k:i for i,k in
+            enumerate(list("ACDEFGHIKLMNPQRSTVWY-"))}
+    encoded_data = np.empty((len(seqs), len(seqs[0])),
+            dtype=np.uint8)
+
+    for i, seq in enumerate(seqs):
+        for j, letter in enumerate(seq):
+            encoded_data[i,j] = AA_CODES[letter]
+
+    return seqs, encoded_data
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ if (NOT SKBUILD)
   a costly creation of a new virtual environment at every compilation:
   =====================================================================
    $ pip install nanobind scikit-build-core[pyproject]
-   $ pip install --no-build-isolation -ve .
+   $ pip install --no-build-isolation -v .
   =====================================================================
   You may optionally add -Ceditable.rebuild=true to auto-rebuild when
   the package is imported. Otherwise, you need to re-run the above
