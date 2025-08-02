@@ -6,6 +6,9 @@ from .scoring_constants import scoring_constants as constants
 from .scoring_constants import allowed_imgt_pos as ahip
 from ..utilities.model_loader_utils import load_model
 from ..utilities.data_compile_utils import get_position_dict, get_reverse_position_dict
+from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip
+from antpack.antpack_cpp_ext import SequenceTemplateAligner
+
 
 
 class SequenceScoringTool():
@@ -34,11 +37,11 @@ class SequenceScoringTool():
         """
         project_dir = os.path.abspath(os.path.dirname(__file__))
 
-        self.position_dict = {"H":get_position_dict("heavy")[0],
-                "L":get_position_dict("light")[0]}
-        self.rev_position_dict = {"H":get_reverse_position_dict("heavy"),
-                "L":get_reverse_position_dict("light")}
-
+        self.template_aligners = {"H":SequenceTemplateAligner(
+            ahip.heavy_allowed_positions, "H", "imgt"),
+                "L":SequenceTemplateAligner(
+                    ahip.light_allowed_positions, "L", "imgt")
+                }
         self.chain_map = {"H":"H", "K":"L", "L":"L", "":"unknown"}
 
         if offer_classifier_option:
@@ -65,7 +68,6 @@ class SequenceScoringTool():
                                     max_threads=max_threads)} }
 
         self.aa_list = constants.aa_list
-        self.aa_dict = {aa:i for (i, aa) in enumerate(self.aa_list)}
         self.aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                 scheme = "imgt")
 
@@ -79,7 +81,7 @@ class SequenceScoringTool():
 
 
 
-    def _simple_prep_sequence(self, seq:str):
+    def _prep_sequence(self, seq:str):
         """Determines the chain type of a sequence and aligns it
         using the IMGT numbering. Generates / returns less info
         than full_prep_sequence, so useful if only standard
@@ -87,98 +89,26 @@ class SequenceScoringTool():
 
         Args:
             seq (str): An input sequence
+            
 
         Returns:
             chain_name (str): One of "L", "H". Note that "K" and "L"
                 are combined since the same mixture model is used for
                 "K" and "L".
-            seq_array (np.ndarray): A numpy array of shape (1, L)
-                where L is the total number of recognized IMGT positions
-                of type uint8. This is the encoded version of seq extract.
+            aligned_seq (str): The sequence aligned to the MSA used to
+                train the mixture model, with any positions not present
+                in the mixture model disregarded and gaps added where
+                appropriate.
         """
         numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
         chain_type = self.chain_map[chain_type]
         if chain_type == "unknown":
-            output_seq = ["-" for a in seq]
-            seq_arr = np.array([[self.aa_dict[letter] for letter
-                    in output_seq]], dtype=np.uint8)
-            return chain_type, seq_arr
+            return chain_type, len(seq) * '-'
 
-        position_dict = self.position_dict[chain_type]
-        output_seq = ["-" for i in range(len(position_dict))]
+        output_seq = self.template_aligners[chain_type].align_sequence(
+                seq, numbering, False)
+        return chain_type, output_seq
 
-        for position, aa in zip(numbering, seq):
-            if position == "-":
-                continue
-            if position not in position_dict:
-                continue
-            output_seq[position_dict[position]] = aa
-
-        seq_arr = np.array([[self.aa_dict[letter] for letter
-                in output_seq]], dtype=np.uint8)
-        return chain_type, seq_arr
-
-
-
-
-    def _full_prep_sequence(self, seq:str):
-        """Determines the chain type of a sequence and aligns it
-        using the IMGT numbering. Also generates a back mapping
-        from array position to input that is useful for more
-        complicated procedures (e.g. humanization) and lists of
-        unusual positions / insertions that are useful for
-        troubleshooting.
-
-        Args:
-            seq (str): An input sequence
-
-        Returns:
-            output_seq (str): The extracted and aligned sequence.
-            chain_name (str): One of "L", "H". Note that "K" and "L"
-                are combined since the same mixture model is used for
-                "K" and "L".
-            seq_array (np.ndarray): A numpy array of shape (1, L)
-                where L is the total number of recognized IMGT positions
-                of type uint8. This is the encoded version of seq extract.
-            bad_gaps (list): A list of unexpected gaps at sites where
-                a deletion is unusual in the IMGT numbering system.
-            bad_positions (list): A list of unexpected insertions at
-                sites where an insertion is not expected in IMGT.
-            backmap (dict): A dictionary mapping from the position in the
-                numbered sequence back to the original sequence.
-        """
-        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
-        chain_type = self.chain_map[chain_type]
-        if chain_type == "unknown":
-            output_seq = ["-" for a in seq]
-            seq_arr = np.array([[self.aa_dict[letter] for letter
-                    in output_seq]], dtype=np.uint8)
-            return output_seq, chain_type, seq_arr, [], [], {}
-
-        position_dict = self.position_dict[chain_type]
-        rev_dict = self.rev_position_dict[chain_type]
-        output_seq = ["-" for i in range(len(position_dict))]
-        bad_positions, backmap, input_counter = [], {}, 0
-
-        for position, aa in zip(numbering, seq):
-            if position == "-":
-                input_counter += 1
-                continue
-            if position not in position_dict:
-                bad_positions.append(position)
-                input_counter += 1
-                continue
-            output_seq[position_dict[position]] = aa
-            if aa != "-":
-                backmap[position_dict[position]] = input_counter
-                input_counter += 1
-
-        bad_gaps = [rev_dict[position] for position, aa in
-                enumerate(output_seq) if aa == "-"]
-
-        seq_arr = np.array([[self.aa_dict[letter] for letter
-                in output_seq]], dtype=np.uint8)
-        return output_seq, chain_type, seq_arr, bad_gaps, bad_positions, backmap
 
 
     def _build_mask_arr(self, mask_positions:list, mask_cdr3:bool,
@@ -286,13 +216,24 @@ class SequenceScoringTool():
                 account when scoring the sequence, so if this is not an empty
                 list, the score may be less reliable.
             chain_name (str): one of "H", "L" for heavy or light. Indicates the
-                chain type to which the sequence was aligned.
+                chain type to which the sequence was aligned. "Unknown" if there
+                was an error in numbering.
         """
-        _, chain_name, _, bad_gaps, bad_positions, _ = self._full_prep_sequence(seq)
-        if chain_name not in ["H", "L"]:
-            return bad_gaps, bad_positions, chain_name
+        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
+        chain_type = self.chain_map[chain_type]
+        if chain_type == "unknown":
+            return [], [], chain_type
 
-        return bad_gaps, bad_positions, chain_name
+        template_numbering = self.template_aligners[chain_type].get_template_numbering()
+
+        aligned_seq = self.template_aligners[chain_type].align_sequence(
+                seq, numbering, False)
+        bad_gaps = [template_numbering[i] for i,l in enumerate(aligned_seq) if l=='-']
+        forward_idx = self.template_aligners[chain_type].retrieve_alignment_forward_numbering(
+                seq, numbering, False)
+
+        bad_positions = [numbering[i] for i,l in enumerate(forward_idx) if l==-1]
+        return bad_gaps, bad_positions, chain_type
 
 
 
@@ -304,7 +245,7 @@ class SequenceScoringTool():
         to clusters. Can be used in conjunction with a user-supplied
         mask (for positions to ignore) and in conjunction with Substantially faster than
         single seq scoring but does not offer the option to retrieve
-        diagnostic infoCan also be used to assign a large number of
+        diagnostic info. Can also be used to assign a large number of
         sequences to clusters as well.
 
         Args:
