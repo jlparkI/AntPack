@@ -349,8 +349,9 @@ class SequenceScoringTool():
         if return_ids_only:
             return best_clusters, chain_name
 
-        mu_mix = self.models["human"][chain_name].mu_mix[best_clusters,...].copy()
-        mixweights = self.models["human"][chain_name].mix_weights[best_clusters].copy()
+        mu_mix, mixweights = self.models["human"][chain_name].get_model_parameters()
+        mu_mix = mu_mix[best_clusters,...].copy()
+        mixweights = mixweights[best_clusters].copy()
 
         return best_clusters, chain_name, mu_mix, mixweights
 
@@ -368,37 +369,78 @@ class SequenceScoringTool():
 
         Returns:
             mu_mix (np.ndarray): An array of shape (1, sequence_length,
-                21), where 21 is the number of possible AAs. The clusters
-                are sorted in order from most to least likely given the
-                input sequence.
+                21), where 21 is the number of possible AAs.
             mixweights (float): The probability of this cluster in the mixture.
             aas (list): A list of amino acids in standard order. The last
                 dimension of mu_mix corresponds to these aas in the order given.
         """
-        mu_mix = self.models["human"][chain_type].mu_mix[cluster_id:cluster_id+1,...].copy()
-        mixweights = self.models["human"][chain_type].mix_weights[cluster_id].copy()
+        params = self.models["human"][chain_type].get_model_parameters()
+        mu_mix = params[0][cluster_id:cluster_id+1,...].copy()
+        mixweights = params[1][cluster_id].copy()
         return mu_mix, mixweights, self.aa_list
 
 
 
     def convert_sequence_to_array(self, seq):
         """Converts an input sequence to a type uint8_t array where
-        the integer at each position indicates the amino acid at that
-        position. Can be used in conjunction with the cluster returned by
-        retrieve_cluster or get_closest_clusters to determine which amino
-        acids are contributing most (or least) to the humanness score.
+        each integer indicates the amino acid at that position.
 
         Args:
             seq (str): The sequence of interest.
 
         Returns:
-            chain_name (str): The chain type; one of "H", "L".
+            chain_name (str): The chain type; one of "H", "L"
+                or "unknown" if there is an error.
             arr (np.ndarray): A numpy array of shape (1,M) where M is
-                the sequence length after converting to a fixed length
-                array.
+                the length after converting to a fixed length array.
+                nan is returned if there is an error numbering the
+                sequence.
         """
-        return self._simple_prep_sequence(seq)
+        chain_type, aligned_seq = self._prep_sequence(seq)
+        if chain_type == "unknown":
+            return chain_type, np.full(len(aligned_seq), np.nan)
+        output_array = np.zeros((1, len(aligned_seq)), dtype=np.uint8)
+        self.models["human"][chain_type].encode_input_seqs([aligned_seq],
+                output_array)
+        return chain_type, output_array
 
+
+
+    def calc_per_aa_probs(self, seq:str, cluster_id:int):
+        """Calculate the log probability of each amino acid in
+        the input sequence given a specified cluster number. To
+        get the cluster number of the cluster closest to your
+        input sequence, call get_closest_clusters.
+
+        Args:
+            seq (str): The sequence of interest.
+            cluster_id (int): The index of the cluster you
+                would like to use to generate these probabilities.
+                Call get_closest_clusters to find those closest
+                to your input sequence.
+
+        Returns:
+            chain_type (str): One of "H", "L", or "unknown" if there
+                is an error numbering your sequence.
+            logprobs (np.ndarray): An array of shape (M) where M
+                is the length of your input sequence. nan is returned
+                if there is an error numbering the sequence.
+        """
+        chain_type, seq_arr = self.convert_sequence_to_array(seq)
+        if chain_type == "unknown":
+            return chain_type, np.full(seq_arr.shape[1], np.nan)
+        mu_mix, _, _ = self.retrieve_cluster(cluster_id,
+                chain_type)
+        # First, remove all gapped positions...
+        idx = np.where(seq_arr<=20)[0]
+        mu_mix = mu_mix[0,:,idx]
+        seq_arr = seq_arr[idx]
+
+        # Next, extract the probabilities at filled positions and
+        # take the log.
+        mu_mix = mu_mix[seq_arr, np.arange(seq_arr.shape[0])]
+        mu_mix = np.log(mu_mix.clip(min=1e-16))
+        return chain_type, mu_mix
 
 
     def _convert_score_to_classifier(self, human_score, mouse_score,
