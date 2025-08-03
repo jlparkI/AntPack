@@ -272,8 +272,8 @@ class EMCategoricalMixture():
                 are all the same length (i.e. an MSA).
             mask (np.ndarray): Either None or a numpy array of type bool
                 and shape (xdata.shape[1]). If not None, indicated
-                positions are masked, i.e. are not taken into account
-                when calculating the score.
+                positions are masked, i.e. any position marked False is
+                ignored.
             mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
                 are ignored when calculating the score. This is useful when your
                 sequence has unusual deletions and you would like to ignore these.
@@ -321,9 +321,9 @@ class EMCategoricalMixture():
             sequences (list): A list of sequences that
                 are all the same length (i.e. an MSA).
             mask (np.ndarray): Either None or a numpy array of type bool
-                and with shape[0] == sequence length. If not None, indicated
-                positions are masked, i.e. are not taken into account
-                when calculating the score.
+                and shape (xdata.shape[1]). If not None, indicated
+                positions are masked, i.e. any position marked False is
+                ignored.
             mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
                 are ignored when calculating the score. This is useful when your
                 sequence has unusual deletions and you would like to ignore these.
@@ -378,8 +378,8 @@ class EMCategoricalMixture():
                 of type np.uint8.
             mask (np.ndarray): Either None or a numpy array of type bool
                 and shape (xdata.shape[1]). If not None, indicated
-                positions are masked, i.e. are not taken into account
-                when calculating the score.
+                positions are masked, i.e. any position marked False is
+                ignored.
             mask_terminal_dels (bool): If True, ignore N- and C-terminal
                 deletions when calculating a score.
             mask_gaps (bool): If True, all non-filled IMGT positions in the sequence

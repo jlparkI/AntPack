@@ -108,13 +108,10 @@ class SequenceScoringTool():
 
 
 
-    def get_standard_positions(self, chain_type):
+    def get_standard_positions(self, chain_type:str):
         """Returns a list of the standard positions used by SAM when scoring a
         sequence. IMGT numbered positions outside this set are ignored when
-        assigning a score. If you want to use a generic mask for an IMGT-
-        defined region, call get_standard_mask. If you want to create a custom
-        mask for everything except a specific region of interest, use
-        this function to get a list of all positions."""
+        assigning a score."""
         if chain_type == "H":
             return self.template_aligners["H"].get_template_numbering()
         if chain_type in ("K", "L"):
@@ -125,7 +122,7 @@ class SequenceScoringTool():
 
     def get_standard_mask(self, chain_type:str, region:str = "fmwk1",
             cdr_labeling_scheme="imgt"):
-        """Returns a mask for all positions EXCEPT a specified region.
+        """Returns a mask for all regions EXCEPT the one you specify.
         You can then use this mask as input to score_seqs to see what
         the score would be if only that region were included.
 
@@ -142,8 +139,12 @@ class SequenceScoringTool():
                 'kabat', 'martin'.
 
         Returns:
-            mask (list): A list of excluded imgt positions that can be passed to
-                one of the scoring functions.
+            mask (list): A numpy array of the same length as the
+                list returned by "get_standard_positions()". Only
+                positions marked True will be used when scoring a
+                sequence. You can further modify this mask if needed
+                and can pass it to "score_seqs" to use when scoring
+                sequences.
 
         Raises:
             ValueError: A ValueError is raised if unexpected inputs are supplied.
@@ -163,7 +164,7 @@ class SequenceScoringTool():
 
 
 
-    def get_diagnostic_info(self, seq):
+    def get_diagnostic_info(self, seq:str):
         """Gets diagnostic information for an input sequence that is useful
         if troubleshooting.
 
@@ -307,16 +308,16 @@ class SequenceScoringTool():
 
 
 
-    def get_closest_clusters(self, seq:str, nclusters:int = 1, return_ids_only = True):
+    def get_closest_clusters(self, seq:str, nclusters:int = 1):
         """Gets the closest cluster(s) for a given sequence. These can be used
         for humanization, to determine which amino acids in the input sequence
         are most problematic, or to generate new sequences containing motifs of interest.
+        To get the cluster parameters associated with clusters identified by this
+        function, call "retrieve_cluster".
 
         Args:
             seq (str): The input sequence.
             nclusters (int): The number of clusters to retrieve.
-            return_ids_only (bool): If True, only the cluster numbers are returned,
-                not the actual clusters.
 
         Returns:
             cluster_idx (np.ndarray): The index number for each cluster in the
@@ -324,17 +325,6 @@ class SequenceScoringTool():
                 cluster to lowest probability.
             chain_name (str): One of "H" or "L", indicating whether chain is
                 heavy or light (K and L are both mapped to L).
-            mu_mix (np.ndarray): An array of shape (nclusters, sequence_length,
-                21), where 21 is the number of possible AAs. The clusters
-                are sorted in order from most to least likely given the
-                input sequence. Not returned if return_ids_only is True.
-            mixweights (np.ndarray): An array of shape (nclusters) containing
-                the mixture weights (probability of each cluster) associated with
-                each cluster. Not returned if return_ids_only is True.
-
-        Raises:
-            ValueError: A ValueError is raised if the input sequence contains
-                unrecognized characters or another serious issue is encountered.
         """
         chain_name, aligned_seq = self._prep_sequence(seq)
         if chain_name not in ["H", "L"]:
@@ -345,19 +335,11 @@ class SequenceScoringTool():
         cluster_probs = self.models["human"][chain_name].predict_proba(
                 [aligned_seq]).flatten()
         best_clusters = np.argsort(cluster_probs)[-nclusters:]
-
-        if return_ids_only:
-            return best_clusters, chain_name
-
-        mu_mix, mixweights = self.models["human"][chain_name].get_model_parameters()
-        mu_mix = mu_mix[best_clusters,...].copy()
-        mixweights = mixweights[best_clusters].copy()
-
-        return best_clusters, chain_name, mu_mix, mixweights
+        return best_clusters, chain_name
 
 
 
-    def retrieve_cluster(self, cluster_id, chain_type):
+    def retrieve_cluster(self, cluster_id:int, chain_type:str):
         """A convenience function to get the per-position probabilities
         associated with a particular cluster.
 
@@ -381,7 +363,7 @@ class SequenceScoringTool():
 
 
 
-    def convert_sequence_to_array(self, seq):
+    def convert_sequence_to_array(self, seq:str):
         """Converts an input sequence to a type uint8_t array where
         each integer indicates the amino acid at that position.
 
