@@ -11,6 +11,40 @@ from antpack.scoring_tools.scoring_constants import allowed_imgt_pos as ahip
 class TestSequenceScoringTool(unittest.TestCase):
 
 
+    def test_get_standard_positions(self):
+        """Ensure that the standard positions are returned
+        as expected."""
+        score_tool = SequenceScoringTool()
+        self.assertTrue(score_tool.get_standard_positions("H")==
+            ahip.heavy_allowed_positions)
+        self.assertTrue(score_tool.get_standard_positions("L")==
+            ahip.light_allowed_positions)
+
+
+
+    def test_get_standard_mask(self):
+        """Ensures that mask construction proceeds as expected."""
+        score_tool = SequenceScoringTool()
+        aligner = SingleChainAnnotator()
+
+        for chain_type in ["H", "L"]:
+            std_nmbr = score_tool.get_standard_positions(chain_type)
+            for nmbr_scheme in ["kabat", "imgt"]:
+                gt_region_labels = aligner.assign_cdr_labels(std_nmbr,
+                        chain_type, nmbr_scheme)
+
+                for region in ["fmwk", "cdr"]:
+                    gt_mask = [False for reg in gt_region_labels]
+                    for i, token in enumerate(gt_region_labels):
+                        if token.startswith(region):
+                            gt_mask[i] = True
+
+                    gt_mask = np.array(gt_mask)
+                    self.assertTrue(np.allclose(gt_mask,
+                            score_tool.get_standard_mask(
+                                chain_type, region, nmbr_scheme)))
+
+
     def test_error_checking(self):
         """Check that invalid data passed to the sequence scoring
         tool raises expected exceptions."""
@@ -78,9 +112,6 @@ class TestSequenceScoringTool(unittest.TestCase):
                     continue
                 seq_extract[position_dict[position]] = aa
             seq_extract = ''.join(seq_extract)
-            if seq_extract != aligned_seq:
-                import pdb
-                pdb.set_trace()
             self.assertTrue(seq_extract == aligned_seq)
 
 
