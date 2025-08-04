@@ -4,7 +4,9 @@ import os
 import unittest
 import numpy as np
 import pandas as pd
-from antpack import SequenceScoringTool, SingleChainAnnotator, HumanizationTool
+from antpack import SequenceScoringTool, SingleChainAnnotator
+from antpack.scoring_tools.scoring_constants import allowed_imgt_pos as ahip
+
 
 class TestSequenceScoringTool(unittest.TestCase):
 
@@ -13,49 +15,34 @@ class TestSequenceScoringTool(unittest.TestCase):
         """Check that invalid data passed to the sequence scoring
         tool raises expected exceptions."""
         score_tool = SequenceScoringTool()
-        humanization_tool = HumanizationTool()
+        start_dir = os.path.abspath(os.path.dirname(__file__))
+
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
 
         # Sequences containing unrecognized characters should raise
         # a value error for these two routines, and return np.nan
         # for the other two.
         with self.assertRaises(ValueError):
-            humanization_tool.suggest_mutations("WoW")
+            score_tool.suggest_humanizing_mutations("WoW")
 
         self.assertTrue(score_tool.get_diagnostic_info("WoW")[2]=="unknown")
         self.assertTrue(np.isnan(score_tool.score_seqs(["WoW"])[0]))
 
-        with self.assertRaises(RuntimeError):
-            check_for_array_type_exception(score_tool.models["human"]["H"],
-                    np.zeros((1,173)))
-        with self.assertRaises(RuntimeError):
-            check_for_array_type_exception(score_tool.models["human"]["H"],
-                    np.zeros((173), dtype=np.uint8))
-        with self.assertRaises(RuntimeError):
-            check_for_array_type_exception(score_tool.models["human"]["H"],
-                    np.zeros((1,141), dtype=np.uint8))
-
-        with self.assertRaises(RuntimeError):
-            check_for_array_type_exception(score_tool.models["human"]["L"],
-                    np.zeros((1,141)))
-        with self.assertRaises(RuntimeError):
-            check_for_array_type_exception(score_tool.models["human"]["L"],
-                    np.zeros((141), dtype=np.uint8))
-        with self.assertRaises(RuntimeError):
-            check_for_array_type_exception(score_tool.models["human"]["L"],
-                    np.zeros((1,173), dtype=np.uint8))
+        aligned_seq = score_tool._prep_sequence(
+                raw_data["sequences"].tolist()[0])[1]
 
         proba_test = score_tool.models["human"]["H"].predict_proba(
-                np.zeros((1,173), dtype=np.uint8))
+                [aligned_seq])
         self.assertTrue(len(proba_test.shape) == 2)
         self.assertTrue(proba_test.shape[1] == 1)
         self.assertTrue(proba_test.shape[0] ==
-                score_tool.models["human"]["H"].get_specs()[0])
+                score_tool.models["human"]["H"].get_model_specs()[0])
 
 
     def test_sequence_extraction(self):
         """Make sure the sequence prep feature is providing expected
         results."""
-        return
         score_tool = SequenceScoringTool()
 
         start_dir = os.path.abspath(os.path.dirname(__file__))
@@ -67,24 +54,34 @@ class TestSequenceScoringTool(unittest.TestCase):
             "K":SingleChainAnnotator(["K"]),
             "L":SingleChainAnnotator(["L"])  }
 
+        chain_position_dicts = {"H":
+                {k:i for i, k in enumerate(ahip.heavy_allowed_positions)},
+                "L":
+                {k:i for i, k in enumerate(ahip.light_allowed_positions)}
+                }
+
         for seq, chain_name in zip(raw_data["sequences"].tolist()[:10],
                 raw_data["chain_types"].tolist()[:10]):
-            p_extract, assigned_chain, _, _, _, _ = score_tool._full_prep_sequence(seq)
+            assigned_chain, aligned_seq = score_tool._prep_sequence(seq)
             if chain_name == "K":
                 self.assertTrue(assigned_chain == "L")
             else:
                 self.assertTrue(assigned_chain == chain_name)
 
+            position_dict = chain_position_dicts[assigned_chain]
+
             numbering = aligners[assigned_chain].analyze_seq(seq)[0]
-            position_dict = score_tool.position_dict[assigned_chain]
             seq_extract = ["-" for i in range(len(position_dict))]
 
             for position, aa in zip(numbering, seq):
                 if position == "-" or position not in position_dict:
                     continue
                 seq_extract[position_dict[position]] = aa
-
-            self.assertTrue(seq_extract == p_extract)
+            seq_extract = ''.join(seq_extract)
+            if seq_extract != aligned_seq:
+                import pdb
+                pdb.set_trace()
+            self.assertTrue(seq_extract == aligned_seq)
 
 
 
@@ -92,7 +89,6 @@ class TestSequenceScoringTool(unittest.TestCase):
     def test_scoring_consistency(self):
         """Test that scores assigned by different procedures give what
         we expect."""
-        return
         score_tool = SequenceScoringTool(offer_classifier_option=True)
         adj_score_tool = SequenceScoringTool(offer_classifier_option=False,
                 normalization="training_set_adjust")
@@ -106,19 +102,18 @@ class TestSequenceScoringTool(unittest.TestCase):
         heavy_chains = raw_data[raw_data["chain_types"]=="H"]
         light_chains = raw_data[raw_data["chain_types"].isin(["K", "L"])]
 
-        heavy_arr = [score_tool._simple_prep_sequence(s)[1] for s
+        heavy_seqs = [score_tool._prep_sequence(s)[1] for s
                 in heavy_chains["sequences"].tolist()]
-        light_arr = [score_tool._simple_prep_sequence(s)[1] for s
+        light_seqs = [score_tool._prep_sequence(s)[1] for s
                 in light_chains["sequences"].tolist()]
-
-        heavy_arr = np.vstack(heavy_arr)
-        light_arr = np.vstack(light_arr)
 
         # Generate scores using a variety of different procedures. We will compare
         # these to make sure everything makes sense.
 
-        raw_heavy_score = score_tool.models["human"]["H"].score(heavy_arr)
-        raw_light_score = score_tool.models["human"]["L"].score(light_arr)
+        raw_heavy_score = score_tool.models["human"]["H"].score(
+                heavy_seqs)
+        raw_light_score = score_tool.models["human"]["L"].score(
+                light_seqs)
 
         unadj_heavy_score = score_tool.score_seqs(heavy_chains["sequences"].tolist())
         unadj_light_score = score_tool.score_seqs(light_chains["sequences"].tolist())
