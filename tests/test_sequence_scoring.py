@@ -45,6 +45,8 @@ class TestSequenceScoringTool(unittest.TestCase):
                                 chain_type, region, nmbr_scheme)))
 
 
+
+
     def test_error_checking(self):
         """Check that invalid data passed to the sequence scoring
         tool raises expected exceptions."""

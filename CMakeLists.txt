@@ -119,6 +119,11 @@ nanobind_add_module(
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(antpack_cpp_ext PUBLIC OpenMP::OpenMP_CXX)
+    if (MSVC)
+	    list(APPEND OpenMP_CXX_FLAGS "-openmp:experimental")
+    endif()
+
+    target_compile_options(antpack_cpp_ext PRIVATE ${OpenMP_CXX_FLAGS})
 endif()
 
 install(TARGETS antpack_cpp_ext
