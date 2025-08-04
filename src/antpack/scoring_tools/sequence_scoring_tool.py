@@ -1,5 +1,6 @@
 """Provides a tool for scoring individual sequences."""
 import os
+import copy
 import numpy as np
 from ..numbering_tools import SingleChainAnnotator
 from .scoring_constants import scoring_constants as constants
@@ -390,9 +391,11 @@ class SequenceScoringTool():
 
     def calc_per_aa_probs(self, seq:str, cluster_id:int):
         """Calculate the log probability of each amino acid in
-        the input sequence given a specified cluster number. To
-        get the cluster number of the cluster closest to your
-        input sequence, call get_closest_clusters.
+        the input sequence given a specified cluster number and
+        identify what that cluster considers the most likely
+        amino acid at each position. To get the cluster number of
+        the cluster closest to your input sequence, call
+        get_closest_clusters.
 
         Args:
             seq (str): The sequence of interest.
@@ -407,10 +410,13 @@ class SequenceScoringTool():
             logprobs (np.ndarray): An array of shape (M) where M
                 is the length of your input sequence. nan is returned
                 if there is an error numbering the sequence.
+            most_likely_aas (list): A list of the most likely AA
+                at each position in your input sequence according
+                to the specified cluster.
         """
         chain_type, seq_arr = self.convert_sequence_to_array(seq)
         if chain_type == "unknown":
-            return chain_type, np.full(seq_arr.shape[1], np.nan)
+            return chain_type, np.full(seq_arr.shape[1], np.nan), []
         mu_mix, _, _ = self.retrieve_cluster(cluster_id,
                 chain_type)
         # First, remove all gapped positions...
@@ -418,11 +424,143 @@ class SequenceScoringTool():
         mu_mix = mu_mix[0,:,idx]
         seq_arr = seq_arr[idx]
 
+        # Next, figure out what is the most likely amino acid
+        # at each populated position.
+        most_likely_aas = np.argmax(mu_mix, axis=0)
+        most_likely_aas = [self.aa_list[i] for i in most_likely_aas]
+
         # Next, extract the probabilities at filled positions and
         # take the log.
         mu_mix = mu_mix[seq_arr, np.arange(seq_arr.shape[0])]
         mu_mix = np.log(mu_mix.clip(min=1e-16))
-        return chain_type, mu_mix
+
+        return chain_type, mu_mix, most_likely_aas
+
+    
+
+
+    def suggest_humanizing_mutations(self, seq:str, excluded_positions:list = [],
+            s_thresh:float = 1.25):
+        """Takes an input sequence, scores it per position,
+        uses the nclusters closest clusters to determine which
+        modification would be most likely to have an impact,
+        suggest mutations and report both the mutations and the
+        new score. CDRs are excluded, together with user-specified
+        excluded positions.
+
+        Args:
+            seq (str): The sequence to update.
+            s_thresh (float): The maximum percentage by which
+                the score can shift before backmutation stops.
+                Smaller values (closer to 1) will prioritize
+                increasing the score over preserving the original
+                sequence. Larger values will prioritize preserving
+                the original sequence.
+            excluded_positions (list): A list of strings (IMGT position numbers)
+                indicating positions which should not be changed. This enables
+                the user to mask key residues, Vernier zones etc if so
+                desired.
+            cdr_labeling_scheme (str): The sequence is numbered using the IMGT
+                scheme, but to determine which positions are CDR, you can
+                use 'aho', 'kabat', 'imgt', 'martin' or 'north' by supplying
+                an appropriate argument here.
+
+        Returns:
+            initial_score (float): The score of the sequence pre-modification.
+            final_scores (float): The scores of the sequence after each mutation
+                is adopted (in sequential order).
+            mutations (list): The suggested mutations in AA_position_newAA format,
+                where position is the IMGT number for the mutation position. These
+                are in sequential order (the same as final_scores).
+            updated_seq (list): The updated sequences after each mutation with all
+                gaps removed. (This may be a different length from the
+                input sequence if the suggested mutation is a deletion or
+                an insertion).
+        """
+        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
+        chain_type = self.chain_map[chain_type]
+        if chain_type not in ["H", "L"]:
+            raise ValueError("The sequence provided does not recognizably "
+                    "belong as a heavy or light chain.")
+
+        original_seq = self.template_aligners[chain_type].align_sequence(
+                seq, numbering, False)
+
+        _, original_arr = self.convert_sequence_to_array(seq)
+        updated_arr = original_arr.copy()
+        best_cluster, _ = self.get_closest_clusters(seq, 1)
+        best_cluster, _, aa_list = self.retrieve_cluster(
+                best_cluster, chain_type)
+
+        best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
+        best_aas = np.argmax(best_cluster, axis=1)
+
+        # Construct a mask for all positions specified as excluded by the user,
+        # all CDRs (using kabat definitions) and all positions which are currently
+        # gaps (don't suggest insertions).
+        mask = self.get_standard_mask(chain_type, "fmwk", "kabat")
+        position_dict = {k:i for i,k in enumerate(
+            self.template_aligners[chain_type].get_template_numbering())}
+        for position in excluded_positions:
+            mask[position_dict[position]] = False
+
+        del position_dict
+
+        # Start out by converting all aas to the best possible at each
+        # position. We will then backmutate as many as possible.
+        updated_arr[0,mask] = best_aas[mask]
+
+        starting_score = self.models["human"][chain_type].score([original_seq])[0]
+        updated_score = copy.copy(starting_score)
+
+        while updated_score > s_thresh * starting_score:
+            score_shifts = best_cluster[np.arange(updated_arr.shape[0]), updated_arr.flatten()] - \
+                    best_cluster[np.arange(original_arr.shape[0]), original_arr.flatten()]
+            score_shifts[~mask] = np.inf
+            score_shifts[updated_arr[0,:]==original_arr[0,:]] = np.inf
+            weakest_position = score_shifts.argmin()
+            proposal_arr = updated_arr.copy()
+            if proposal_arr[0,weakest_position] == original_arr[0,weakest_position]:
+                break
+            proposal_arr[0,weakest_position] = original_arr[0,weakest_position]
+
+            # The Python mixture model object is designed to score sequences. Ordinarily
+            # this is more convenient but here we have already encoded the sequence as
+            # an array so it's a little more straightforward to bypass the usual API.
+            loglik = np.zeros((1))
+            self.models["human"][chain_type].em_cat_mixture_model.score_cpp(
+                    proposal_arr, loglik, False)
+            updated_score = float(loglik[0])
+            if updated_score > s_thresh * starting_score:
+                updated_arr = proposal_arr
+            else:
+                break
+
+        updated_seq = ''.join([aa_list[aa] for aa in updated_arr[0,...].tolist()])
+        back_numbering = self.template_aligners[chain_type].retrieve_alignment_back_numbering(
+                seq, numbering, False)
+        last_valid_position = 0
+        all_mutations = []
+
+        for i, (original_aa, new_aa, position) in \
+                enumerate(zip(original_seq, updated_seq, back_numbering)):
+            if position != -1:
+                last_valid_position = i
+            if new_aa != original_aa:
+                if position != -1:
+                    mutation_description = (f"{original_aa}_"
+                        f"{position+1}_{new_aa}")
+                else:
+                    mutation_description = (f"{original_aa}_"
+                            f"{last_valid_position+1}_{new_aa}")
+                all_mutations.append(mutation_description)
+
+        score = self.models["human"][chain_type].score([updated_seq]) - \
+                        self.score_adjustments[chain_type]
+        return score[0], all_mutations, updated_seq.replace("-", "")
+
+
+
 
 
     def _convert_score_to_classifier(self, human_score, mouse_score,
