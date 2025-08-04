@@ -389,7 +389,8 @@ class SequenceScoringTool():
 
 
 
-    def calc_per_aa_probs(self, seq:str, cluster_id:int):
+    def calc_per_aa_probs(self, seq:str,
+            cluster_id:int):
         """Calculate the log probability of each amino acid in
         the input sequence given a specified cluster number and
         identify what that cluster considers the most likely
@@ -435,7 +436,6 @@ class SequenceScoringTool():
         mu_mix = np.log(mu_mix.clip(min=1e-16))
 
         return chain_type, mu_mix, most_likely_aas
-
     
 
 

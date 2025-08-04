@@ -66,6 +66,34 @@ class TestSequenceScoringTool(unittest.TestCase):
             self.assertTrue(np.allclose(gt_array, alternate_array))
 
 
+
+    def test_calc_per_aa_probs(self):
+        """Ensure the calc per aa probs function is working
+        correctly."""
+        score_tool = SequenceScoringTool()
+        start_dir = os.path.abspath(os.path.dirname(__file__))
+
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
+        
+        for seq in raw_data["sequences"].tolist()[:10]:
+            chain_type, seq_as_array = score_tool.convert_sequence_to_array(seq)
+            closest_cluster = score_tool.get_closest_clusters(seq)[0][0]
+
+            alternate_chain_type, test_mu, test_likely_aas = \
+                    score_tool.calc_per_aa_probs(seq, closest_cluster)
+            self.assertTrue(alternate_chain_type==chain_type)
+
+            cat_model = score_tool.models["human"][chain_type]
+            assigned_cluster = np.zeros((1), dtype=np.int64)
+            gt_cluster = cat_model.em_cat_mixture_model.predict_cpp(
+                    seq_as_array, assigned_cluster, True)
+            assigned_cluster = int(assigned_cluster[0])
+            self.assertTrue(assigned_cluster==closest_cluster)
+            
+
+
+
     def test_error_checking(self):
         """Check that invalid data passed to the sequence scoring
         tool raises expected exceptions."""
