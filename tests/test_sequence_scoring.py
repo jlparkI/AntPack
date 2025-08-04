@@ -91,7 +91,9 @@ class TestSequenceScoringTool(unittest.TestCase):
             assigned_cluster = int(assigned_cluster[0])
             self.assertTrue(assigned_cluster==closest_cluster)
             
-
+            model_mu = cat_model.get_model_parameters()[0]
+            best_mu = model_mu[assigned_cluster,...]
+            self.assertTrue(np.allclose(best_mu, test_mu))
 
 
     def test_error_checking(self):
