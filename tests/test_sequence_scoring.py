@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from antpack import SequenceScoringTool, SingleChainAnnotator
 from antpack.scoring_tools.scoring_constants import allowed_imgt_pos as ahip
+from antpack.scoring_tools.scoring_constants import scoring_constants as useful_constants
 
 
 class TestSequenceScoringTool(unittest.TestCase):
@@ -45,6 +46,24 @@ class TestSequenceScoringTool(unittest.TestCase):
                                 chain_type, region, nmbr_scheme)))
 
 
+    def test_convert_to_array(self):
+        """Checks that the conversion of a sequence to
+        an array is working correctly."""
+        score_tool = SequenceScoringTool()
+        start_dir = os.path.abspath(os.path.dirname(__file__))
+
+        raw_data = pd.read_csv(os.path.join(start_dir, "test_data",
+            "imgt_comp_scoring.csv.gz"))
+
+        for seq in raw_data["sequences"].tolist()[:10]:
+            alternate_array = score_tool.convert_sequence_to_array(seq)[1]
+            assigned_chain, aligned_seq = \
+                    score_tool._prep_sequence(seq)
+            gt_array = np.zeros((1, len(aligned_seq)), dtype=np.uint8)
+            for i, letter in enumerate(aligned_seq):
+                gt_array[0,i] = useful_constants.aa_list.index(letter)
+
+            self.assertTrue(np.allclose(gt_array, alternate_array))
 
 
     def test_error_checking(self):

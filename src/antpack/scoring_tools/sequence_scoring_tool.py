@@ -383,7 +383,7 @@ class SequenceScoringTool():
         if chain_type == "unknown":
             return chain_type, np.full(len(aligned_seq), np.nan)
         output_array = np.zeros((1, len(aligned_seq)), dtype=np.uint8)
-        self.models["human"][chain_type].encode_input_seqs([aligned_seq],
+        self.models["human"][chain_type].em_cat_mixture_model.encode_input_seqs([aligned_seq],
                 output_array)
         return chain_type, output_array
 
