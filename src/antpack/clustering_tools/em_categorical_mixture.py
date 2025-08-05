@@ -284,7 +284,7 @@ class EMCategoricalMixture():
                 it is a low-probability cluster).
 
         Returns:
-            preds (np.ndarray): An array of shape (xdata.shape[0])
+            preds (np.ndarray): An array of shape (n seqs)
                 containing a number from 0 to self.n_components - 1
                 indicating the predicted cluster for each datapoint.
 
@@ -335,7 +335,7 @@ class EMCategoricalMixture():
 
         Returns:
             proba (np.ndarray): An array of shape (ncomponents,
-                xdata.shape[0]) indicating the probability of each
+                n seqs) indicating the probability of each
                 cluster for each datapoint.
 
         Raises:
@@ -389,7 +389,7 @@ class EMCategoricalMixture():
                 the number of non-masked residues in the input.
 
         Returns:
-            loglik (np.ndarray): A float64 array of shape (x.shape[0])
+            loglik (np.ndarray): A float64 array of shape (n seqs)
                 where each element is the log-likelihood of that
                 datapoint given the model.
 
