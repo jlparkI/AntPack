@@ -64,6 +64,13 @@ model to generate new human antibody sequences by retrieving the
 model cluster that's most similar to a sequence of interest and then
 sampling from this model cluster.
 
+What we have found most useful is to plot the probability of each
+residue given the closest cluster(s) to a sequence. This quickly
+identifies residues that are unusual in human antibodies given
+the rest of the sequence and is a good way to identify positions
+with low humanness that may pose developability issues. The
+examples illustrate how to do this.
+
 
 What is a good humanness score? or, how human do I need to be?
 ---------------------------------------------------------------

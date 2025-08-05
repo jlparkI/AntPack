@@ -488,7 +488,7 @@ class SequenceScoringTool():
 
         _, original_arr = self.convert_sequence_to_array(seq)
         updated_arr = original_arr.copy()
-        best_cluster, _ = self.get_closest_clusters(seq, 1)
+        best_cluster = self.get_closest_clusters(seq, 1)[0][0]
         best_cluster, _, aa_list = self.retrieve_cluster(
                 best_cluster, chain_type)
 
@@ -497,12 +497,18 @@ class SequenceScoringTool():
 
         # Construct a mask for all positions specified as excluded by the user,
         # all CDRs (using kabat definitions) and all positions which are currently
-        # gaps (don't suggest insertions).
+        # gaps (don't suggest insertions). For heavy, positions 105 and 106 are
+        # added as "special excludes": they are not part of the Kabat CDR but
+        # are Vernier zones and are usually excluded.
         mask = self.get_standard_mask(chain_type, "fmwk", "kabat")
         position_dict = {k:i for i,k in enumerate(
             self.template_aligners[chain_type].get_template_numbering())}
         for position in excluded_positions:
             mask[position_dict[position]] = False
+
+        if chain_type == "H":
+            mask[position_dict["105"]] = False
+            mask[position_dict["106"]] = False
 
         del position_dict
 
@@ -510,12 +516,18 @@ class SequenceScoringTool():
         # position. We will then backmutate as many as possible.
         updated_arr[0,mask] = best_aas[mask]
 
-        starting_score = self.models["human"][chain_type].score([original_seq])[0]
+        # The Python mixture model object is designed to score sequences. Ordinarily
+        # this is more convenient but here we have already encoded the sequence as
+        # an array so it's a little more straightforward to bypass the usual API.
+        loglik = np.zeros((1))
+        self.models["human"][chain_type].em_cat_mixture_model.score_cpp(
+                updated_arr, loglik, False)
+        starting_score = float(loglik[0])
         updated_score = copy.copy(starting_score)
 
         while updated_score > s_thresh * starting_score:
-            score_shifts = best_cluster[np.arange(updated_arr.shape[0]), updated_arr.flatten()] - \
-                    best_cluster[np.arange(original_arr.shape[0]), original_arr.flatten()]
+            score_shifts = best_cluster[np.arange(best_cluster.shape[0]), updated_arr.flatten()] - \
+                    best_cluster[np.arange(best_cluster.shape[0]), original_arr.flatten()]
             score_shifts[~mask] = np.inf
             score_shifts[updated_arr[0,:]==original_arr[0,:]] = np.inf
             weakest_position = score_shifts.argmin()
@@ -535,6 +547,7 @@ class SequenceScoringTool():
                 updated_arr = proposal_arr
             else:
                 break
+
 
         updated_seq = ''.join([aa_list[aa] for aa in updated_arr[0,...].tolist()])
         back_numbering = self.template_aligners[chain_type].retrieve_alignment_back_numbering(

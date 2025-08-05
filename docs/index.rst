@@ -65,11 +65,10 @@ Humannness scoring, generative modeling and humanization
 
    Humanness evaluation <scoring_tutorial>
 
+   Scoring and identifying problematic residues/motifs examples <scoring_example>
+
    Generating new human sequences <generative_tutorial>
 
-   Humanizing sequences <humanization_tutorial>
-
-   Scoring and clustering examples <scoring_example>
 
 
 Clustering antibody sequences
