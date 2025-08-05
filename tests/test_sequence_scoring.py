@@ -67,9 +67,9 @@ class TestSequenceScoringTool(unittest.TestCase):
 
 
 
-    def test_calc_per_aa_probs(self):
+    def test_calc_aa_probs_closest_cluster(self):
         """Ensure the calc per aa probs function is working
-        correctly."""
+        correctly and also get_closest_clusters."""
         score_tool = SequenceScoringTool()
         start_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -86,14 +86,28 @@ class TestSequenceScoringTool(unittest.TestCase):
 
             cat_model = score_tool.models["human"][chain_type]
             assigned_cluster = np.zeros((1), dtype=np.int64)
-            gt_cluster = cat_model.em_cat_mixture_model.predict_cpp(
+            cat_model.em_cat_mixture_model.predict_cpp(
                     seq_as_array, assigned_cluster, True)
             assigned_cluster = int(assigned_cluster[0])
             self.assertTrue(assigned_cluster==closest_cluster)
-            
+
             model_mu = cat_model.get_model_parameters()[0]
             best_mu = model_mu[assigned_cluster,...]
-            self.assertTrue(np.allclose(best_mu, test_mu))
+            seq_as_array = seq_as_array.flatten()
+            selected_mu = []
+            gt_likely_aas = []
+            for i, token in enumerate(seq_as_array.tolist()):
+                if seq_as_array[i] >= 20:
+                    continue
+                selected_mu.append(best_mu[i,token])
+                gt_likely_aas.append(useful_constants.aa_list[
+                    np.argmax(best_mu[i,:])])
+
+            selected_mu = np.log(np.array(selected_mu).clip(min=1e-16))
+            self.assertTrue(test_likely_aas==gt_likely_aas)
+            self.assertTrue(np.allclose(np.array(selected_mu),
+                test_mu))
+
 
 
     def test_error_checking(self):

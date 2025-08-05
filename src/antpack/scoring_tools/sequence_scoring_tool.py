@@ -418,21 +418,21 @@ class SequenceScoringTool():
         chain_type, seq_arr = self.convert_sequence_to_array(seq)
         if chain_type == "unknown":
             return chain_type, np.full(seq_arr.shape[1], np.nan), []
-        mu_mix, _, _ = self.retrieve_cluster(cluster_id,
-                chain_type)
+        mu_mix = self.retrieve_cluster(cluster_id, chain_type)[0]
+        seq_arr = seq_arr.flatten()
         # First, remove all gapped positions...
-        idx = np.where(seq_arr<=20)[0]
-        mu_mix = mu_mix[0,:,idx]
+        idx = np.where(seq_arr<20)[0]
+        mu_mix = mu_mix[0,idx,:]
         seq_arr = seq_arr[idx]
 
         # Next, figure out what is the most likely amino acid
         # at each populated position.
-        most_likely_aas = np.argmax(mu_mix, axis=0)
+        most_likely_aas = np.argmax(mu_mix, axis=1)
         most_likely_aas = [self.aa_list[i] for i in most_likely_aas]
 
         # Next, extract the probabilities at filled positions and
         # take the log.
-        mu_mix = mu_mix[seq_arr, np.arange(seq_arr.shape[0])]
+        mu_mix = mu_mix[np.arange(seq_arr.shape[0]), seq_arr]
         mu_mix = np.log(mu_mix.clip(min=1e-16))
 
         return chain_type, mu_mix, most_likely_aas
