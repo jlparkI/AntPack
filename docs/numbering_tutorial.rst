@@ -31,9 +31,6 @@ identity and/or an error message for one of the two chains. It is a little slowe
 If you want to look at TCRs instead of antibodies, change ``receptor_type`` to
 ``tcr``.
 
-Some prior versions accepted an option called ``compress_init_gaps``. This option
-is deprecated as of v0.3.6.
-
 .. autoclass:: antpack.SingleChainAnnotator
    :special-members: __init__
    :members: analyze_seq, analyze_seqs, assign_cdr_labels, sort_position_codes, build_msa, trim_alignment
@@ -48,8 +45,6 @@ for antibody numbering for a large number of sequences is to split the
 antibody sequences up into batches, and you can do this easily by using
 Python ``multiprocessing``. In each process, create a ``SingleChainAnnotator``
 and use that to number one batch of the sequences.
-
-Aho, IMGT, Martin ("modern Chothia") and Kabat are supported numbering schemes.
 
 Notice that it's easy to convert the output of either annotator into a fixed-length
 MSA by using ``build_msa``. If you have a large set of sequences that's too large to

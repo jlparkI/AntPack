@@ -2,7 +2,7 @@ Installation
 ================
 
 Starting with v0.3.9, AntPack can only be used for non-commercial
-purposes (e.g. academic research) and is made available under an
+purposes and is made available under an
 ASL license. To use it you'll first need to obtain a license key
 `at this link. <https://pwslicensekey.pythonanywhere.com/>`_
 

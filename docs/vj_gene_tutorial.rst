@@ -32,10 +32,7 @@ returns a list of the v-genes and j-genes that achieved the same
 (or essentially equivalent) score, delimited or separated by the
 character "_".
 
-In some versions of AntPack, there was a supported option to use
-the OGRDB database in place of IMGT. This option is deprecated as
-of v0.3.8. Note that some
-sequences found in IMGT VQuest are excluded (pseudogenes,
+Note that some sequences found in IMGT VQuest are excluded (pseudogenes,
 partial sequences, sequences that do not have 'F' in the functionality
 section etc.), so not all V and J genes in the IMGT db are in
 AntPack. You can find out when AntPack's db was last updated

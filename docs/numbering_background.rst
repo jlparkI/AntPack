@@ -15,7 +15,8 @@ Confusingly, there are a number of different numbering schemes for antibodies.
 These are mostly very similar, but they tend to differ in how positions in / 
 close to CDRs are assigned and in how CDRs are defined. The most popular
 schemes include IMGT and Kabat. AntPack currently supports Aho, IMGT, Martin ("modern 
-Chothia") and Kabat. For some background on how these
+Chothia") and Kabat. For CDR defintions, AntPack supports Aho, IMGT, Martin,
+Kabat and North. For some background on how these
 schemes differ and why you might prefer one or the other, we suggest reading
 `this paper <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6198058/>`_.
 
