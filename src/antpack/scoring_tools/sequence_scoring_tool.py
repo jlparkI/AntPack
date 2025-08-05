@@ -436,7 +436,8 @@ class SequenceScoringTool():
     
 
 
-    def suggest_humanizing_mutations(self, seq:str, excluded_positions:list = [],
+    def suggest_humanizing_mutations(self, seq:str,
+            excluded_positions:list = [],
             s_thresh:float = 1.25):
         """Takes an input sequence, scores it per position,
         uses the nclusters closest clusters to determine which
