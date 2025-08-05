@@ -31,7 +31,7 @@ jobs:
       run: |
         git submodule update --init --recursive
         git submodule update --remote --recursive
-        python -m pip install --upgrade pip numpy nanobind pytest
+        python -m pip install --upgrade pip numpy nanobind pytest pytest-cov
         pip install -r test_requirements.txt
         pip install -e . --verbose
 
