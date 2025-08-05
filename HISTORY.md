@@ -1,3 +1,17 @@
+### Version 0.4.0
+Humanization has been merged into the SequenceScoringTool. The
+API for the SequenceScoringTool has been streamlined and updated
+to make it easier to extract useful information. There is a bug
+fix for VJ gene assignment using non-IMGT numbering schemes.
+Clustering is now available for small datasets using the
+build_distance_matrix function in sequence annotators and using
+the EMCategoricalMixture class. The former enables you to cluster
+using a wide variety of algorithms but is only applicable to small
+datasets. The latter is highly scalable to large datasets. All
+clustering tools take sequences as input and make it easy to use
+any subregion of interest (for example cluster using framework,
+CDRs, or a specific CDR or framework region).
+
 ### Version 0.3.9
 Relicensed for noncommercial use only.
 
