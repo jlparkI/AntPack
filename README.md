@@ -1,5 +1,7 @@
 # AntPack
 
++ [![cov](https://<you>.github.io/<repo>/badges/coverage.svg)](https://github.com/jlparki/antpack/actions)
+
 AntPack is a Python package / toolkit for antibody numbering, data processing,
 statistical inference and machine learning for antibody sequences and TCRs.
 It is currently in active development, so we are adding new features
@@ -17,15 +19,19 @@ v0.4 contains a bug fix for VJ gene assignment for numbering schemes
 *other* than IMGT. If perforiming VJ gene assignment with numbering
 schemes *other* than IMGT, please prefer v0.4 to prior versions.
 
-v0.4 also contains some capabilities for clustering antibody datasets,
-see below and see docs; these will be significantly expanded in the
-next version with further clustering and search capabilities.
+v0.4 also contains capabilities for clustering antibody datasets
+ranging in size from a few dozen sequences to tens of millions
+using a variety of algorithms (see below and see docs). These
+will be significantly expanded in the next version with further
+clustering and search capabilities and structure analysis-related
+tools.
 
 ## Licensing
 
 Versions v0.3.9 and afterwards are licensed for academic and noncommercial
 use only; you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/)
-to use.
+to use. You do not have to re-setup the key when upgrading AntPack in
+an existing venv or conda environment.
 
 Versions prior to 0.3.9 were made available under the GPL, which means they
 can be used it for your own data analysis in any manner you wish
