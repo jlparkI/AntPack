@@ -30,7 +30,7 @@ jobs:
         git submodule update --init --recursive
         python -m pip install --upgrade pip numpy nanobind pytest
         pip install -r test_requirements.txt
-        pip install . --verbose
+        pip install -e . --verbose
     - name: Test with pytest
       run: |
         pytest tests --cov --cov-report json
