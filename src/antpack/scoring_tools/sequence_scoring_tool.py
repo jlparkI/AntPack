@@ -210,10 +210,7 @@ class SequenceScoringTool():
             mask_gaps:bool = False, mode:str = "score"):
         """Scores a list of sequences in batches or assigns them
         to clusters. Can be used in conjunction with a user-supplied
-        mask (for positions to ignore) and in conjunction with Substantially faster than
-        single seq scoring but does not offer the option to retrieve
-        diagnostic info. Can also be used to assign a large number of
-        sequences to clusters as well.
+        mask (for positions to ignore).
 
         Args:
             seq_list (str): The list of input sequences. May contain both

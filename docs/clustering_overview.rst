@@ -8,7 +8,7 @@ sequences (for example, the framework, the CDRs, or a specific
 framework or CDR region) or the full sequence if needed. To do
 this, use the ``build_distance_matrix`` method of the
 ``SingleChainAnnotator`` and ``PairedChainAnnotator`` tools
-used for numbering:::
+used for numbering:
 
 .. autoclass:: antpack.SingleChainAnnotator
    :special-members: __init__
@@ -60,4 +60,4 @@ rest -- just remember to delete the temporary files once you're done.
 
 .. autoclass:: antpack.EMCategoricalMixture
    :special-members: __init__
-   :members: get_model_params, load_params, get_model_specs, fit, BIC, AIC, predict, predict_proba, score, encode_fasta
+   :members: get_model_parameters, load_params, get_model_specs, fit, BIC, AIC, predict, predict_proba, score, encode_fasta

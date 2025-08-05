@@ -50,7 +50,7 @@ issues and is illustrated in more detail in the examples.
 See below for details.
 
 .. autoclass:: antpack.SequenceScoringTool
-   :members: score_seqs, get_diagnostic_info, get_standard_mask, get_standard_positions, convert_sequence_to_array, retrieve_cluster
+   :members: score_seqs, get_diagnostic_info, get_standard_mask, get_standard_positions, convert_sequence_to_array, retrieve_cluster, calc_per_aa_probs
 
 
 Humanizing sequences with AntPack
