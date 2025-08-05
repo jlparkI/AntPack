@@ -1,6 +1,6 @@
 # AntPack
 
-+ [![cov](https://<you>.github.io/<repo>/badges/coverage.svg)](https://github.com/jlparki/antpack/actions)
+![Static Badge](https://img.shields.io/badge/coverage-80%25-green)
 
 AntPack is a Python package / toolkit for antibody numbering, data processing,
 statistical inference and machine learning for antibody sequences and TCRs.
@@ -18,13 +18,16 @@ For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocu
 v0.4 contains a bug fix for VJ gene assignment for numbering schemes
 *other* than IMGT. If perforiming VJ gene assignment with numbering
 schemes *other* than IMGT, please prefer v0.4 to prior versions.
+The API for the SequenceScoringTool and humanization has been updated
+and streamlined so if you are scoring sequences for humanness or
+humanizing them please see the updated section of the docs.
 
 v0.4 also contains capabilities for clustering antibody datasets
 ranging in size from a few dozen sequences to tens of millions
-using a variety of algorithms (see below and see docs). These
-will be significantly expanded in the next version with further
-clustering and search capabilities and structure analysis-related
-tools.
+using a variety of algorithms using any CDR or framework region
+of interest. (see below and see docs). These will be significantly
+expanded in the next version with further clustering and search
+capabilities and structure analysis-related tools.
 
 ## Licensing
 
@@ -114,7 +117,8 @@ developability issues.
 
 ### Clustering
 
-Starting in v0.4, AntPack contains tools for quickly clustering large sequence
+![Static Badge](https://img.shields.io/badge/New!-grey) Starting in v0.4,
+AntPack contains tools for quickly clustering both small and large sequence
 datasets using all or part of the antibody sequence.
 
 
