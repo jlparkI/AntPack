@@ -17,7 +17,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Python setup
+      uses: actions/checkout@v4
       with:
         token: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
         submodules: true
@@ -25,12 +26,14 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    
     - name: Install dependencies
       run: |
         git submodule update --init --recursive
         python -m pip install --upgrade pip numpy nanobind pytest
         pip install -r test_requirements.txt
         pip install -e . --verbose
+
     - name: Test with pytest
       run: |
         pytest tests --cov --cov-report json
