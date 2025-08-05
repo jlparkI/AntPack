@@ -14,7 +14,6 @@ allowed_aas = set(aa_list)
 MIN_PERCENT_IDENTITY = 0.8
 
 #The number of positions required to be non-blank. Fairly generous.
-#MIN_HEAVY_NOT_BLANK = 110
 MIN_HEAVY_NOT_BLANK = 105
 MIN_LIGHT_NOT_BLANK = 105
 

@@ -71,6 +71,18 @@ Humannness scoring, generative modeling and humanization
 
    Scoring and clustering examples <scoring_example>
 
+
+Clustering antibody sequences
+=================================
+
+.. toctree::
+   :maxdepth: 1
+
+   Clustering tutorial <clustering_overview>
+
+   Clustering example <clustering_example>
+
+
 Miscellaneous
 ==============
 

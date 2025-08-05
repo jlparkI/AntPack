@@ -1,18 +1,21 @@
 """Provides a tool for scoring individual sequences."""
 import os
+import copy
 import numpy as np
 from ..numbering_tools import SingleChainAnnotator
 from .scoring_constants import scoring_constants as constants
 from .scoring_constants import allowed_imgt_pos as ahip
 from ..utilities.model_loader_utils import load_model
-from ..utilities.data_compile_utils import get_position_dict, get_reverse_position_dict
+from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip
+from antpack.antpack_cpp_ext import SequenceTemplateAligner
+
 
 
 class SequenceScoringTool():
     """Tool for scoring sequences."""
 
     def __init__(self, offer_classifier_option = False,
-            normalization = "none"):
+            normalization = "none", max_threads = 2):
         """Class constructor.
 
         Args:
@@ -29,33 +32,42 @@ class SequenceScoringTool():
                 different chains, compare scores across chains, or compare
                 scores for different regions, in which case one of the
                 other two options is recommended.
+            max_threads (int): The maximum number of threads to use when
+                making predictions.
         """
-
         project_dir = os.path.abspath(os.path.dirname(__file__))
 
-        self.position_dict = {"H":get_position_dict("heavy")[0],
-                "L":get_position_dict("light")[0]}
-        self.rev_position_dict = {"H":get_reverse_position_dict("heavy"),
-                "L":get_reverse_position_dict("light")}
-
+        self.template_aligners = {"H":SequenceTemplateAligner(
+            ahip.heavy_allowed_positions, "H", "imgt"),
+                "L":SequenceTemplateAligner(
+                    ahip.light_allowed_positions, "L", "imgt")
+                }
         self.chain_map = {"H":"H", "K":"L", "L":"L", "":"unknown"}
 
         if offer_classifier_option:
             self.models = {
-                    "human":{"H":load_model(project_dir, "heavy"),
-                        "L":load_model(project_dir, "light")},
-                    "mouse":{"H":load_model(project_dir, "heavy", species="mouse"),
-                        "L":load_model(project_dir, "light", species="mouse")},
-                    "rhesus":{"H":load_model(project_dir, "heavy", species="rhesus"),
-                        "L":load_model(project_dir, "light", species="rhesus")},
-                    "rat":{"H":load_model(project_dir, "heavy", species="rat") }
+                    "human":{"H":load_model(project_dir, "heavy",
+                                                max_threads=max_threads),
+                        "L":load_model(project_dir, "light",
+                                                max_threads=max_threads)},
+                    "mouse":{"H":load_model(project_dir, "heavy", species="mouse",
+                                                max_threads=max_threads),
+                        "L":load_model(project_dir, "light", species="mouse",
+                                                max_threads=max_threads)},
+                    "rhesus":{"H":load_model(project_dir, "heavy", species="rhesus",
+                                                max_threads=max_threads),
+                        "L":load_model(project_dir, "light", species="rhesus",
+                                                max_threads=max_threads)},
+                    "rat":{"H":load_model(project_dir, "heavy", species="rat",
+                                                max_threads=max_threads) }
                 }
         else:
-            self.models = {"human":{"H":load_model(project_dir, "heavy"),
-                        "L":load_model(project_dir, "light")} }
+            self.models = {"human":{"H":load_model(project_dir, "heavy",
+                                    max_threads=max_threads),
+                        "L":load_model(project_dir, "light",
+                                    max_threads=max_threads)} }
 
         self.aa_list = constants.aa_list
-        self.aa_dict = {aa:i for (i, aa) in enumerate(self.aa_list)}
         self.aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                 scheme = "imgt")
 
@@ -69,11 +81,9 @@ class SequenceScoringTool():
 
 
 
-    def _simple_prep_sequence(self, seq:str):
+    def _prep_sequence(self, seq:str):
         """Determines the chain type of a sequence and aligns it
-        using the IMGT numbering. Generates / returns less info
-        than full_prep_sequence, so useful if only standard
-        scoring is desired.
+        using the IMGT numbering.
 
         Args:
             seq (str): An input sequence
@@ -82,182 +92,80 @@ class SequenceScoringTool():
             chain_name (str): One of "L", "H". Note that "K" and "L"
                 are combined since the same mixture model is used for
                 "K" and "L".
-            seq_array (np.ndarray): A numpy array of shape (1, L)
-                where L is the total number of recognized IMGT positions
-                of type uint8. This is the encoded version of seq extract.
+            aligned_seq (str): The sequence aligned to the MSA used to
+                train the mixture model, with any positions not present
+                in the mixture model disregarded and gaps added where
+                appropriate.
         """
         numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
         chain_type = self.chain_map[chain_type]
         if chain_type == "unknown":
-            output_seq = ["-" for a in seq]
-            seq_arr = np.array([[self.aa_dict[letter] for letter
-                    in output_seq]], dtype=np.uint8)
-            return chain_type, seq_arr
+            return chain_type, len(seq) * '-'
 
-        position_dict = self.position_dict[chain_type]
-        output_seq = ["-" for i in range(len(position_dict))]
-
-        for position, aa in zip(numbering, seq):
-            if position == "-":
-                continue
-            if position not in position_dict:
-                continue
-            output_seq[position_dict[position]] = aa
-
-        seq_arr = np.array([[self.aa_dict[letter] for letter
-                in output_seq]], dtype=np.uint8)
-        return chain_type, seq_arr
+        output_seq = self.template_aligners[chain_type].align_sequence(
+                seq, numbering, False)
+        return chain_type, output_seq
 
 
 
 
-    def _full_prep_sequence(self, seq:str):
-        """Determines the chain type of a sequence and aligns it
-        using the IMGT numbering. Also generates a back mapping
-        from array position to input that is useful for more
-        complicated procedures (e.g. humanization) and lists of
-        unusual positions / insertions that are useful for
-        troubleshooting.
-
-        Args:
-            seq (str): An input sequence
-
-        Returns:
-            output_seq (str): The extracted and aligned sequence.
-            chain_name (str): One of "L", "H". Note that "K" and "L"
-                are combined since the same mixture model is used for
-                "K" and "L".
-            seq_array (np.ndarray): A numpy array of shape (1, L)
-                where L is the total number of recognized IMGT positions
-                of type uint8. This is the encoded version of seq extract.
-            bad_gaps (list): A list of unexpected gaps at sites where
-                a deletion is unusual in the IMGT numbering system.
-            bad_positions (list): A list of unexpected insertions at
-                sites where an insertion is not expected in IMGT.
-            backmap (dict): A dictionary mapping from the position in the
-                numbered sequence back to the original sequence.
-        """
-        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
-        chain_type = self.chain_map[chain_type]
-        if chain_type == "unknown":
-            output_seq = ["-" for a in seq]
-            seq_arr = np.array([[self.aa_dict[letter] for letter
-                    in output_seq]], dtype=np.uint8)
-            return output_seq, chain_type, seq_arr, [], [], {}
-
-        position_dict = self.position_dict[chain_type]
-        rev_dict = self.rev_position_dict[chain_type]
-        output_seq = ["-" for i in range(len(position_dict))]
-        bad_positions, backmap, input_counter = [], {}, 0
-
-        for position, aa in zip(numbering, seq):
-            if position == "-":
-                input_counter += 1
-                continue
-            if position not in position_dict:
-                bad_positions.append(position)
-                input_counter += 1
-                continue
-            output_seq[position_dict[position]] = aa
-            if aa != "-":
-                backmap[position_dict[position]] = input_counter
-                input_counter += 1
-
-        bad_gaps = [rev_dict[position] for position, aa in
-                enumerate(output_seq) if aa == "-"]
-
-        seq_arr = np.array([[self.aa_dict[letter] for letter
-                in output_seq]], dtype=np.uint8)
-        return output_seq, chain_type, seq_arr, bad_gaps, bad_positions, backmap
-
-
-    def _build_mask_arr(self, mask_positions:list, mask_cdr3:bool,
-            chain_type:str):
-        """Constructs a mask array that can be passed to the wrapped
-        categorical mix tool using a user-specified list of mask
-        positions and/or a request to mask cdr3.
-
-        Args:
-            mask_positions (list): Either None or a (possibly empty) list of
-                strings defining IMGT positions to be masked.
-            mask_cdr3 (bool): Indicates whether cdr3 should be masked in
-                addition to the user-specified mask (if any).
-            chain_type (str): One of "H", "L".
-
-        Returns:
-            mask_arr (np.ndarray): A numpy array of type bool.
-        """
-        if chain_type not in ("H", "L"):
-            raise ValueError("Unrecognized chain type passed to an internal function.")
-        position_dict = self.position_dict[chain_type]
-        scoring_mask = [True for i in range(len(position_dict))]
-
-        if mask_positions is not None:
-            for position in mask_positions:
-                scoring_mask[position_dict[position]] = False
-
-        if mask_cdr3:
-            for position in ahip.imgt_cdrs[chain_type]["3"]:
-                scoring_mask[position_dict[position]] = False
-
-        return np.array(scoring_mask, dtype=bool)
-
-
-
-
-    def get_standard_positions(self, chain_type):
+    def get_standard_positions(self, chain_type:str):
         """Returns a list of the standard positions used by SAM when scoring a
         sequence. IMGT numbered positions outside this set are ignored when
-        assigning a score. If you want to use a generic mask for an IMGT-
-        defined region, call get_standard_mask. If you want to create a custom
-        mask for everything except a specific region of interest, use
-        this function to get a list of all positions."""
+        assigning a score."""
         if chain_type == "H":
-            return ahip.heavy_allowed_positions
+            return self.template_aligners["H"].get_template_numbering()
         if chain_type in ("K", "L"):
-            return ahip.light_allowed_positions
+            return self.template_aligners["L"].get_template_numbering()
         raise ValueError("Unrecognized chain type supplied.")
 
 
 
-    def get_standard_mask(self, chain_type:str, region:str = "framework_1"):
-        """Returns a mask for ALL positions EXCEPT a specified IMGT-
-        defined region. You can then use this mask as input to
-        score_seqs to see what the score would be if only that region
-        were included.
+    def get_standard_mask(self, chain_type:str, region:str = "fmwk1",
+            cdr_labeling_scheme="imgt"):
+        """Returns a mask for all regions EXCEPT the one you specify.
+        You can then use this mask as input to score_seqs to see what
+        the score would be if only that region were included.
 
         Args:
             chain_type (str): One of "H", "L".
-            region (str): One of 'framework_1', 'framework_2', 'framework_3',
-                'framework_4', 'cdr_1', 'cdr_2', 'cdr_3', 'cdr_4'. This
-                function will construct a mask that excludes all other regions.
+            region (str): One of 'fmwk1', 'fmwk2', 'fmwk3',
+                'fmwk4', 'cdr1', 'cdr2', 'cdr3', 'fmwk', 'cdr'.
+                This function will construct a mask that excludes
+                all other regions.
+            cdr_labeling_scheme (str): The numbering scheme used for
+                humanness calculations is IMGT, but for generating a
+                mask, you can use a different scheme to assign CDRs
+                if desired. This value can be one of 'aho', 'imgt',
+                'kabat', 'martin'.
 
         Returns:
-            mask (list): A list of excluded imgt positions that can be passed to
-                one of the scoring functions.
+            mask (list): A numpy array of the same length as the
+                list returned by "get_standard_positions()". Only
+                positions marked True will be used when scoring a
+                sequence. You can further modify this mask if needed
+                and can pass it to "score_seqs" to use when scoring
+                sequences.
 
         Raises:
             ValueError: A ValueError is raised if unexpected inputs are supplied.
         """
         if chain_type not in ["H", "L"]:
             raise ValueError("chain_type must be one of 'H', 'L'.")
-        if region not in ("framework_1", "framework_2", "framework_3", "framework_4",
-                "cdr_1", "cdr_2", "cdr_3"):
+        if region not in ("fmwk1", "fmwk2", "fmwk3", "fmwk4",
+                "cdr1", "cdr2", "cdr3", "fmwk", "cdr"):
             raise ValueError("Unexpected region supplied.")
 
-        if region.startswith("framework"):
-            valid_pos = set(ahip.imgt_framework_regions[chain_type][region.split("_")[1]])
-        else:
-            valid_pos = set(ahip.imgt_cdrs[chain_type][region.split("_")[1]])
-
-        mask = [p for p in self.position_dict[chain_type].keys() if
-                p not in valid_pos]
-        return mask
+        numbering = self.template_aligners[chain_type].get_template_numbering()
+        region_labels = self.aligner.assign_cdr_labels(numbering, chain_type,
+                cdr_labeling_scheme)
+        mask = [r.startswith(region) for r in region_labels]
+        return np.array(mask, dtype=np.bool)
 
 
 
 
-    def get_diagnostic_info(self, seq):
+    def get_diagnostic_info(self, seq:str):
         """Gets diagnostic information for an input sequence that is useful
         if troubleshooting.
 
@@ -276,41 +184,46 @@ class SequenceScoringTool():
                 account when scoring the sequence, so if this is not an empty
                 list, the score may be less reliable.
             chain_name (str): one of "H", "L" for heavy or light. Indicates the
-                chain type to which the sequence was aligned.
+                chain type to which the sequence was aligned. "Unknown" if there
+                was an error in numbering.
         """
-        _, chain_name, _, bad_gaps, bad_positions, _ = self._full_prep_sequence(seq)
-        if chain_name not in ["H", "L"]:
-            return bad_gaps, bad_positions, chain_name
+        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
+        chain_type = self.chain_map[chain_type]
+        if chain_type == "unknown":
+            return [], [], chain_type
 
-        return bad_gaps, bad_positions, chain_name
+        template_numbering = self.template_aligners[chain_type].get_template_numbering()
+
+        aligned_seq = self.template_aligners[chain_type].align_sequence(
+                seq, numbering, False)
+        bad_gaps = [template_numbering[i] for i,l in enumerate(aligned_seq) if l=='-']
+        forward_idx = self.template_aligners[chain_type].retrieve_alignment_forward_numbering(
+                seq, numbering, False)
+
+        bad_positions = [numbering[i] for i,l in enumerate(forward_idx) if l==-1]
+        return bad_gaps, bad_positions, chain_type
 
 
 
-    def score_seqs(self, seq_list, mask_cdr3:bool = False,
-            custom_light_mask:list = None, custom_heavy_mask:list = None,
-            mask_terminal_dels:bool = False, mask_gaps:bool = False,
-            mode:str = "score"):
+    def score_seqs(self, seq_list, custom_light_mask:list = None,
+            custom_heavy_mask:list = None, mask_terminal_dels:bool = False,
+            mask_gaps:bool = False, mode:str = "score"):
         """Scores a list of sequences in batches or assigns them
         to clusters. Can be used in conjunction with a user-supplied
         mask (for positions to ignore) and in conjunction with Substantially faster than
         single seq scoring but does not offer the option to retrieve
-        diagnostic infoCan also be used to assign a large number of
+        diagnostic info. Can also be used to assign a large number of
         sequences to clusters as well.
 
         Args:
             seq_list (str): The list of input sequences. May contain both
                 heavy and light.
-            mask_cdr3 (bool): If True, ignore IMGT-defined CDR3 when assigning a
-                score. CDR3 is not distinctive across species so this is often
-                useful. Ignored if mode is 'assign', 'assign_no_weights'.
-            custom_light_mask (list): Either None or a list of strings indicating
-                IMGT positions to ignore. Use self.get_standard_positions and/or
-                self.get_standard_mask to construct a mask. This can be useful
+            custom_light_mask (list): Either None or an array generated by
+                self.get_standard_mask indicating positions to ignore. This can be useful
                 if you just want to score a specific region, or if there is a large
                 deletion that should be ignored.
-            custom_heavy_mask (list): Either None or a list of strings indicating
-                IMGT positions to ignore. Use self.get_standard_positions and/or
-                self.get_standard_mask to construct a mask. This can be useful
+            custom_heavy_mask (list): Either None or an array generated by
+                self.get_standard_mask indicating positions to ignore. This can be useful
                 if you just want to score a specific region, or if there is a
                 large deletion that should be ignored.
             mask_terminal_dels (bool): If True, N and C-terminal deletions are
@@ -336,53 +249,76 @@ class SequenceScoringTool():
         Returns:
             output_scores (np.ndarray): log( p(x) ) for all input sequences.
         """
-
-        light_arr, heavy_arr = [], []
-        light_idx, heavy_idx = [], []
+        chain_data = {"H":{"seqs":[], "idx":[], "mask":custom_heavy_mask},
+                "L":{"seqs":[], "idx":[], "mask":custom_light_mask}}
         output_scores = np.zeros((len(seq_list)))
 
-        heavy_mask, light_mask = None, None
-        if custom_heavy_mask is not None or mask_cdr3:
-            heavy_mask = self._build_mask_arr(custom_heavy_mask, mask_cdr3, "H")
-        if custom_light_mask is not None or mask_cdr3:
-            light_mask = self._build_mask_arr(custom_light_mask, mask_cdr3, "L")
-
         for i, seq in enumerate(seq_list):
-            chain_name, arr = self._simple_prep_sequence(seq)
-
-            if chain_name == "L":
-                light_arr.append(arr)
-                light_idx.append(i)
-            elif chain_name == "H":
-                heavy_arr.append(arr)
-                heavy_idx.append(i)
-            else:
+            chain_name, aligned_seq = self._prep_sequence(seq)
+            if chain_name not in ("L", "H"):
                 output_scores[i] = np.nan
+            else:
+                chain_data[chain_name]["seqs"].append(aligned_seq)
+                chain_data[chain_name]["idx"].append(i)
 
-        if len(heavy_arr) > 0:
-            self._batch_score(heavy_arr, output_scores,
-                    heavy_idx, "H", mode, heavy_mask,
-                    mask_terminal_dels, mask_gaps)
+        for chain_name, relevant_data in chain_data.items():
+            if len(relevant_data["seqs"]) == 0:
+                continue
 
-        if len(light_arr) > 0:
-            self._batch_score(light_arr, output_scores,
-                    light_idx, "L", mode, light_mask,
-                    mask_terminal_dels, mask_gaps)
+            assigned_idx = relevant_data["idx"]
+            mask = relevant_data["mask"]
+            sequences = relevant_data["seqs"]
+
+            if mode == "classifier":
+                scores = []
+                for species in ("human", "mouse", "rhesus"):
+                    scores.append(self.models[species][chain_name].score(sequences,
+                            mask=mask, mask_terminal_dels=mask_terminal_dels,
+                            mask_gaps=mask_gaps, normalize_scores=self.normalize_scores))
+                if chain_name == "H":
+                    scores.append(self.models["rat"]["H"].score(sequences,
+                            mask=mask, mask_terminal_dels=mask_terminal_dels,
+                            mask_gaps=mask_gaps, normalize_scores=self.normalize_scores))
+                else:
+                    scores.append(None)
+
+                scores = self._convert_score_to_classifier(scores[0], scores[1],
+                            scores[2], scores[3], chain_name)
+
+            elif mode == "score":
+                scores = self.models["human"][chain_name].score(sequences,
+                        mask=mask, mask_terminal_dels=mask_terminal_dels,
+                        mask_gaps=mask_gaps,
+                        normalize_scores=self.normalize_scores)
+                if not self.normalize_scores:
+                    scores -= self.score_adjustments[chain_name]
+
+            elif mode == "assign":
+                scores = self.models["human"][chain_name].predict(sequences,
+                        mask=mask, mask_terminal_dels=mask_terminal_dels,
+                        mask_gaps=mask_gaps)
+            elif mode == "assign_no_weights":
+                scores = self.models["human"][chain_name].predict(sequences,
+                        mask=mask, mask_terminal_dels=mask_terminal_dels,
+                        mask_gaps=mask_gaps, use_mixweights=False)
+
+            for i, score in enumerate(scores.tolist()):
+                output_scores[assigned_idx[i]] = score
 
         return output_scores
 
 
 
-    def get_closest_clusters(self, seq:str, nclusters:int = 1, return_ids_only = True):
+    def get_closest_clusters(self, seq:str, nclusters:int = 1):
         """Gets the closest cluster(s) for a given sequence. These can be used
         for humanization, to determine which amino acids in the input sequence
         are most problematic, or to generate new sequences containing motifs of interest.
+        To get the cluster parameters associated with clusters identified by this
+        function, call "retrieve_cluster".
 
         Args:
             seq (str): The input sequence.
             nclusters (int): The number of clusters to retrieve.
-            return_ids_only (bool): If True, only the cluster numbers are returned,
-                not the actual clusters.
 
         Returns:
             cluster_idx (np.ndarray): The index number for each cluster in the
@@ -390,39 +326,21 @@ class SequenceScoringTool():
                 cluster to lowest probability.
             chain_name (str): One of "H" or "L", indicating whether chain is
                 heavy or light (K and L are both mapped to L).
-            mu_mix (np.ndarray): An array of shape (nclusters, sequence_length,
-                21), where 21 is the number of possible AAs. The clusters
-                are sorted in order from most to least likely given the
-                input sequence. Not returned if return_ids_only is True.
-            mixweights (np.ndarray): An array of shape (nclusters) containing
-                the mixture weights (probability of each cluster) associated with
-                each cluster. Not returned if return_ids_only is True.
-
-        Raises:
-            ValueError: A ValueError is raised if the input sequence contains
-                unrecognized characters or another serious issue is encountered.
         """
-        _, chain_name, arr, _, _, _ = self._full_prep_sequence(seq)
+        chain_name, aligned_seq = self._prep_sequence(seq)
         if chain_name not in ["H", "L"]:
             raise ValueError("The sequence provided does not recognizably "
                     "belong as a heavy or light chain.")
 
         # We can flatten here, because only one sequence is used as input.
-        cluster_probs = self.models["human"][chain_name].predict(arr,
-                return_raw_probs=True).flatten()
+        cluster_probs = self.models["human"][chain_name].predict_proba(
+                [aligned_seq]).flatten()
         best_clusters = np.argsort(cluster_probs)[-nclusters:]
-
-        if return_ids_only:
-            return best_clusters, chain_name
-
-        mu_mix = self.models["human"][chain_name].mu_mix[best_clusters,...].copy()
-        mixweights = self.models["human"][chain_name].mix_weights[best_clusters].copy()
-
-        return best_clusters, chain_name, mu_mix, mixweights
+        return best_clusters, chain_name
 
 
 
-    def retrieve_cluster(self, cluster_id, chain_type):
+    def retrieve_cluster(self, cluster_id:int, chain_type:str):
         """A convenience function to get the per-position probabilities
         associated with a particular cluster.
 
@@ -434,111 +352,214 @@ class SequenceScoringTool():
 
         Returns:
             mu_mix (np.ndarray): An array of shape (1, sequence_length,
-                21), where 21 is the number of possible AAs. The clusters
-                are sorted in order from most to least likely given the
-                input sequence.
+                21), where 21 is the number of possible AAs.
             mixweights (float): The probability of this cluster in the mixture.
             aas (list): A list of amino acids in standard order. The last
                 dimension of mu_mix corresponds to these aas in the order given.
         """
-        mu_mix = self.models["human"][chain_type].mu_mix[cluster_id:cluster_id+1,...].copy()
-        mixweights = self.models["human"][chain_type].mix_weights[cluster_id].copy()
+        params = self.models["human"][chain_type].get_model_parameters()
+        mu_mix = params[0][cluster_id:cluster_id+1,...].copy()
+        mixweights = params[1][cluster_id].copy()
         return mu_mix, mixweights, self.aa_list
 
 
 
-    def convert_sequence_to_array(self, seq):
+    def convert_sequence_to_array(self, seq:str):
         """Converts an input sequence to a type uint8_t array where
-        the integer at each position indicates the amino acid at that
-        position. Can be used in conjunction with the cluster returned by
-        retrieve_cluster or get_closest_clusters to determine which amino
-        acids are contributing most (or least) to the humanness score.
+        each integer indicates the amino acid at that position.
 
         Args:
             seq (str): The sequence of interest.
 
         Returns:
-            chain_name (str): The chain type; one of "H", "L".
+            chain_name (str): The chain type; one of "H", "L"
+                or "unknown" if there is an error.
             arr (np.ndarray): A numpy array of shape (1,M) where M is
-                the sequence length after converting to a fixed length
-                array.
+                the length after converting to a fixed length array.
+                nan is returned if there is an error numbering the
+                sequence.
         """
-        return self._simple_prep_sequence(seq)
+        chain_type, aligned_seq = self._prep_sequence(seq)
+        if chain_type == "unknown":
+            return chain_type, np.full(len(aligned_seq), np.nan)
+        output_array = np.zeros((1, len(aligned_seq)), dtype=np.uint8)
+        self.models["human"][chain_type].em_cat_mixture_model.encode_input_seqs([aligned_seq],
+                output_array)
+        return chain_type, output_array
 
 
 
-    def _batch_score(self, seq_array:list, output_scores:list,
-            assigned_idx:list, chain_type:str, mode:str = "score",
-            mask = None, mask_terminal_dels = False, mask_gaps = False,
-            nthreads:int = 2):
-        """Scores a batch of sequences -- either heavy or light --
-        with the provided mixmodel. Operations are in place so nothing
-        is returned.
+    def calc_per_aa_probs(self, seq:str,
+            cluster_id:int):
+        """Calculate the log probability of each amino acid in
+        the input sequence given a specified cluster number and
+        identify what that cluster considers the most likely
+        amino acid at each position. To get the cluster number of
+        the cluster closest to your input sequence, call
+        get_closest_clusters.
 
         Args:
-            seq_array (list): A list of np.uint8 numpy arrays of shape (1, n_positions).
-            output_scores (list): A list of scores or clusters. Will be modified in-place.
-            assigned_idx (list): A list of the indices to which each element of
-                seq_array corresponds. Must be the same length as seq_array.
-            chain_type (str): One of "H" or "L".
-            mode (str): One of 'score', 'assign', 'assign_no_weights', 'classifier'.
-                If score, returns the human generative model score.
-                If 'assign', provides the most likely cluster number
-                for each input sequence. If 'assign_no_weights',
-                assigns the closest cluster ignoring mixture weights,
-                so that the closest cluster is assigned even if that
-                cluster is a low-probability one. If 'classifier',
-                assigns a score using the Bayes' rule classifier.
-            mask (np.ndarray): Either None or an np.bool array of shape
-                (n_positions). If not None, the positions marked False in
-                the mask are ignored.
-            mask_terminal_dels (bool): If True, terminal deletions are masked.
-                This is useful when a sequence contains large unusual terminal
-                deletions.
-            mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
-                are ignored when calculating the score. This is useful when your
-                sequence has unusual deletions and you would like to ignore these.
-            nthreads (int): The number of threads to use.
+            seq (str): The sequence of interest.
+            cluster_id (int): The index of the cluster you
+                would like to use to generate these probabilities.
+                Call get_closest_clusters to find those closest
+                to your input sequence.
+
+        Returns:
+            chain_type (str): One of "H", "L", or "unknown" if there
+                is an error numbering your sequence.
+            logprobs (np.ndarray): An array of shape (M) where M
+                is the length of your input sequence. nan is returned
+                if there is an error numbering the sequence.
+            most_likely_aas (list): A list of the most likely AA
+                at each position in your input sequence according
+                to the specified cluster.
         """
-        input_array = np.vstack(seq_array)
+        chain_type, seq_arr = self.convert_sequence_to_array(seq)
+        if chain_type == "unknown":
+            return chain_type, np.full(seq_arr.shape[1], np.nan), []
+        mu_mix = self.retrieve_cluster(cluster_id, chain_type)[0]
+        seq_arr = seq_arr.flatten()
+        # First, remove all gapped positions...
+        idx = np.where(seq_arr<20)[0]
+        mu_mix = mu_mix[0,idx,:]
+        seq_arr = seq_arr[idx]
 
-        n_threads = min(nthreads, len(seq_array))
+        # Next, figure out what is the most likely amino acid
+        # at each populated position.
+        most_likely_aas = np.argmax(mu_mix, axis=1)
+        most_likely_aas = [self.aa_list[i] for i in most_likely_aas]
 
-        if mode == "classifier":
-            scores = []
-            for species in ("human", "mouse", "rhesus"):
-                scores.append(self.models[species][chain_type].score(input_array,
-                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores,
-                        n_threads = n_threads))
-            if chain_type == "H":
-                scores.append(self.models["rat"]["H"].score(input_array,
-                        mask, mask_terminal_dels, mask_gaps, self.normalize_scores,
-                        n_threads = n_threads))
+        # Next, extract the probabilities at filled positions and
+        # take the log.
+        mu_mix = mu_mix[np.arange(seq_arr.shape[0]), seq_arr]
+        mu_mix = np.log(mu_mix.clip(min=1e-16))
+
+        return chain_type, mu_mix, most_likely_aas
+    
+
+
+    def suggest_humanizing_mutations(self, seq:str, excluded_positions:list = [],
+            s_thresh:float = 1.25):
+        """Takes an input sequence, scores it per position,
+        uses the nclusters closest clusters to determine which
+        modification would be most likely to have an impact,
+        suggest mutations and report both the mutations and the
+        new score. CDRs are excluded, together with user-specified
+        excluded positions.
+
+        Args:
+            seq (str): The sequence to update.
+            s_thresh (float): The maximum percentage by which
+                the score can shift before backmutation stops.
+                Smaller values (closer to 1) will prioritize
+                increasing the score over preserving the original
+                sequence. Larger values will prioritize preserving
+                the original sequence.
+            excluded_positions (list): A list of strings (IMGT position numbers)
+                indicating positions which should not be changed. This enables
+                the user to mask key residues, Vernier zones etc if so
+                desired.
+            cdr_labeling_scheme (str): The sequence is numbered using the IMGT
+                scheme, but to determine which positions are CDR, you can
+                use 'aho', 'kabat', 'imgt', 'martin' or 'north' by supplying
+                an appropriate argument here.
+
+        Returns:
+            initial_score (float): The score of the sequence pre-modification.
+            final_scores (float): The scores of the sequence after each mutation
+                is adopted (in sequential order).
+            mutations (list): The suggested mutations in AA_position_newAA format,
+                where position is the IMGT number for the mutation position. These
+                are in sequential order (the same as final_scores).
+            updated_seq (list): The updated sequences after each mutation with all
+                gaps removed. (This may be a different length from the
+                input sequence if the suggested mutation is a deletion or
+                an insertion).
+        """
+        numbering, _, chain_type, _ = self.aligner.analyze_seq(seq)
+        chain_type = self.chain_map[chain_type]
+        if chain_type not in ["H", "L"]:
+            raise ValueError("The sequence provided does not recognizably "
+                    "belong as a heavy or light chain.")
+
+        original_seq = self.template_aligners[chain_type].align_sequence(
+                seq, numbering, False)
+
+        _, original_arr = self.convert_sequence_to_array(seq)
+        updated_arr = original_arr.copy()
+        best_cluster, _ = self.get_closest_clusters(seq, 1)
+        best_cluster, _, aa_list = self.retrieve_cluster(
+                best_cluster, chain_type)
+
+        best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
+        best_aas = np.argmax(best_cluster, axis=1)
+
+        # Construct a mask for all positions specified as excluded by the user,
+        # all CDRs (using kabat definitions) and all positions which are currently
+        # gaps (don't suggest insertions).
+        mask = self.get_standard_mask(chain_type, "fmwk", "kabat")
+        position_dict = {k:i for i,k in enumerate(
+            self.template_aligners[chain_type].get_template_numbering())}
+        for position in excluded_positions:
+            mask[position_dict[position]] = False
+
+        del position_dict
+
+        # Start out by converting all aas to the best possible at each
+        # position. We will then backmutate as many as possible.
+        updated_arr[0,mask] = best_aas[mask]
+
+        starting_score = self.models["human"][chain_type].score([original_seq])[0]
+        updated_score = copy.copy(starting_score)
+
+        while updated_score > s_thresh * starting_score:
+            score_shifts = best_cluster[np.arange(updated_arr.shape[0]), updated_arr.flatten()] - \
+                    best_cluster[np.arange(original_arr.shape[0]), original_arr.flatten()]
+            score_shifts[~mask] = np.inf
+            score_shifts[updated_arr[0,:]==original_arr[0,:]] = np.inf
+            weakest_position = score_shifts.argmin()
+            proposal_arr = updated_arr.copy()
+            if proposal_arr[0,weakest_position] == original_arr[0,weakest_position]:
+                break
+            proposal_arr[0,weakest_position] = original_arr[0,weakest_position]
+
+            # The Python mixture model object is designed to score sequences. Ordinarily
+            # this is more convenient but here we have already encoded the sequence as
+            # an array so it's a little more straightforward to bypass the usual API.
+            loglik = np.zeros((1))
+            self.models["human"][chain_type].em_cat_mixture_model.score_cpp(
+                    proposal_arr, loglik, False)
+            updated_score = float(loglik[0])
+            if updated_score > s_thresh * starting_score:
+                updated_arr = proposal_arr
             else:
-                scores.append(None)
+                break
 
-            scores = self._convert_score_to_classifier(scores[0], scores[1],
-                        scores[2], scores[3], chain_type)
+        updated_seq = ''.join([aa_list[aa] for aa in updated_arr[0,...].tolist()])
+        back_numbering = self.template_aligners[chain_type].retrieve_alignment_back_numbering(
+                seq, numbering, False)
+        last_valid_position = 0
+        all_mutations = []
 
-        elif mode == "score":
-            scores = self.models["human"][chain_type].score(input_array, mask,
-                    mask_terminal_dels, mask_gaps, self.normalize_scores,
-                    n_threads = n_threads)
-            if not self.normalize_scores:
-                scores -= self.score_adjustments[chain_type]
+        for i, (original_aa, new_aa, position) in \
+                enumerate(zip(original_seq, updated_seq, back_numbering)):
+            if position != -1:
+                last_valid_position = i
+            if new_aa != original_aa:
+                if position != -1:
+                    mutation_description = (f"{original_aa}_"
+                        f"{position+1}_{new_aa}")
+                else:
+                    mutation_description = (f"{original_aa}_"
+                            f"{last_valid_position+1}_{new_aa}")
+                all_mutations.append(mutation_description)
 
-        elif mode == "assign":
-            scores = self.models["human"][chain_type].predict(input_array, mask = mask,
-                    mask_terminal_dels = mask_terminal_dels,
-                    mask_gaps = mask_gaps, n_threads = n_threads)
-        elif mode == "assign_no_weights":
-            scores = self.models["human"][chain_type].predict(input_array, mask = mask,
-                    mask_terminal_dels = mask_terminal_dels,
-                    mask_gaps = mask_gaps, n_threads = n_threads,
-                    use_mixweights = False)
+        score = self.models["human"][chain_type].score([updated_seq]) - \
+                        self.score_adjustments[chain_type]
+        return score[0], all_mutations, updated_seq.replace("-", "")
 
-        for i, score in enumerate(scores.tolist()):
-            output_scores[assigned_idx[i]] = score
+
 
 
 
@@ -548,7 +569,7 @@ class SequenceScoringTool():
         rule classifier score. Should only be used for testing,
         since a classification approach of this kind is not
         useful for sequences of unknown origin."""
-        num_positions = self.models["human"][chain_type].sequence_length
+        num_positions = self.models["human"][chain_type].get_specs()[1]
 
         #This is a default probability assuming equal probability of all
         #amino acids at all positions.

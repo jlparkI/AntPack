@@ -11,15 +11,23 @@ For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocu
 
 [You can find the docs here for older versions.](https://antpackdocumentation.pages.dev/)
 
-## Major updates in v0.3.9
+## What's new in v0.4
 
-As we continue to add features to AntPack, we are finding some
-features that we will add in upcoming versions useful for our own
-discovery efforts. Consequently we have reluctantly decided starting
-with v0.3.9 to license AntPack for noncommercial use only. This was
-not an easy decision and not one that we took lightly.
+v0.4 contains a bug fix for VJ gene assignment for numbering schemes
+*other* than IMGT. If perforiming VJ gene assignment with numbering
+schemes *other* than IMGT, please prefer v0.4 to prior versions.
 
-Prior versions were made available under the GPL, which means they
+v0.4 also contains some capabilities for clustering antibody datasets,
+see below and see docs; these will be significantly expanded in the
+next version with further clustering and search capabilities.
+
+## Licensing
+
+Versions v0.3.9 and afterwards are licensed for academic and noncommercial
+use only; you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/)
+to use.
+
+Versions prior to 0.3.9 were made available under the GPL, which means they
 can be used it for your own data analysis in any manner you wish
 whether you work in academia or industry,
 but any software built using AntPack and intended for sale or distribution 
@@ -46,17 +54,14 @@ AntPack-setup
 then paste in the license key and your email address when prompted.
 
 The only required dependency is numpy. If you want to run the GUI,
-however, there are two additional dependencies you'll need to install
-(in future versions these dependencies may no longer be needed):
+there are two additional dependencies you'll need to install:
 ```
 pip install pyside6 qt_material
 ```
 
 If you don't plan to use the GUI, you don't need those dependencies.
 
-AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8,
-so installation should be very straightforward. A source distribution is also available
-(C++17) in case there is any need to compile from source.
+AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8.
 
 ## Capabilities
 
@@ -100,6 +105,11 @@ that identifying liabilities through finding motifs in this way is known to be p
 to false positives (an N-glycosylation motif, for example, will not always be glycosylated).
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
+
+### Clustering
+
+Starting in v0.4, AntPack contains tools for quickly clustering large sequence
+datasets using all or part of the antibody sequence.
 
 
 ### Citing this work
