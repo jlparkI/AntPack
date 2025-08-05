@@ -569,7 +569,7 @@ class SequenceScoringTool():
         rule classifier score. Should only be used for testing,
         since a classification approach of this kind is not
         useful for sequences of unknown origin."""
-        num_positions = self.models["human"][chain_type].get_specs()[1]
+        num_positions = self.models["human"][chain_type].get_model_specs()[1]
 
         #This is a default probability assuming equal probability of all
         #amino acids at all positions.
