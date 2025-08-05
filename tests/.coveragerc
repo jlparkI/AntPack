@@ -1,0 +1,3 @@
+[run]
+omit = */antpack_gui/*
+       antpack_license.py

@@ -65,7 +65,7 @@ class TestCatmixFitting(unittest.TestCase):
 
         cat_mix = EMCategoricalMixture(n_components=5,
                 numbering=numbering + ['130'], max_threads=2,
-                verbose=True)
+                verbose=False)
 
         with self.assertRaises(RuntimeError):
             cat_mix.fit(seqs)
@@ -74,11 +74,11 @@ class TestCatmixFitting(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             cat_mix = EMCategoricalMixture(n_components=5,
                 numbering=numbering, max_threads=2,
-                verbose=True, region="gollum")
+                verbose=False, region="gollum")
 
         cat_mix = EMCategoricalMixture(n_components=5,
                 numbering=numbering, max_threads=2,
-                verbose=True, region="cdr")
+                verbose=False, region="cdr")
         seqs[0] += "A"
 
         with self.assertRaises(RuntimeError):
@@ -175,13 +175,13 @@ class TestCatmixFitting(unittest.TestCase):
         fitting procedure for in-memory and on-disk data."""
         seqs, encoded_data = load_non_mab_test_data()
         init_model = build_default_model_non_mab_data(load_params = True,
-                verbose=True)
+                verbose=False)
         base_model = build_default_model_non_mab_data(load_params = False,
-                verbose=True)
+                verbose=False)
         threaded_model = build_default_model_non_mab_data(load_params=False,
-                verbose=True, max_threads=3)
+                verbose=False, max_threads=3)
         offline_threaded_model = build_default_model_non_mab_data(
-                load_params=False, verbose=True, max_threads=3)
+                load_params=False, verbose=False, max_threads=3)
 
         init_bic = init_model.BIC(seqs)
         init_aic = init_model.AIC(seqs)
