@@ -19,6 +19,8 @@ jobs:
 
       - name: Build but don't test wheels
         env:
+          git submodule update --init --recursive
+          git submodule update --remote --recursive
           CIBW_SKIP: "pp* cp36* cp37* *musllinux*"
           CIBW_BUILD_FRONTEND: "build"
         uses: pypa/cibuildwheel@v2.19.1
@@ -43,6 +45,7 @@ jobs:
       - name: Build sdist
         run: |
           git submodule update --init --recursive
+          git submodule update --remote --recursive
           python -m pip install --upgrade pip build wheel
           python -m build --sdist
 
