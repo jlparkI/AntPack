@@ -34,6 +34,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Extremely annoying but MSVC requires an additional flag to be set.
 if (MSVC)
+    set(CMAKE_CXX_FLAGS_RELEASE "/O3")
     add_compile_options("/Zc:__cplusplus" "/permissive-")
 endif()
 
