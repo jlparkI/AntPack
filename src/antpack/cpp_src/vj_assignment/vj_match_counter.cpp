@@ -621,7 +621,7 @@ std::string, std::string> &alignment) {
             if (this->essential_imgt_map.find(imgt_numbering[i]) !=
                     this->essential_imgt_map.end())
                 prepped_sequence.at(std::stoi(imgt_numbering[i]) - 1) =
-                    sequence[i];
+                    trimmed_seq[i];
         }
     }
     return VALID_SEQUENCE;
