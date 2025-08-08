@@ -104,7 +104,7 @@ def process_fasta_online(cli_args):
 
     seqrecs = list(read_fasta(cli_args.input[0]))
     seqs = [seqrec[1] for seqrec in seqrecs]
-    seqinfo = [seqrec[0] for seqrec in seqrecs]
+    seqinfo = [seqrec[0].replace(',', '_') for seqrec in seqrecs]
     seq_annotations = [sc_tool.analyze_seq(s) for s in seqs]
 
     output_dict = {
@@ -229,7 +229,7 @@ def process_fasta_offline(cli_args):
                 encoding="utf-8") as light_handle:
             if cli_args.paired:
                 for seqrec in read_fasta(cli_args.input[0]):
-                    seqinfo, seq = seqrec[0], seqrec[1]
+                    seqinfo, seq = seqrec[0].replace(',', '_'), seqrec[1]
                     heavy_ann, light_ann = sc_tool.analyze_seq(seq)
                     heavy_codes.update(heavy_ann[0])
                     light_codes.update(light_ann[0])
@@ -262,7 +262,7 @@ def process_fasta_offline(cli_args):
 
             else:
                 for seqrec in read_fasta(cli_args.input[0]):
-                    seqinfo, seq = seqrec[0], seqrec[1]
+                    seqinfo, seq = seqrec[0].replace(',', '_'), seqrec[1]
                     annotation = sc_tool.analyze_seq(seq)
                     if annotation[2] in ('H', 'A', 'G'):
                         output_handle = heavy_handle
