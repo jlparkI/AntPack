@@ -34,7 +34,7 @@ capabilities and structure analysis-related tools.
 ## Licensing
 
 Versions v0.3.9 and afterwards are licensed for academic and noncommercial
-use only; you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/)
+use only; you must first obtain a [free license key](https://www.antpacklicensemanagement.com/)
 to use. You do not have to re-setup the key when upgrading AntPack in
 an existing venv or conda environment.
 
