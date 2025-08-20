@@ -4,7 +4,7 @@ import sys
 import argparse
 from antpack import SingleChainAnnotator, PairedChainAnnotator, VJGeneTool
 
-from .cli_tools.biofile_read_tools import read_fasta
+from .utilities import read_fasta
 
 
 class ReconfigParser(argparse.ArgumentParser):
