@@ -13,7 +13,7 @@ from antpack.antpack_cpp_ext import DatabaseConstructionTool
 def build_database_from_fasta(fasta_filepath,
         database_filepath, numbering_scheme="imgt",
         sequence_type="single", receptor_type="mab",
-        exclude_errs=True, pid_threshold=0.7):
+        pid_threshold=0.7):
     """Builds a database from a fasta file which may or may
     not be gzipped. The database is constructed so it can be
     searched in sublinear time and the sequence descriptions
@@ -31,17 +31,11 @@ def build_database_from_fasta(fasta_filepath,
             it is assumed each sequence MAY be paired and should be analyzed
             as paired just in case.
         receptor_type (str): One of 'mab', 'tcr'.
-        exclude_errs (bool): If True, any sequences for which an alignment
-            error is reported (e.g. missing residue at highly conserved
-            position) are excluded. If sequences are paired and one of
-            the paired sequences generates an error, that member of the pair
-            only is excluded (the other member is retained).
         pid_threshold (float): A value between 0 and 1 for percent identity
-            threshold. Sequences with pid less than this are assumed to
-            represent alignment error and are excluded. If sequences are
-            paired and one of the paired sequences has a pid less than this
-            threshold, that member of the pair only is excluded (the other
-            member is retained).
+            threshold. If sequence_type is 'single' or 'unknown', sequences
+            not meeting this threshold are excluded. If sequence_type is
+            'paired' the sequences are still retained as long as one of
+            the chains meets this threshold.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -66,7 +60,7 @@ def build_database_from_fasta(fasta_filepath,
 
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             numbering_scheme, sequence_type, receptor_type,
-            exclude_errs, pid_threshold, license_key, user_email,
+            pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
             vj_names, vj_seqs, blosum_matrix,
             initialize_database=True)

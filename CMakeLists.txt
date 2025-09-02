@@ -95,6 +95,10 @@ nanobind_add_module(
     extern/antpack_private/src/license_key_handling/key_check_routines.cpp
     extern/antpack_private/src/license_key_handling/pub_private_utilities.cpp
 
+    extern/antpack_private/src/database_tools/database_construction_tool.cpp
+    extern/antpack_private/src/database_tools/database_search_tool.cpp
+    extern/antpack_private/src/database_tools/database_utilities.cpp
+    extern/antpack_private/src/database_tools/sqlite3.c
 
     extern/antpack_private/src/license_key_handling/crypto_support/add_scalar.c
     extern/antpack_private/src/license_key_handling/crypto_support/fe.c
