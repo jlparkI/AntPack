@@ -3,7 +3,7 @@ fitted via EM."""
 import os
 import numpy as np
 from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp, SequenceTemplateAligner
-from ..cli_tools import read_fasta
+from ..utilities import read_fasta
 
 
 

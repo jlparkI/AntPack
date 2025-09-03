@@ -7,7 +7,7 @@ import pandas as pd
 from antpack import SequenceScoringTool, SingleChainAnnotator
 from antpack.scoring_tools.scoring_constants import allowed_imgt_pos as ahip
 from antpack.scoring_tools.scoring_constants import scoring_constants as useful_constants
-
+from antpack.utilities.model_loader_utils import load_model
 
 class TestSequenceScoringTool(unittest.TestCase):
 
@@ -188,7 +188,29 @@ class TestSequenceScoringTool(unittest.TestCase):
         score_tool = SequenceScoringTool(offer_classifier_option=True)
         adj_score_tool = SequenceScoringTool(offer_classifier_option=False,
                 normalization="training_set_adjust")
-        adj_score_tool.aligner = SingleChainAnnotator()
+        # This is an ugly hack, but. In prior versions of antpack, weights
+        # were clipped and not allowed to go below 1e-14 for numerical
+        # stability. This is higher than necessary however and 1e-16
+        # (current value) works fine. For compatibility with the older
+        # version against which the test was designed, we load weights
+        # with the 1e-14 lower bound.
+        # TODO: Update these with scores calculated without the old lower
+        # bound and get rid of this ugly hack.
+        project_dir = os.path.abspath(os.path.dirname(__file__))
+        project_dir = os.path.join(project_dir, "..", "src", "antpack",
+                "scoring_tools")
+        score_tool.models = {"human":{"H":load_model(project_dir, "heavy",
+                                    max_threads=2,
+                                    clip_mu_at_old_value=True),
+                        "L":load_model(project_dir, "light",
+                                    max_threads=2,
+                                    clip_mu_at_old_value=True)} }
+        adj_score_tool.models = {"human":{"H":load_model(project_dir, "heavy",
+                                    max_threads=2,
+                                    clip_mu_at_old_value=True),
+                        "L":load_model(project_dir, "light",
+                                    max_threads=2,
+                                    clip_mu_at_old_value=True)} }
 
         start_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -221,6 +243,9 @@ class TestSequenceScoringTool(unittest.TestCase):
                 mask_terminal_dels=True)
         self.assertTrue(np.allclose(term_del_scores, og_term_del_scores))
 
+        og_scores = raw_data["batched_scores"].values
+        batched_scores = adj_score_tool.score_seqs(raw_data["sequences"].tolist())
+        self.assertTrue(np.allclose(batched_scores, og_scores))
 
 
 if __name__ == "__main__":

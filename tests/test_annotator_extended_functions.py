@@ -122,6 +122,11 @@ class TestAnnotatorExtendedFunctions(unittest.TestCase):
             _ = fhandle.readline()
             seqs = [line.strip().split(",")[0] for line in fhandle]
 
+        # Only take some of the chains to avoid building an
+        # unnecessarily large matrix.
+        seqs = seqs[:100] + seqs[-100:]
+
+
         os.chdir(current_dir)
         aligner = SingleChainAnnotator(chains=["H", "K", "L"],
                     scheme="imgt")

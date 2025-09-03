@@ -6,7 +6,7 @@ from ..scoring_tools.scoring_constants import allowed_imgt_pos as ahip
 
 
 def load_model(start_dir, chain_type="heavy",
-        species="human", max_threads=2):
+        species="human", max_threads=2, clip_mu_at_old_value=False):
     """Loads the model for the specified species."""
     current_dir = os.getcwd()
     os.chdir(os.path.join(start_dir, "model_data"))
@@ -23,6 +23,9 @@ def load_model(start_dir, chain_type="heavy",
         mixweights = np.load(f"{species}_{chain_type}_mixweights.npy").astype(np.float64)
     except Exception as exc:
         raise ValueError("Final run not present in expected location.") from exc
+
+    if clip_mu_at_old_value:
+        mu[mu<1e-14]=1e-14
 
     model = EMCategoricalMixture(mixweights.shape[0],
             numbering=allowed_positions,

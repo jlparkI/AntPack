@@ -5,6 +5,7 @@ __pycache__/
 
 # Model data files
 *.pk
+*_keys.txt
 
 # text editor files
 *.swp
