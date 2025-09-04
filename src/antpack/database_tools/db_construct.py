@@ -12,8 +12,9 @@ from antpack.antpack_cpp_ext import DatabaseConstructionTool
 
 def build_database_from_fasta(fasta_filepath,
         database_filepath, numbering_scheme="imgt",
+        cdr_definition_scheme="imgt",
         sequence_type="single", receptor_type="mab",
-        pid_threshold=0.7):
+        pid_threshold=0.7, verbose=True):
     """Builds a database from a fasta file which may or may
     not be gzipped. The database is constructed so it can be
     searched in sublinear time and the sequence descriptions
@@ -26,6 +27,8 @@ def build_database_from_fasta(fasta_filepath,
         numbering_scheme (str): One of 'imgt', 'kabat', 'martin' or
             'aho'. If receptor_type is 'tcr', 'imgt' is the only
             allowed option.
+        cdr_definition_scheme (str): One of 'imgt', 'kabat', 'martin',
+            'aho' or 'north'. If receptor_type is 'tcr', 'imgt' only is allowed.
         sequence_type (str): One of 'single', 'paired', 'unknown'. If
             'paired' each sequence is assumed to be paired. If 'unknown'
             it is assumed each sequence MAY be paired and should be analyzed
@@ -36,6 +39,7 @@ def build_database_from_fasta(fasta_filepath,
             not meeting this threshold are excluded. If sequence_type is
             'paired' the sequences are still retained as long as one of
             the chains meets this threshold.
+        verbose (bool): If True, print regular updates while running.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -50,23 +54,33 @@ def build_database_from_fasta(fasta_filepath,
             "numbering_tools", "consensus_data")
     nterm_kmer_dict = _load_nterm_kmers()
 
-    vj_db_path = os.path.join(project_path, "consensus_data")
+    vj_db_path = os.path.join(project_path, "vj_tools", "consensus_data")
     vj_names, vj_seqs, _ = load_vj_gene_consensus_db(os.getcwd(),
             vj_db_path, "imgt")
 
-    blosum_matrix = np.load(os.path.join(project_path, "..",
+    blosum_matrix = np.load(os.path.join(project_path,
         "numbering_tools", "consensus_data", "mabs",
         "blosum_matrix.npy")).astype(np.float64)
 
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            numbering_scheme, sequence_type, receptor_type,
+            numbering_scheme, cdr_definition_scheme,
+            sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, blosum_matrix,
-            initialize_database=True)
+            vj_names, vj_seqs, blosum_matrix, True)
 
 
-    for seqinfo, seq in read_fasta(fasta_filepath):
-        db_construct_tool.add_sequence_new_db(seqinfo, seq)
+    db_construct_tool.open_transaction()
 
+    for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+        db_construct_tool.add_sequence_new_db(seq, seqinfo)
+        if i % 1000 == 0:
+            db_construct_tool.close_transaction()
+            db_construct_tool.open_transaction()
+            if verbose:
+                print(f"{i} complete.")
+
+    db_construct_tool.close_transaction()
+    db_construct_tool.open_transaction()
     db_construct_tool.finalize_db_construction()
+    db_construct_tool.close_transaction()
