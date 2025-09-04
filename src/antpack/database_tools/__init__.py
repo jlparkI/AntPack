@@ -1,1 +1,2 @@
-from .db_construct import build_database_from_fasta
+from .local_db_construct import build_database_from_fasta
+from .local_db_update_search import LocalDBTool
