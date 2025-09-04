@@ -82,8 +82,6 @@ class TestLocalDBConstruction(unittest.TestCase):
                 for i, (k,_) in enumerate(cdr_labels):
                     gt_counts = [0]*21
                     for m in msa:
-                        if m[k] == '-':
-                            continue
                         gt_counts[AAMAP[m[k]]] += 1
                     self.assertTrue(rows[i][0]==heavy_codes[k])
                     self.assertTrue(list(rows[i][2:])==gt_counts)
@@ -120,8 +118,6 @@ class TestLocalDBConstruction(unittest.TestCase):
                 for i, (k,_) in enumerate(cdr_labels):
                     gt_counts = [0]*21
                     for m in msa:
-                        if m[k] == '-':
-                            continue
                         gt_counts[AAMAP[m[k]]] += 1
                     self.assertTrue(rows[i][0]==light_codes[k])
                     self.assertTrue(list(rows[i][2:])==gt_counts)
