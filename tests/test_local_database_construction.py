@@ -25,11 +25,21 @@ class TestLocalDBConstruction(unittest.TestCase):
 
         for nmbr_scheme in ['imgt', 'kabat']:
             for cdr_scheme in ['north', 'kabat']:
+                if cdr_scheme == "north":
+                    sequence_type = "single"
+                    memo = ""
+                elif nmbr_scheme == "kabat":
+                    memo = "testing123"
+                    sequence_type = "unknown"
+                else:
+                    memo="t"
+                    sequence_type = "paired"
+
                 build_database_from_fasta(data_filepath,
                     "TEMP_DB.db", numbering_scheme=nmbr_scheme,
                     cdr_definition_scheme=cdr_scheme,
-                    sequence_type="single", receptor_type="mab",
-                    pid_threshold=0.7)
+                    sequence_type=sequence_type, receptor_type="mab",
+                    pid_threshold=0.7, user_memo=memo)
 
                 seqs, seqinfos = [], []
 
@@ -40,7 +50,17 @@ class TestLocalDBConstruction(unittest.TestCase):
                 con = sqlite3.connect("TEMP_DB.db")
                 cursor = con.cursor()
 
-                # First, check that the sequences and seqinfo in
+                # First, check that the database metadata is what
+                # was expected.
+                rows = cursor.execute("SELECT * from database_info").fetchall()
+                self.assertTrue(rows[0][0]==nmbr_scheme)
+                self.assertTrue(rows[0][1]=="mab")
+                self.assertTrue(rows[0][2]==sequence_type)
+                self.assertTrue(rows[0][3]==cdr_scheme)
+                self.assertTrue(rows[0][4]==memo)
+                del rows
+
+                # Next, check that the sequences and seqinfo in
                 # the db match what we loaded.
                 rows = cursor.execute("SELECT * from sequences").fetchall()
                 self.assertTrue(seqs==[r[0] for r in rows])

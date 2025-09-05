@@ -14,7 +14,7 @@ def build_database_from_fasta(fasta_filepath,
         database_filepath, numbering_scheme="imgt",
         cdr_definition_scheme="imgt",
         sequence_type="single", receptor_type="mab",
-        pid_threshold=0.7, verbose=True):
+        pid_threshold=0.7, user_memo="", verbose=True):
     """Builds a database from a fasta file which may or may
     not be gzipped. The database is constructed so it can be
     searched in sublinear time and the sequence descriptions
@@ -39,6 +39,9 @@ def build_database_from_fasta(fasta_filepath,
             not meeting this threshold are excluded. If sequence_type is
             'paired' the sequences are still retained as long as one of
             the chains meets this threshold.
+        user_memo (str): A string describing the purpose of the database / anything
+            important you want your future self or other users to know about the
+            contents. Will be saved as part of the database metadata.
         verbose (bool): If True, print regular updates while running.
 
     Raises:
@@ -67,7 +70,8 @@ def build_database_from_fasta(fasta_filepath,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, blosum_matrix, True)
+            vj_names, vj_seqs, blosum_matrix,
+            user_memo, True)
 
 
     db_construct_tool.open_transaction()

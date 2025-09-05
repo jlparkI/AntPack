@@ -1,5 +1,10 @@
 """Contains tools for searching and updating a local database."""
-#from antpack.antpack_cpp_ext import LocalDatabaseToolCpp
+import os
+import numpy as np
+from ..numbering_tools.cterm_finder import _load_nterm_kmers
+from ..antpack_license import get_license_key_info
+from ..utilities.vj_utilities import load_vj_gene_consensus_db
+from antpack.antpack_cpp_ext import LocalDatabaseToolCpp
 
 
 
@@ -22,7 +27,23 @@ class LocalDBTool:
                 database is not found, cannot be opened or
                 does not contain expected tables and metadata.
         """
-        self.local_db_manager = LocalDatabaseToolCpp(database_path)
+        license_key, user_email = get_license_key_info()
+        project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                "..")
+        consensus_path = os.path.join(project_path,
+                "numbering_tools", "consensus_data")
+        nterm_kmer_dict = _load_nterm_kmers()
+
+        vj_db_path = os.path.join(project_path, "vj_tools", "consensus_data")
+        vj_names, vj_seqs, _ = load_vj_gene_consensus_db(os.getcwd(),
+                vj_db_path, "imgt")
+
+        blosum_matrix = np.load(os.path.join(project_path,
+            "numbering_tools", "consensus_data", "mabs",
+            "blosum_matrix.npy")).astype(np.float64)
+        self.local_db_manager = LocalDatabaseToolCpp(database_path,
+                license_key, user_email, consensus_path,
+                nterm_kmer_dict, vj_names, vj_seqs, blosum_matrix)
 
 
 
@@ -127,10 +148,47 @@ class LocalDBTool:
         creating the db if any).
 
         Returns:
-            
+            numbering_scheme (str): The numbering scheme (e.g. aho, imgt etc.)
+                used for this database.
+            receptor_type (str): The receptor type (mab or tcr).
+            sequence_type (str): Either 'single', 'paired' or 'unknown'.
+                If 'unknown', it is assumed that each sequence added may have
+                either one chain or two and they are analyzed accordingly.
+            cdr_scheme (str): The cdr definitions used for this database
+                (e.g. aho, imgt etc.)
+            user_memo (str): A memo supplied by the user when creating the
+                database with some info about what it is for; may be "" if
+                no memo was supplied.
         """
         return self.local_db_manager.get_database_metadata()
 
+
+    def get_database_counts(self):
+        """Returns key cdr positions for heavy and light chain
+        mapped to the number of occurrences of each amino acid
+        at each position. Mainly used for testing, not really
+        intended for use by end users (but maybe occasionally
+        useful).
+
+        Returns:
+            heavy_position_table (dict): A map from cdr positions to
+                counts.
+            light_position_table (dict): A map from cdr positions to
+                counts.
+        """
+        return self.local_db_manager.get_position_tables()
+
+
+    def get_database_position_counts(self, chain_type="H"):
+        """Returns metadata about the database (numbering scheme,
+        receptor type, cdr definition type, and memo entered when
+        creating the db if any).
+
+
+        Returns:
+            
+        """
+        return self.local_db_manager.get_database_metadata()
 
 
     def export_database_to_csv(self, csv_filepath, gzip_file=False):
