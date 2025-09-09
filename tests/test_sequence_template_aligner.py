@@ -155,12 +155,12 @@ class TestDBTemplateAligner(unittest.TestCase):
             # Randomly select 500 pairs and check that distance
             # calculated in Python is what we get from the
             # aligner.
-            possible_regions = ["cdr", "cdr1", "cdr2", "cdr3"]
+            possible_regions = ["cdr", "cdr1", "cdr2", "cdr3", "all"]
 
             for _ in range(500):
                 idx1 = random.randint(0, len(ungapped_seqs)-1)
                 idx2 = random.randint(0, len(ungapped_seqs)-1)
-                region_idx = random.randint(0,3)
+                region_idx = random.randint(0,len(possible_regions)-1)
                 region = possible_regions[region_idx]
 
                 template_aligner = DBTemplateAligner(
@@ -169,9 +169,13 @@ class TestDBTemplateAligner(unittest.TestCase):
                 test_hamming = template_aligner.calc_hamming_dist(
                         ungapped_poscodes[idx2], ungapped_labels[idx2],
                         ungapped_seqs[idx2])
-                gt_hamming = len([a1 for (a1, a2, label) in zip(
-                    seqs[idx1], seqs[idx2], region_labels) if
-                    a1 != a2 and label[:len(region)]==region])
+                if region == "all":
+                    gt_hamming = len([a1 for (a1, a2) in zip(
+                        seqs[idx1], seqs[idx2]) if a1 != a2])
+                else:
+                    gt_hamming = len([a1 for (a1, a2, label) in zip(
+                        seqs[idx1], seqs[idx2], region_labels) if
+                        a1 != a2 and label[:len(region)]==region])
                 self.assertTrue(gt_hamming==test_hamming)
 
 
