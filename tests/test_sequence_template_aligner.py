@@ -1,13 +1,15 @@
-"""Tests the SequenceTemplateAligner to ensure that
-new sequences can be added to existing msas in a straightforward
-way."""
+"""Tests SequenceTemplateAligners to ensure that
+new sequences can be added to existing msas in
+a straightforward way, and that the aligner used
+for database search is functioning correctly."""
 import os
+import random
 import gzip
 import unittest
 from Bio import SeqIO
-import numpy as np
 from antpack import SingleChainAnnotator as SCA
-from antpack.antpack_cpp_ext import SequenceTemplateAligner
+from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
+        DBTemplateAligner)
 
 
 class TestSequenceTemplateAligner(unittest.TestCase):
@@ -108,6 +110,72 @@ class TestSequenceTemplateAligner(unittest.TestCase):
                             unaligned_seq, nmbr[0], False))
 
 
+
+class TestDBTemplateAligner(unittest.TestCase):
+
+    def test_error_checking(self):
+        """Ensure that absurd inputs generate expected
+        errors."""
+        msa, position_codes, region_labels = \
+                load_antibody_test_data()
+        with self.assertRaises(RuntimeError):
+            sta = DBTemplateAligner(position_codes[1:],
+                region_labels, msa[0], "cdr")
+
+        with self.assertRaises(RuntimeError):
+            sta = DBTemplateAligner(position_codes,
+                    region_labels[1:], msa[0], "cdr")
+
+        with self.assertRaises(RuntimeError):
+            sta = DBTemplateAligner(position_codes,
+                    region_labels, msa[0], "fmwk")
+
+        with self.assertRaises(RuntimeError):
+            sta = DBTemplateAligner(position_codes,
+                    region_labels, msa[0].replace('-', ''),
+                    "fmwk")
+
+
+    def test_distance_calcs(self):
+        """Check to make sure the template aligner correctly performs
+        distance calculations."""
+        random.seed(123)
+        for chain_type in ["H", "L"]:
+            seqs, position_codes, region_labels = load_antibody_test_data(chain_type)
+            ungapped_seqs, ungapped_poscodes, ungapped_labels = \
+                    [], [], []
+
+            for seq in seqs:
+                c_, s_, l_ = remove_gaps(position_codes, seq,
+                        region_labels)
+                ungapped_seqs.append(s_)
+                ungapped_poscodes.append(c_)
+                ungapped_labels.append(l_)
+
+            # Randomly select 500 pairs and check that distance
+            # calculated in Python is what we get from the
+            # aligner.
+            possible_regions = ["cdr", "cdr1", "cdr2", "cdr3"]
+
+            for _ in range(500):
+                idx1 = random.randint(0, len(ungapped_seqs)-1)
+                idx2 = random.randint(0, len(ungapped_seqs)-1)
+                region_idx = random.randint(0,3)
+                region = possible_regions[region_idx]
+
+                template_aligner = DBTemplateAligner(
+                        ungapped_poscodes[idx1], ungapped_labels[idx1],
+                        ungapped_seqs[idx1], region)
+                test_hamming = template_aligner.calc_hamming_dist(
+                        ungapped_poscodes[idx2], ungapped_labels[idx2],
+                        ungapped_seqs[idx2])
+                gt_hamming = len([a1 for (a1, a2, label) in zip(
+                    seqs[idx1], seqs[idx2], region_labels) if
+                    a1 != a2 and label[:len(region)]==region])
+                self.assertTrue(gt_hamming==test_hamming)
+
+
+
 def load_antibody_test_data(chain_type="L"):
     """Loads some saved test data specific for antibodies."""
     start_dir = os.path.abspath(os.path.dirname(__file__))
@@ -131,6 +199,26 @@ def load_antibody_test_data(chain_type="L"):
     hpos_codes, hmsa = sc.build_msa(heavy_seqs, heavy_alignments)
     region_labels = sc.assign_cdr_labels(hpos_codes, chain_type)
     return hmsa, hpos_codes, region_labels
+
+
+
+def remove_gaps(position_codes, seq, region_labels):
+    """Removes gaps from the sequence and removes the
+    corresponding positions from position_codes and
+    region_labels."""
+    output_position_codes, output_seq, output_region_labels = \
+            [], [], []
+
+    for (code, letter, label) in zip(position_codes, seq,
+            region_labels):
+        if letter == '-':
+            continue
+        output_position_codes.append(code)
+        output_seq.append(letter)
+        output_region_labels.append(label)
+
+    return output_position_codes, ''.join(output_seq), \
+            output_region_labels
 
 
 
