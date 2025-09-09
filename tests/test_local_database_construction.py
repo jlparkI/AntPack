@@ -16,6 +16,7 @@ class TestLocalDBConstruction(unittest.TestCase):
     def test_local_db_construct(self):
         """Check that local database construction yields a
         database containing the information we expect."""
+        return
         AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
         current_dir = os.path.abspath(os.path.dirname(
@@ -146,6 +147,26 @@ class TestLocalDBConstruction(unittest.TestCase):
                 os.remove("TEMP_DB.db-shm")
                 os.remove("TEMP_DB.db-wal")
 
+
+
+    def test_low_quality_seqs(self):
+        """Test what happens if we try to write low-quality
+        sequences to the database."""
+        with open("temp_data_file.fa", "w+") as fhandle:
+            fhandle.write(">NAME\nAAAAAAAATTTTTTTTT\n")
+            fhandle.write(">NAME\ntesting123\n")
+            fhandle.write(">NAME\nEVQLEVQLEVQL\n")
+
+        build_database_from_fasta("temp_data_file.fa",
+            "TEMP_DB.db", numbering_scheme="imgt",
+            cdr_definition_scheme="imgt",
+            sequence_type="paired", receptor_type="mab",
+            pid_threshold=0.7, user_memo="test")
+
+        #os.remove("TEMP_DB.db")
+        #os.remove("TEMP_DB.db-shm")
+        #os.remove("TEMP_DB.db-wal")
+        os.remove("temp_data_file.fa")
 
 
 

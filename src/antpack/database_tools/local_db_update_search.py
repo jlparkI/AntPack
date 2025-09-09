@@ -49,7 +49,9 @@ class LocalDBTool:
 
     def search_seq(self, seq:str, annotation:tuple,
             max_hamming_dist:int=5, max_hits:int=100,
-            region_label:str="cdr3", require_same_length_cdrs:bool=False):
+            region_label:str="cdr3",
+            min_num_for_full_search=1200,
+            require_same_length_cdrs:bool=False):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
         be conducted using the full sequence or a sub-region
@@ -82,6 +84,12 @@ class LocalDBTool:
                 'cdr3', only cdr3 is searched. If 'cdr', all 3 cdrs
                 are used. 'all' searches for hits using the full
                 sequence.
+            min_num_for_full_search (int): When searching, as soon as
+                the number of sequences retrieved is less than this
+                procedure, the search algorithm directly compares the
+                query sequence with all of the retrieved sequences
+                without doing any further filtering. This setting can
+                affect speed; the default is usually fine.
             require_same_length_cdrs (bool): If True, only sequences whose
                 cdr3 (if querying by cdr3) or all cdrs (for other queries)
                 have the same length as query are returned.
@@ -96,6 +104,7 @@ class LocalDBTool:
         """
         return self.local_db_manager.search(seq, annotation,
                 max_hamming_dist, max_hits, region_label,
+                min_num_for_full_search,
                 require_same_length_cdrs)
 
 

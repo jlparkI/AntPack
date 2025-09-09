@@ -71,7 +71,7 @@ def build_database_from_fasta(fasta_filepath,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
             vj_names, vj_seqs, blosum_matrix,
-            user_memo, True)
+            user_memo)
 
 
     db_construct_tool.open_transaction()
