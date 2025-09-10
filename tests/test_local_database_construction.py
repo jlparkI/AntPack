@@ -16,7 +16,6 @@ class TestLocalDBConstruction(unittest.TestCase):
     def test_local_db_construct(self):
         """Check that local database construction yields a
         database containing the information we expect."""
-        return
         AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
         current_dir = os.path.abspath(os.path.dirname(
@@ -127,7 +126,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                         [s.replace('-', '') for s in msa])
                 self.assertTrue([r[1].split('_') for r in rows]==
                         trimmed_numbering)
-                
+
                 cdr_labels = [(k,l) for (k,l) in enumerate(labels)
                         if l.startswith("cdr")]
                 for i, (k,_) in enumerate(cdr_labels):
@@ -144,9 +143,11 @@ class TestLocalDBConstruction(unittest.TestCase):
                     self.assertTrue(list(rows[i][2:])==gt_counts)
 
                 os.remove("TEMP_DB.db")
-                os.remove("TEMP_DB.db-shm")
-                os.remove("TEMP_DB.db-wal")
-
+                try:
+                    os.remove("TEMP_DB.db-shm")
+                    os.remove("TEMP_DB.db-wal")
+                except:
+                    pass
 
 
     def test_low_quality_seqs(self):
@@ -163,9 +164,39 @@ class TestLocalDBConstruction(unittest.TestCase):
             sequence_type="paired", receptor_type="mab",
             pid_threshold=0.7, user_memo="test")
 
-        #os.remove("TEMP_DB.db")
-        #os.remove("TEMP_DB.db-shm")
-        #os.remove("TEMP_DB.db-wal")
+        # There should be no error in writing the db;
+        # we expect that the sequences that failed the
+        # threshold test will still be inserted into the
+        # raw sequences table but not the heavy numbering
+        # or light numbering tables.
+        con = sqlite3.connect("TEMP_DB.db")
+        cursor = con.cursor()
+        rows = cursor.execute("SELECT * from database_info").fetchall()
+        self.assertTrue(rows[0][0]=="imgt")
+        self.assertTrue(rows[0][1]=="mab")
+        self.assertTrue(rows[0][2]=="paired")
+        self.assertTrue(rows[0][3]=="imgt")
+        self.assertTrue(rows[0][4]=="test")
+        del rows
+
+        rows = cursor.execute("SELECT * from imgt"
+            "_heavy_numbering").fetchall()
+        self.assertTrue(len(rows)==0)
+        rows = cursor.execute("SELECT * from imgt"
+            "_light_numbering").fetchall()
+        self.assertTrue(len(rows)==0)
+
+        rows = cursor.execute("SELECT * from sequences").fetchall()
+        self.assertTrue(len(rows)==3)
+        self.assertTrue(rows[1][0]=="testing123")
+        self.assertTrue(rows[0][1]=="NAME")
+
+        os.remove("TEMP_DB.db")
+        try:
+            os.remove("TEMP_DB.db-shm")
+            os.remove("TEMP_DB.db-wal")
+        except:
+            pass
         os.remove("temp_data_file.fa")
 
 
