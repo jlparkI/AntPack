@@ -142,12 +142,8 @@ class TestLocalDBConstruction(unittest.TestCase):
                     self.assertTrue(rows[i][0]==light_codes[k])
                     self.assertTrue(list(rows[i][2:])==gt_counts)
 
+                con.close()
                 os.remove("TEMP_DB.db")
-                try:
-                    os.remove("TEMP_DB.db-shm")
-                    os.remove("TEMP_DB.db-wal")
-                except:
-                    pass
 
 
     def test_low_quality_seqs(self):
@@ -191,12 +187,8 @@ class TestLocalDBConstruction(unittest.TestCase):
         self.assertTrue(rows[1][0]=="testing123")
         self.assertTrue(rows[0][1]=="NAME")
 
+        con.close()
         os.remove("TEMP_DB.db")
-        try:
-            os.remove("TEMP_DB.db-shm")
-            os.remove("TEMP_DB.db-wal")
-        except:
-            pass
         os.remove("temp_data_file.fa")
 
 
