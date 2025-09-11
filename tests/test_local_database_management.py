@@ -105,6 +105,7 @@ class TestLocalDBManagement(unittest.TestCase):
             for hit_seq, gt_hit in zip(hit_seqs, gt_hits):
                 self.assertTrue(hit_seq==gt_hit)
 
+        del local_db
         os.remove("TEMP_DB.db")
 
 
