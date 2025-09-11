@@ -160,8 +160,7 @@ class TestDBTemplateAligner(unittest.TestCase):
             for _ in range(500):
                 idx1 = random.randint(0, len(ungapped_seqs)-1)
                 idx2 = random.randint(0, len(ungapped_seqs)-1)
-                region_idx = random.randint(0,len(possible_regions)-1)
-                region = possible_regions[region_idx]
+                region = random.choice(possible_regions)
 
                 template_aligner = DBTemplateAligner(
                         ungapped_poscodes[idx1], ungapped_labels[idx1],

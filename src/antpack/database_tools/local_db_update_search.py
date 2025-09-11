@@ -101,10 +101,14 @@ class LocalDBTool:
             hit_metadata (list): The metadata associated with each hit
                 sequence (this is the sequence description from the
                 fasta file used to create the database).
+            row_ids (list): A list of the row ids in the database associated
+                with each hit. These row ids can be used to retrieve metadata,
+                species info etc about each hit using this class (call
+                retrieve_row_id).
         """
         return self.local_db_manager.search(seq, annotation,
                 max_hamming_dist, max_hits, region_label,
-                min_num_for_full_search,
+                min_num_for_full_search, 15,
                 require_same_length_cdrs)
 
 
