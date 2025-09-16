@@ -78,8 +78,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("H",), seqs,
                         annotations, sca)
-                rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
-                    "_heavy_numbering").fetchall()
+                rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
 
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
                 self.assertTrue([r[1] for r in rows] == cdr1)
@@ -87,8 +86,8 @@ class TestLocalDBConstruction(unittest.TestCase):
                 self.assertTrue([r[3] for r in rows] == cdr3)
                 del rows
 
-                rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
-                    "_heavy_column_diversity").fetchall()
+                rows = cursor.execute("SELECT * from "
+                    "heavy_column_diversity").fetchall()
                 cdr_labels = sca.assign_cdr_labels(codes,
                         "H", cdr_scheme)
                 k = 0
@@ -110,16 +109,15 @@ class TestLocalDBConstruction(unittest.TestCase):
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("L", "K"), seqs,
                         annotations, sca)
-                rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
-                    "_light_numbering").fetchall()
+                rows = cursor.execute("SELECT * from light_numbering").fetchall()
 
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
                 self.assertTrue([r[1] for r in rows] == cdr1)
                 self.assertTrue([r[2] for r in rows] == cdr2)
                 self.assertTrue([r[3] for r in rows] == cdr3)
 
-                rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
-                    "_light_column_diversity").fetchall()
+                rows = cursor.execute("SELECT * from "
+                    "light_column_diversity").fetchall()
                 cdr_labels = sca.assign_cdr_labels(codes,
                         "L", cdr_scheme)
                 k = 0
@@ -166,11 +164,9 @@ class TestLocalDBConstruction(unittest.TestCase):
         self.assertTrue(rows[0][4]=="test")
         del rows
 
-        rows = cursor.execute("SELECT * from imgt"
-            "_heavy_numbering").fetchall()
+        rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
         self.assertTrue(len(rows)==0)
-        rows = cursor.execute("SELECT * from imgt"
-            "_light_numbering").fetchall()
+        rows = cursor.execute("SELECT * from light_numbering").fetchall()
         self.assertTrue(len(rows)==0)
 
         rows = cursor.execute("SELECT * from sequences").fetchall()
