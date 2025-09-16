@@ -77,8 +77,8 @@ def build_database_from_fasta(fasta_filepath,
     db_construct_tool.open_transaction()
 
     for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
-        db_construct_tool.add_sequence_new_db(seq, seqinfo)
-        if i % 1000 == 0:
+        db_construct_tool.add_sequence(seq, seqinfo, "", "", 0)
+        if i % 10000 == 0:
             db_construct_tool.close_transaction()
             db_construct_tool.open_transaction()
             if verbose:

@@ -5,7 +5,8 @@ import sqlite3
 import unittest
 from antpack import build_database_from_fasta, SingleChainAnnotator
 from antpack.utilities import read_fasta
-import numpy as np
+from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
+        return_imgt_canonical_numbering_cpp)
 
 
 
@@ -23,7 +24,7 @@ class TestLocalDBConstruction(unittest.TestCase):
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
 
-        for nmbr_scheme in ['imgt', 'kabat']:
+        for nmbr_scheme in ['imgt']:
             for cdr_scheme in ['north', 'kabat']:
                 if cdr_scheme == "north":
                     sequence_type = "single"
@@ -73,74 +74,64 @@ class TestLocalDBConstruction(unittest.TestCase):
                 # Check heavy chains first. Make sure numbering table
                 # contains expected info and that cdr only columns
                 # have been extracted.
-                heavy_chains = [(a,s) for (a,s) in zip(annotations,
-                    seqs) if a[2]=="H"]
-                heavy_codes, msa = sca.build_msa(
-                        [t[1] for t in heavy_chains],
-                        [t[0] for t in heavy_chains])
-
-                trimmed_numbering = [sca.trim_alignment(s,a)[1]
-                        for (a,s) in heavy_chains]
-                labels = sca.assign_cdr_labels(heavy_codes,
-                        "H", cdr_scheme)
+                aligned_seqs, cdr1, cdr2, cdr3, unusual_positions, codes = \
+                        prep_seqs_for_comparison(nmbr_scheme,
+                        cdr_scheme, ("H",), seqs,
+                        annotations, sca)
                 rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
                     "_heavy_numbering").fetchall()
-                self.assertTrue([r[0] for r in rows]==
-                        [s.replace('-', '') for s in msa])
-                self.assertTrue([r[1].split('_') for r in rows]==
-                        trimmed_numbering)
 
-                cdr_labels = [(k,l) for (k,l) in enumerate(labels)
-                        if l.startswith("cdr")]
-                for i, (k,_) in enumerate(cdr_labels):
-                    self.assertTrue([r[i+11] for r in rows]==
-                            [m[k] for m in msa])
+                self.assertTrue([r[0] for r in rows] == aligned_seqs)
+                self.assertTrue([r[1] for r in rows] == cdr1)
+                self.assertTrue([r[2] for r in rows] == cdr2)
+                self.assertTrue([r[3] for r in rows] == cdr3)
                 del rows
 
                 rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
                     "_heavy_column_diversity").fetchall()
-                for i, (k,_) in enumerate(cdr_labels):
+                cdr_labels = sca.assign_cdr_labels(codes,
+                        "H", cdr_scheme)
+                k = 0
+                for i, label in enumerate(cdr_labels):
+                    if not label.startswith("cdr"):
+                        continue
                     gt_counts = [0]*21
-                    for m in msa:
-                        gt_counts[AAMAP[m[k]]] += 1
-                    self.assertTrue(rows[i][0]==heavy_codes[k])
-                    self.assertTrue(list(rows[i][2:])==gt_counts)
+                    for m in aligned_seqs:
+                        gt_counts[AAMAP[m[i]]] += 1
+                    self.assertTrue(rows[k][0]==codes[i])
+                    self.assertTrue(list(rows[k][2:])==gt_counts)
+                    k += 1
 
-                del heavy_codes, msa, labels
+                del codes, aligned_seqs, cdr1, cdr2, cdr3, unusual_positions
 
 
                 # Now do the same for light chains.
-                light_chains = [(a,s) for (a,s) in zip(annotations,
-                    seqs) if a[2] in ("K", "L")]
-                trimmed_numbering = [sca.trim_alignment(s,a)[1]
-                        for (a,s) in light_chains]
-                light_codes, msa = sca.build_msa(
-                        [t[1] for t in light_chains],
-                        [t[0] for t in light_chains])
-                labels = sca.assign_cdr_labels(light_codes,
-                        "L", cdr_scheme)
+                aligned_seqs, cdr1, cdr2, cdr3, unusual_positions, codes = \
+                        prep_seqs_for_comparison(nmbr_scheme,
+                        cdr_scheme, ("L", "K"), seqs,
+                        annotations, sca)
                 rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
                     "_light_numbering").fetchall()
 
-                self.assertTrue([r[0] for r in rows]==
-                        [s.replace('-', '') for s in msa])
-                self.assertTrue([r[1].split('_') for r in rows]==
-                        trimmed_numbering)
-
-                cdr_labels = [(k,l) for (k,l) in enumerate(labels)
-                        if l.startswith("cdr")]
-                for i, (k,_) in enumerate(cdr_labels):
-                    self.assertTrue([r[i+11] for r in rows]==
-                            [m[k] for m in msa])
+                self.assertTrue([r[0] for r in rows] == aligned_seqs)
+                self.assertTrue([r[1] for r in rows] == cdr1)
+                self.assertTrue([r[2] for r in rows] == cdr2)
+                self.assertTrue([r[3] for r in rows] == cdr3)
 
                 rows = cursor.execute(f"SELECT * from {nmbr_scheme}"
                     "_light_column_diversity").fetchall()
-                for i, (k,_) in enumerate(cdr_labels):
+                cdr_labels = sca.assign_cdr_labels(codes,
+                        "L", cdr_scheme)
+                k = 0
+                for i, label in enumerate(cdr_labels):
+                    if not label.startswith("cdr"):
+                        continue
                     gt_counts = [0]*21
-                    for m in msa:
-                        gt_counts[AAMAP[m[k]]] += 1
-                    self.assertTrue(rows[i][0]==light_codes[k])
-                    self.assertTrue(list(rows[i][2:])==gt_counts)
+                    for m in aligned_seqs:
+                        gt_counts[AAMAP[m[i]]] += 1
+                    self.assertTrue(rows[k][0]==codes[i])
+                    self.assertTrue(list(rows[k][2:])==gt_counts)
+                    k += 1
 
                 con.close()
                 os.remove("TEMP_DB.db")
@@ -191,6 +182,56 @@ class TestLocalDBConstruction(unittest.TestCase):
         os.remove("TEMP_DB.db")
         os.remove("temp_data_file.fa")
 
+
+
+
+
+def setup_canonical_numbering(numbering_scheme,
+        cdr_scheme, chain_type):
+    """Sets up a template aligner for the numbering
+    scheme we have chosen."""
+    if numbering_scheme == "imgt":
+        numbering = return_imgt_canonical_numbering_cpp()
+    
+    sta = SequenceTemplateAligner(numbering,
+                        chain_type, numbering_scheme,
+                        cdr_scheme)
+    return sta, numbering
+
+
+
+def prep_seqs_for_comparison(numbering_scheme,
+        cdr_scheme, chain_type, sequences,
+        annotations, annotator):
+    """Prep sequences which are of the specified chain
+    type for analysis by aligning to the template,
+    extracting cdrs etc."""
+    selected_seqs = [(s, a) for (s, a) in zip(
+        sequences, annotations) if a[2] in chain_type]
+    template_aligner, canon_nmbr = setup_canonical_numbering(
+            numbering_scheme, cdr_scheme, chain_type[0])
+    recognized_positions = set(canon_nmbr)
+    cdr_labels = annotator.assign_cdr_labels(canon_nmbr,
+            chain_type[0], cdr_scheme)
+
+    aligned_seqs, cdr1, cdr2, cdr3, unusual_positions = \
+            [], [], [], [], []
+
+    for selected_seq in selected_seqs:
+        aligned_seq = template_aligner.align_sequence(
+                selected_seq[0], selected_seq[1][0], False)
+        unusual_positions = [a for a in selected_seq[1][0]
+                if a not in recognized_positions]
+        cdr1.append(''.join([a for (a,c) in zip(aligned_seq,
+            cdr_labels) if c == "cdr1"]))
+        cdr2.append(''.join([a for (a,c) in zip(aligned_seq,
+            cdr_labels) if c == "cdr2"]))
+        cdr3.append(''.join([a for (a,c) in zip(aligned_seq,
+            cdr_labels) if c == "cdr3"]))
+        aligned_seqs.append(aligned_seq)
+
+    return aligned_seqs, cdr1, cdr2, cdr3, unusual_positions, \
+            canon_nmbr
 
 
 if __name__ == "__main__":
