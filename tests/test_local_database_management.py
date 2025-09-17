@@ -113,7 +113,6 @@ class TestLocalDBManagement(unittest.TestCase):
     def test_local_db_search_setup(self):
         """Check that the local db management tool is set
         up correctly."""
-        return
         AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
         current_dir = os.path.abspath(os.path.dirname(

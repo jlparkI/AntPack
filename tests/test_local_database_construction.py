@@ -23,9 +23,12 @@ class TestLocalDBConstruction(unittest.TestCase):
             __file__))
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
-
+        try:
+            os.remove("TEMP_DB.db")
+        except:
+            pass
         for nmbr_scheme in ['imgt']:
-            for cdr_scheme in ['north', 'kabat']:
+            for cdr_scheme in ['kabat', 'north', 'kabat']:
                 if cdr_scheme == "north":
                     sequence_type = "single"
                     memo = ""
@@ -79,7 +82,6 @@ class TestLocalDBConstruction(unittest.TestCase):
                         cdr_scheme, ("H",), seqs,
                         annotations, sca)
                 rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
-
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
                 self.assertTrue([r[1] for r in rows] == cdr1)
                 self.assertTrue([r[2] for r in rows] == cdr2)

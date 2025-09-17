@@ -84,6 +84,9 @@ def build_database_from_fasta(fasta_filepath,
             if verbose:
                 print(f"{i} complete.")
 
+    if verbose:
+        print("Now constructing database indices...")
+
     db_construct_tool.close_transaction()
     db_construct_tool.open_transaction()
     db_construct_tool.finalize_db_construction()
