@@ -73,7 +73,7 @@ def build_database_from_fasta(fasta_filepath,
             vj_names, vj_seqs, blosum_matrix,
             user_memo)
 
-
+    print("Starting db construction.")
     db_construct_tool.open_transaction()
 
     for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):

@@ -23,12 +23,9 @@ class TestLocalDBConstruction(unittest.TestCase):
             __file__))
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
-        try:
-            os.remove("TEMP_DB.db")
-        except:
-            pass
+
         for nmbr_scheme in ['imgt']:
-            for cdr_scheme in ['kabat', 'north', 'kabat']:
+            for cdr_scheme in ['north', 'kabat']:
                 if cdr_scheme == "north":
                     sequence_type = "single"
                     memo = ""
@@ -75,63 +72,82 @@ class TestLocalDBConstruction(unittest.TestCase):
                 annotations = sca.analyze_seqs(seqs)
 
                 # Check heavy chains first. Make sure numbering table
-                # contains expected info and that cdr only columns
-                # have been extracted.
-                aligned_seqs, cdr1, cdr2, cdr3, unusual_positions, codes = \
+                # contains expected info.
+                aligned_seqs, cdrs, unusual_positions, codes = \
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("H",), seqs,
                         annotations, sca)
                 rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
-                self.assertTrue([r[1] for r in rows] == cdr1)
-                self.assertTrue([r[2] for r in rows] == cdr2)
-                self.assertTrue([r[3] for r in rows] == cdr3)
+                dimer_count_table = {}
+
+                for i in range(len(cdrs[0])):
+                    row_counter = 10
+                    for cdr, cdr_code in zip(cdrs, codes):
+                        for j in range(0, len(cdr[i]), 2):
+                            dimer = cdr[i][j:j+2]
+                            dimer_position = cdr_code[j]
+                            if len(dimer) == 1:
+                                dimer += "-"
+                            self.assertTrue(rows[i][row_counter] ==
+                                    dimer)
+                            if dimer_position not in dimer_count_table:
+                                dimer_count_table[dimer_position] = \
+                                        [0]*21*21
+                            dimer_code = AAMAP[dimer[0]]*21 + AAMAP[dimer[1]]
+                            dimer_count_table[dimer_position][dimer_code] += 1
+                            row_counter += 1
                 del rows
 
                 rows = cursor.execute("SELECT * from "
                     "heavy_column_diversity").fetchall()
-                cdr_labels = sca.assign_cdr_labels(codes,
-                        "H", cdr_scheme)
-                k = 0
-                for i, label in enumerate(cdr_labels):
-                    if not label.startswith("cdr"):
-                        continue
-                    gt_counts = [0]*21
-                    for m in aligned_seqs:
-                        gt_counts[AAMAP[m[i]]] += 1
-                    self.assertTrue(rows[k][0]==codes[i])
-                    self.assertTrue(list(rows[k][2:])==gt_counts)
-                    k += 1
+                row_dict = {row[0]:row[1:] for row in rows}
+                for dimer_position, dimer_counts in \
+                        dimer_count_table.items():
+                    self.assertTrue(dimer_position in row_dict)
+                    self.assertTrue(tuple(dimer_counts) ==
+                            row_dict[dimer_position])
 
-                del codes, aligned_seqs, cdr1, cdr2, cdr3, unusual_positions
+                del codes, aligned_seqs, cdrs, unusual_positions
 
 
                 # Now do the same for light chains.
-                aligned_seqs, cdr1, cdr2, cdr3, unusual_positions, codes = \
+                aligned_seqs, cdrs, unusual_positions, codes = \
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("L", "K"), seqs,
                         annotations, sca)
                 rows = cursor.execute("SELECT * from light_numbering").fetchall()
-
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
-                self.assertTrue([r[1] for r in rows] == cdr1)
-                self.assertTrue([r[2] for r in rows] == cdr2)
-                self.assertTrue([r[3] for r in rows] == cdr3)
+                dimer_count_table = {}
+
+                for i in range(len(cdrs[0])):
+                    row_counter = 10
+                    for cdr, cdr_code in zip(cdrs, codes):
+                        for j in range(0, len(cdr[i]), 2):
+                            dimer = cdr[i][j:j+2]
+                            dimer_position = cdr_code[j]
+                            if len(dimer) == 1:
+                                dimer += "-"
+                            self.assertTrue(rows[i][row_counter] ==
+                                    dimer)
+                            if dimer_position not in dimer_count_table:
+                                dimer_count_table[dimer_position] = \
+                                        [0]*21*21
+                            dimer_code = AAMAP[dimer[0]]*21 + AAMAP[dimer[1]]
+                            dimer_count_table[dimer_position][dimer_code] += 1
+                            row_counter += 1
+                del rows
 
                 rows = cursor.execute("SELECT * from "
                     "light_column_diversity").fetchall()
-                cdr_labels = sca.assign_cdr_labels(codes,
-                        "L", cdr_scheme)
-                k = 0
-                for i, label in enumerate(cdr_labels):
-                    if not label.startswith("cdr"):
-                        continue
-                    gt_counts = [0]*21
-                    for m in aligned_seqs:
-                        gt_counts[AAMAP[m[i]]] += 1
-                    self.assertTrue(rows[k][0]==codes[i])
-                    self.assertTrue(list(rows[k][2:])==gt_counts)
-                    k += 1
+                row_dict = {row[0]:row[1:] for row in rows}
+                for dimer_position, dimer_counts in \
+                        dimer_count_table.items():
+                    self.assertTrue(dimer_position in row_dict)
+                    self.assertTrue(tuple(dimer_counts) ==
+                            row_dict[dimer_position])
+
+                del codes, aligned_seqs, cdrs, unusual_positions
 
                 con.close()
                 os.remove("TEMP_DB.db")
@@ -212,6 +228,13 @@ def prep_seqs_for_comparison(numbering_scheme,
     cdr_labels = annotator.assign_cdr_labels(canon_nmbr,
             chain_type[0], cdr_scheme)
 
+    cdr1_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
+            if c == "cdr1"]
+    cdr2_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
+            if c == "cdr2"]
+    cdr3_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
+            if c == "cdr3"]
+
     aligned_seqs, cdr1, cdr2, cdr3, unusual_positions = \
             [], [], [], [], []
 
@@ -228,8 +251,8 @@ def prep_seqs_for_comparison(numbering_scheme,
             cdr_labels) if c == "cdr3"]))
         aligned_seqs.append(aligned_seq)
 
-    return aligned_seqs, cdr1, cdr2, cdr3, unusual_positions, \
-            canon_nmbr
+    return aligned_seqs, [cdr1, cdr2, cdr3], unusual_positions, \
+            [cdr1_codes, cdr2_codes, cdr3_codes]
 
 
 if __name__ == "__main__":
