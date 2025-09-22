@@ -4,8 +4,12 @@ import random
 import unittest
 from antpack import (build_database_from_fasta,
         SingleChainAnnotator, LocalDBTool)
+from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
+        return_imgt_canonical_numbering_cpp)
 from antpack.utilities import read_fasta
 
+
+AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
 
 class TestLocalDBManagement(unittest.TestCase):
@@ -21,7 +25,7 @@ class TestLocalDBManagement(unittest.TestCase):
 
         build_database_from_fasta(data_filepath,
             "TEMP_DB.db", numbering_scheme="imgt",
-            cdr_definition_scheme="north",
+            cdr_definition_scheme="imgt",
             sequence_type="single", receptor_type="mab",
             pid_threshold=0.7, user_memo="")
 
@@ -44,7 +48,7 @@ class TestLocalDBManagement(unittest.TestCase):
         codes, msa = sca.build_msa([t[1] for t in chains],
                 [t[0] for t in chains])
 
-        labels = sca.assign_cdr_labels(codes, "H", "north")
+        labels = sca.assign_cdr_labels(codes, "H", "imgt")
         possible_regions = ["cdr", "cdr3", "all"]
         # Randomly select a sequence and find its closest
         # matches using a random setting for distance and
@@ -78,7 +82,7 @@ class TestLocalDBManagement(unittest.TestCase):
         codes, msa = sca.build_msa([t[1] for t in chains],
                 [t[0] for t in chains])
 
-        labels = sca.assign_cdr_labels(codes, "L", "north")
+        labels = sca.assign_cdr_labels(codes, "L", "imgt")
         possible_regions = ["cdr", "cdr3", "all"]
         # Randomly select a sequence and find its closest
         # matches using a random setting for distance and
@@ -113,8 +117,6 @@ class TestLocalDBManagement(unittest.TestCase):
     def test_local_db_search_setup(self):
         """Check that the local db management tool is set
         up correctly."""
-        AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
-
         current_dir = os.path.abspath(os.path.dirname(
             __file__))
         data_filepath = os.path.join(current_dir,
@@ -122,7 +124,7 @@ class TestLocalDBManagement(unittest.TestCase):
 
         build_database_from_fasta(data_filepath,
             "TEMP_DB.db", numbering_scheme="imgt",
-            cdr_definition_scheme="north",
+            cdr_definition_scheme="imgt",
             sequence_type="single", receptor_type="mab",
             pid_threshold=0.7, user_memo="")
 
@@ -139,7 +141,7 @@ class TestLocalDBManagement(unittest.TestCase):
         self.assertTrue('imgt' == metadata[0])
         self.assertTrue('mab' == metadata[1])
         self.assertTrue('single' == metadata[2])
-        self.assertTrue('north' == metadata[3])
+        self.assertTrue('imgt' == metadata[3])
         self.assertTrue('' == metadata[4])
 
         # Next check that the position counts table matches
@@ -149,47 +151,46 @@ class TestLocalDBManagement(unittest.TestCase):
         sca = SingleChainAnnotator(scheme="imgt")
         annotations = sca.analyze_seqs(seqs)
 
+        numbering = return_imgt_canonical_numbering_cpp()
+        sta = SequenceTemplateAligner(numbering, "H", "imgt",
+                "imgt")
+
         heavy_chains = [(a,s) for (a,s) in zip(annotations,
             seqs) if a[2]=="H"]
-        heavy_codes, msa = sca.build_msa(
-                [t[1] for t in heavy_chains],
-                [t[0] for t in heavy_chains])
+        msa = [sta.align_sequence(h[1], h[0][0], False) for
+                h in heavy_chains]
 
-        labels = sca.assign_cdr_labels(heavy_codes,
-                "H", "north")
-        cdr_labels = [(k,t) for (k,(l,t)) in enumerate(
-            zip(labels, heavy_codes)) if l.startswith("cdr")]
+        labels = sca.assign_cdr_labels(numbering,
+                "H", "imgt")
         ptable, _ = local_db.get_database_counts()
+        gt_table = get_kmer_counts(msa, numbering, labels)
 
-        for i, (k,label) in enumerate(cdr_labels):
-            gt_counts = [0]*21
-            for m in msa:
-                gt_counts[AAMAP[m[k]]] += 1
-            self.assertTrue(ptable[label] == gt_counts)
+        for token, counts in gt_table.items():
+            self.assertTrue(ptable[token]==counts)
 
-        del heavy_codes, msa, labels
+        del numbering, msa, labels, sta
+
 
 
         # ...then light.
+        numbering = return_imgt_canonical_numbering_cpp()
+        sta = SequenceTemplateAligner(numbering, "L", "imgt",
+                "imgt")
+
         light_chains = [(a,s) for (a,s) in zip(annotations,
             seqs) if a[2]!="H"]
-        light_codes, msa = sca.build_msa(
-                [t[1] for t in light_chains],
-                [t[0] for t in light_chains])
+        msa = [sta.align_sequence(h[1], h[0][0], False) for
+                h in light_chains]
 
-        labels = sca.assign_cdr_labels(light_codes,
-                "L", "north")
-        cdr_labels = [(k,t) for (k,(l,t)) in enumerate(
-            zip(labels, light_codes)) if l.startswith("cdr")]
+        labels = sca.assign_cdr_labels(numbering,
+                "L", "imgt")
         _, ptable = local_db.get_database_counts()
+        gt_table = get_kmer_counts(msa, numbering, labels)
 
-        for i, (k,label) in enumerate(cdr_labels):
-            gt_counts = [0]*21
-            for m in msa:
-                gt_counts[AAMAP[m[k]]] += 1
-            self.assertTrue(ptable[label] == gt_counts)
+        for token, counts in gt_table.items():
+            self.assertTrue(ptable[token]==counts)
 
-        del light_codes, msa, labels
+        del numbering, msa, labels, sta
 
         del local_db
         os.remove("TEMP_DB.db")
@@ -217,6 +218,31 @@ def perform_exact_search(msa, region, idx,
 
     return hit_idx
 
+def get_kmer_counts(msa, numbering,
+        cdr_labels):
+    """Extract kmers from the cdrs of an msa and
+    count the number present of each."""
+    kmer_count_table = {}
+    for (cdr, next_fmwk) in [("cdr1", "fmwk2"),
+            ("cdr2", "fmwk3"), ("cdr3", "fmwk4")]:
+        cdr_start = cdr_labels.index(cdr)
+        cdr_end = cdr_labels.index(next_fmwk)
+        print(f"{cdr}, {cdr_start}, {cdr_end}")
+
+        for i in range(cdr_start, cdr_end, 2):
+            if numbering[i] not in kmer_count_table:
+                kmer_count_table[numbering[i]] = [0]*21*21
+            if i < cdr_end - 1:
+                for m in msa:
+                    kmer_code = AAMAP[m[i]] * 21 + AAMAP[m[i+1]]
+                    kmer_count_table[numbering[i]][kmer_code] += 1
+            else:
+                for m in msa:
+                    kmer_code = AAMAP[m[i]] * 21 + 20
+                    kmer_count_table[numbering[i]][kmer_code] += 1
+
+
+    return kmer_count_table
 
 
 

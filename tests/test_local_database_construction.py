@@ -206,7 +206,7 @@ def setup_canonical_numbering(numbering_scheme,
     scheme we have chosen."""
     if numbering_scheme == "imgt":
         numbering = return_imgt_canonical_numbering_cpp()
-    
+   
     sta = SequenceTemplateAligner(numbering,
                         chain_type, numbering_scheme,
                         cdr_scheme)

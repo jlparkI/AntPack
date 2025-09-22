@@ -110,6 +110,39 @@ class TestCatmixFitting(unittest.TestCase):
 
 
 
+    def test_cluster_profiles(self):
+        """Test that cluster profile construction does
+        what we expect."""
+        seqs, encoded_data = load_non_mab_test_data()
+        np.save("TEST_DISCARD1.npy", encoded_data[:10,:])
+        np.save("TEST_DISCARD2.npy", encoded_data[10:,:])
+        fpaths = ["TEST_DISCARD1.npy", "TEST_DISCARD2.npy"]
+
+        base_model = build_default_model_non_mab_data(
+                verbose=False)
+
+        base_model.fit(filepaths=fpaths,
+                max_iter = 150, n_restarts=3,
+                prune_after_fitting = True)
+        cprofiles = base_model.initialize_cluster_profiles()
+        base_model.update_cluster_profiles(seqs, cprofiles)
+
+        specs = base_model.get_model_specs()
+        gt_cprofiles = np.zeros((specs[0], specs[1], specs[2]),
+                dtype=np.int64)
+        preds = base_model.predict(seqs)
+        for i in range(preds.shape[0]):
+            for j in range(encoded_data.shape[1]):
+                gt_cprofiles[preds[i], j,
+                        encoded_data[i,j]] += 1
+
+        os.remove(fpaths[0])
+        os.remove(fpaths[1])
+
+        self.assertTrue(np.allclose(cprofiles, gt_cprofiles))
+
+
+
 
     def test_logsumexp(self):
         """Tests the logsumexp function."""

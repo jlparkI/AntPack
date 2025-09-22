@@ -1,6 +1,7 @@
 """Wrapper for C++ code implementing a categorical mixture
 fitted via EM."""
 import os
+import gzip
 import numpy as np
 from antpack.antpack_cpp_ext import EMCategoricalMixtureCpp, SequenceTemplateAligner
 from ..utilities import read_fasta
@@ -486,3 +487,80 @@ class EMCategoricalMixture():
             np.save(output_filepaths[-1], xdata)
 
         return output_filepaths
+
+
+    def encode_temp_db_prep_file(self, prep_filepath, temporary_dir,
+            line_element, chunk_size=5000):
+        """Encodes the sequences in a temporary file created during
+        database construction. Only used by AntPack (not by end users).
+
+        Args:
+            prep_filepath (str): The location of the temp file. It
+                can be a gzipped file or uncompressed.
+            temporary_dir (str): A path to a (probably) temporary
+                directory where the encoded sequences can be saved.
+            line_element (int): The piece of each comma-separated line
+                to extract.
+            chunk_size (int): The maximum number of sequences per numpy
+                file.
+
+        Returns:
+            numpy_filepaths (list): A list of absolute filepaths
+                where the temporary numpy files with encoded sequences
+                for fitting are stored.
+
+        Raises:
+            RuntimeError: An error will be raised if invalid sequences
+                (all different lengths, unexpected characters etc)
+                are found in the fasta file.
+        """
+        if chunk_size <= 0:
+            raise RuntimeError("Chunk size must be a positive integer.")
+        sequence_list, output_filepaths = [], []
+        file_counter = 0
+
+        if prep_filepath.endswith(".gz"):
+            temp_handle = gzip.open(prep_filepath, "rt")
+        else:
+            temp_handle = open(prep_filepath, "r", encoding="utf-8")
+
+        for line in temp_handle:
+            sequence_list.append(line.split(',')[line_element])
+            if len(sequence_list) >= chunk_size:
+                xdata = self._prep_xdata(sequence_list)
+
+                output_filepaths.append( os.path.abspath(os.path.join(temporary_dir,
+                        f"ENCODED_SEQUENCE_DATA_{file_counter}.npy")) )
+                np.save(output_filepaths[-1], xdata)
+                file_counter += 1
+                sequence_list = []
+
+        if len(sequence_list) > 0:
+            xdata = self._prep_xdata(sequence_list)
+            output_filepaths.append( os.path.abspath(os.path.join(temporary_dir,
+                    f"ENCODED_SEQUENCE_DATA_{file_counter}.npy")) )
+            np.save(output_filepaths[-1], xdata)
+
+        temp_handle.close()
+
+        return output_filepaths
+
+
+    def initialize_cluster_profiles(self):
+        """Sets up appropriately-sized arrays for
+        tracking cluster profiles. Only used by AntPack
+        (not by end users)."""
+        model_specs = self.get_model_specs()
+        return np.zeros((model_specs[0], model_specs[1],
+            model_specs[2]), dtype=np.int64)
+
+
+    def update_cluster_profiles(self, sequences:list,
+            cluster_profiles):
+        """Updates a profile of each cluster used in database
+        construction. Only used by AntPack (not by end users)."""
+        xdata = self._prep_xdata(sequences)
+        preds = self.predict(sequences)
+
+        self.em_cat_mixture_model.update_cluster_profiles(
+                xdata, preds, cluster_profiles)
