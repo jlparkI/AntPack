@@ -142,7 +142,8 @@ def build_database_from_fasta(fasta_files:list,
 
                 storage_handle.write(f"{seq},{aligned_heavy},{aligned_light},"
                         f"{heavy_vgenes},{heavy_jgenes},{heavy_species},"
-                        f"{light_vgenes},{light_jgenes},{light_species},,\n")
+                        f"{light_vgenes},{light_jgenes},{light_species},"
+                        f"{seqinfo},,\n")
 
         del sca_tool
 
@@ -184,7 +185,8 @@ def build_database_from_fasta(fasta_files:list,
 
                 storage_handle.write(f"{seq},{aligned_heavy},{aligned_light},"
                         f"{heavy_vgenes},{heavy_jgenes},{heavy_species},"
-                        f"{light_vgenes},{light_jgenes},{light_species},,\n")
+                        f"{light_vgenes},{light_jgenes},{light_species},"
+                        f"{seqinfo},\n")
 
         del pca_tool
 
@@ -197,28 +199,39 @@ def build_database_from_fasta(fasta_files:list,
     if verbose:
         print("*****\nSequence preprocessing complete. Now beginning CDR clustering. ")
 
-    _cluster_cdr_regions(temp_fname, chain_counts, [heavy_canon_nmbr,
+    cluster_models = _cluster_cdr_regions(temp_fname, chain_counts, [heavy_canon_nmbr,
         light_canon_nmbr], temp_storage_dir, verbose,
         numbering_scheme, cdr_definition_scheme, max_threads,
         receptor_type)
+    if verbose:
+        print("*****\nClustering complete. Now constructing database...")
+
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             numbering_scheme, cdr_definition_scheme,
             sequence_type, receptor_type,
-            pid_threshold, license_key, user_email,
-            consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, blosum_matrix,
-            user_memo)
+            pid_threshold, user_memo)
 
-    print("Starting db construction.")
     db_construct_tool.open_transaction()
 
-    for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
-        db_construct_tool.add_sequence(seq, seqinfo, "", "", 0)
+    # Process lines from the storage file in batches for more efficiency
+    # in cluster assignment / profile update.
+    line_batch = []
+
+    for i, line in enumerate(storage_handle):
         if i % 10000 == 0:
             db_construct_tool.close_transaction()
             db_construct_tool.open_transaction()
             if verbose:
                 print(f"{i} complete.")
+        line_batch.append(line)
+        if len(line_batch) > 100:
+            _prep_line_batch(cluster_models, line_batch,
+                    db_construct_tool)
+
+    if len(line_batch) > 0:
+        _prep_line_batch(cluster_models, line_batch,
+                db_construct_tool)
+
 
     if verbose:
         print("Now constructing database indices...")
@@ -228,6 +241,11 @@ def build_database_from_fasta(fasta_files:list,
     db_construct_tool.finalize_db_construction()
     db_construct_tool.close_transaction()
 
+    if verbose:
+        print("Database construction complete. Removing temporary storage file.")
+    os.remove(temp_fname)
+
+
 
 
 def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
@@ -236,7 +254,7 @@ def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
         max_threads:int, receptor_type:str="mab"):
     """Clusters the cdr regions using as input a temporary file
     containing prealigned sequences and other useful information."""
-    cluster_profiles = []
+    cluster_models = []
 
     if receptor_type == "mab":
         chain_codes = ["H", "L"]
@@ -247,7 +265,9 @@ def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
         for region in ["cdr1", "cdr2", "cdr3"]:
             if verbose:
                 print(f"Now clustering chain {chain}, region {region}")
+
             if chain_counts[chain_designator] == 0:
+                cluster_models.append(None)
                 continue
 
             # This is a heuristic. May find a better way to set this
@@ -268,10 +288,19 @@ def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
                     tol=1e-2, n_restarts=3, random_state=123,
                     prune_after_fitting=True)
 
+            cluster_models.append(em_cluster)
+
             for fpath in file_list:
                 os.remove(fpath)
 
-            del em_cluster
-            gc.collect()
+    return cluster_models
 
-    return cluster_profiles
+
+def _prep_line_batch(cluster_models, line_batch, db_construct_tool):
+    """Adds a batch of lines loaded from a temp storage file
+    to the database. Used internally by AntPack only."""
+    line_elements = [l.split(',') for l in line_batch]
+    heavy_seqs = [l[1] for l in line_elements]
+    light_seqs = [l[2] for l in line_elements]
+
+    

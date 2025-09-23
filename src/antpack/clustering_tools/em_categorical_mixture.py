@@ -525,7 +525,11 @@ class EMCategoricalMixture():
             temp_handle = open(prep_filepath, "r", encoding="utf-8")
 
         for line in temp_handle:
-            sequence_list.append(line.split(',')[line_element])
+            sequence = line.split(',')[line_element]
+            if sequence == "":
+                continue
+            sequence_list.append(sequence)
+
             if len(sequence_list) >= chunk_size:
                 xdata = self._prep_xdata(sequence_list)
 
@@ -559,8 +563,26 @@ class EMCategoricalMixture():
             cluster_profiles):
         """Updates a profile of each cluster used in database
         construction. Only used by AntPack (not by end users)."""
-        xdata = self._prep_xdata(sequences)
-        preds = self.predict(sequences)
+        xdata = np.zeros((len(sequences),
+            self.em_cat_mixture_model.get_specs()[1] ), dtype=np.uint8)
+        sliced_sequences = self.template_aligner.slice_msa(
+            sequences, self.region)
+
+        self.em_cat_mixture_model.encode_input_seqs(
+            sliced_sequences, xdata)
+        cluster_assignments = np.zeros((len(sequences)),
+                dtype=np.int64)
+        self.em_cat_mixture_model.predict_cpp(xdata,
+                    cluster_assignments, use_mixweights)
+
+        # This is a hack. TODO: Add capability to the SequenceTemplateAligner
+        # so we do not have to do this.
+        for i, seq in enumerate(sequences):
+            if seq == "":
+                sliced_sequences[i] = ""
+                cluster_assignments[i] = -1;
+
 
         self.em_cat_mixture_model.update_cluster_profiles(
-                xdata, preds, cluster_profiles)
+                sliced_sequences, preds, cluster_profiles)
+        return preds
