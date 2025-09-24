@@ -1,5 +1,6 @@
 """Tests fitting procedures for the categorical mixture."""
 import os
+import random
 import gzip
 import unittest
 from Bio import SeqIO
@@ -113,31 +114,38 @@ class TestCatmixFitting(unittest.TestCase):
     def test_cluster_profiles(self):
         """Test that cluster profile construction does
         what we expect."""
+        random.seed(123)
         seqs, encoded_data = load_non_mab_test_data()
-        np.save("TEST_DISCARD1.npy", encoded_data[:10,:])
-        np.save("TEST_DISCARD2.npy", encoded_data[10:,:])
-        fpaths = ["TEST_DISCARD1.npy", "TEST_DISCARD2.npy"]
+        retained_seqs, retained_idx = [], []
+
+        for i, seq in enumerate(seqs):
+            if random.randint(0,3) == 0:
+                seqs[i] = ""
+                continue
+            retained_seqs.append(seq)
+            retained_idx.append(i)
 
         base_model = build_default_model_non_mab_data(
                 verbose=False)
 
-        base_model.fit(filepaths=fpaths,
-                max_iter = 150, n_restarts=3,
-                prune_after_fitting = True)
+        base_model.fit(retained_seqs, max_iter = 150,
+                n_restarts=3, prune_after_fitting = True)
         cprofiles = base_model.initialize_cluster_profiles()
         base_model.update_cluster_profiles(seqs, cprofiles)
 
         specs = base_model.get_model_specs()
         gt_cprofiles = np.zeros((specs[0], specs[1], specs[2]),
                 dtype=np.int64)
-        preds = base_model.predict(seqs)
+        retained_idx = np.array(retained_idx)
+        preds = np.zeros((len(seqs)), dtype=np.int64)
+        preds[retained_idx] = base_model.predict(retained_seqs)
+
         for i in range(preds.shape[0]):
+            if seqs[i] == "":
+                continue
             for j in range(encoded_data.shape[1]):
                 gt_cprofiles[preds[i], j,
                         encoded_data[i,j]] += 1
-
-        os.remove(fpaths[0])
-        os.remove(fpaths[1])
 
         self.assertTrue(np.allclose(cprofiles, gt_cprofiles))
 

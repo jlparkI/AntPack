@@ -199,10 +199,10 @@ def build_database_from_fasta(fasta_files:list,
     if verbose:
         print("*****\nSequence preprocessing complete. Now beginning CDR clustering. ")
 
-    cluster_models = _cluster_cdr_regions(temp_fname, chain_counts, [heavy_canon_nmbr,
-        light_canon_nmbr], temp_storage_dir, verbose,
-        numbering_scheme, cdr_definition_scheme, max_threads,
-        receptor_type)
+    cluster_models = _cluster_cdr_regions(temp_fname, chain_counts,
+            [heavy_canon_nmbr, light_canon_nmbr], temp_storage_dir,
+            verbose, numbering_scheme, cdr_definition_scheme,
+            max_threads, receptor_type)
     if verbose:
         print("*****\nClustering complete. Now constructing database...")
 

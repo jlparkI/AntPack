@@ -563,26 +563,28 @@ class EMCategoricalMixture():
             cluster_profiles):
         """Updates a profile of each cluster used in database
         construction. Only used by AntPack (not by end users)."""
-        xdata = np.zeros((len(sequences),
-            self.em_cat_mixture_model.get_specs()[1] ), dtype=np.uint8)
-        sliced_sequences = self.template_aligner.slice_msa(
-            sequences, self.region)
+        retained_idx, retained_seqs = [], []
+        preds = np.full((len(sequences)), -1, dtype=np.int64)
 
-        self.em_cat_mixture_model.encode_input_seqs(
-            sliced_sequences, xdata)
-        cluster_assignments = np.zeros((len(sequences)),
-                dtype=np.int64)
-        self.em_cat_mixture_model.predict_cpp(xdata,
-                    cluster_assignments, use_mixweights)
-
-        # This is a hack. TODO: Add capability to the SequenceTemplateAligner
-        # so we do not have to do this.
+        # Skip any sequences which are "". The cluster assignments
+        # for these will be mapped to -1 (an arbitrary negative
+        # number since all cluster assignments are positive)
+        # and will be ignored by the database loader.
         for i, seq in enumerate(sequences):
-            if seq == "":
-                sliced_sequences[i] = ""
-                cluster_assignments[i] = -1;
+            if seq != "":
+                retained_idx.append(i)
+                retained_seqs.append(seq)
 
+        if len(retained_seqs) == 0:
+            return preds
 
+        xdata = self._prep_xdata(retained_seqs)
+        retained_preds = np.zeros((xdata.shape[0]), dtype=np.int64)
+        self.em_cat_mixture_model.predict_cpp(xdata,
+                    retained_preds, True)
+
+        idx = np.array(retained_idx)
+        preds[idx] = retained_preds
         self.em_cat_mixture_model.update_cluster_profiles(
-                sliced_sequences, preds, cluster_profiles)
+                xdata, retained_preds, cluster_profiles)
         return preds
