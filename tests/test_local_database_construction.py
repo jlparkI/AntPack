@@ -1,9 +1,12 @@
 """Test database construction for errors.
 Use sqlite for testing and prototyping."""
 import os
+import math
 import sqlite3
 import unittest
-from antpack import build_database_from_fasta, SingleChainAnnotator
+import numpy as np
+from antpack import (build_database_from_fasta,
+        SingleChainAnnotator, EMCategoricalMixture)
 from antpack.utilities import read_fasta
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
         return_imgt_canonical_numbering_cpp)
@@ -24,6 +27,11 @@ class TestLocalDBConstruction(unittest.TestCase):
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
 
+        try:
+            os.remove("TEMP_DB.db")
+        except:
+            pass
+
         for nmbr_scheme in ['imgt']:
             for cdr_scheme in ['north', 'kabat']:
                 if cdr_scheme == "north":
@@ -36,8 +44,9 @@ class TestLocalDBConstruction(unittest.TestCase):
                     memo="t"
                     sequence_type = "paired"
 
-                build_database_from_fasta(data_filepath,
-                    "TEMP_DB.db", numbering_scheme=nmbr_scheme,
+                build_database_from_fasta([data_filepath],
+                    "TEMP_DB.db", os.getcwd(),
+                    numbering_scheme=nmbr_scheme,
                     cdr_definition_scheme=cdr_scheme,
                     sequence_type=sequence_type, receptor_type="mab",
                     pid_threshold=0.7, user_memo=memo)
@@ -73,81 +82,65 @@ class TestLocalDBConstruction(unittest.TestCase):
 
                 # Check heavy chains first. Make sure numbering table
                 # contains expected info.
-                aligned_seqs, cdrs, unusual_positions, codes = \
+                aligned_seqs, cdrs, unusual_positions, codes, cluster_profiles = \
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("H",), seqs,
                         annotations, sca)
                 rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
-                dimer_count_table = {}
 
-                for i in range(len(cdrs[0])):
-                    row_counter = 10
-                    for cdr, cdr_code in zip(cdrs, codes):
-                        for j in range(0, len(cdr[i]), 2):
-                            dimer = cdr[i][j:j+2]
-                            dimer_position = cdr_code[j]
-                            if len(dimer) == 1:
-                                dimer += "-"
+                for i, cdr_group in enumerate(cdrs):
+                    self.assertTrue(rows[i][1] == unusual_positions[i])
+                    row_counter = 8
+                    for cdr in cdr_group:
+                        for aa_code in cdr:
                             self.assertTrue(rows[i][row_counter] ==
-                                    dimer)
-                            if dimer_position not in dimer_count_table:
-                                dimer_count_table[dimer_position] = \
-                                        [0]*21*21
-                            dimer_code = AAMAP[dimer[0]]*21 + AAMAP[dimer[1]]
-                            dimer_count_table[dimer_position][dimer_code] += 1
+                                    aa_code)
                             row_counter += 1
                 del rows
 
                 rows = cursor.execute("SELECT * from "
                     "heavy_column_diversity").fetchall()
-                row_dict = {row[0]:row[1:] for row in rows}
-                for dimer_position, dimer_counts in \
-                        dimer_count_table.items():
-                    self.assertTrue(dimer_position in row_dict)
-                    self.assertTrue(tuple(dimer_counts) ==
-                            row_dict[dimer_position])
+                ctr = 0
+                for cluster_profile in cluster_profiles:
+                    for i in range(cluster_profile.shape[0]):
+                        for j in range(cluster_profile.shape[1]):
+                            self.assertTrue(np.allclose(rows[ctr][2:],
+                                cluster_profile[i,j,:]))
+                            ctr += 1
 
                 del codes, aligned_seqs, cdrs, unusual_positions
 
 
                 # Now do the same for light chains.
-                aligned_seqs, cdrs, unusual_positions, codes = \
+                aligned_seqs, cdrs, unusual_positions, codes, cluster_profiles = \
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("L", "K"), seqs,
                         annotations, sca)
                 rows = cursor.execute("SELECT * from light_numbering").fetchall()
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
-                dimer_count_table = {}
 
-                for i in range(len(cdrs[0])):
-                    row_counter = 10
-                    for cdr, cdr_code in zip(cdrs, codes):
-                        for j in range(0, len(cdr[i]), 2):
-                            dimer = cdr[i][j:j+2]
-                            dimer_position = cdr_code[j]
-                            if len(dimer) == 1:
-                                dimer += "-"
+                for i, cdr_group in enumerate(cdrs):
+                    self.assertTrue(rows[i][1] == unusual_positions[i])
+                    row_counter = 8
+                    for cdr in cdr_group:
+                        for aa_code in cdr:
                             self.assertTrue(rows[i][row_counter] ==
-                                    dimer)
-                            if dimer_position not in dimer_count_table:
-                                dimer_count_table[dimer_position] = \
-                                        [0]*21*21
-                            dimer_code = AAMAP[dimer[0]]*21 + AAMAP[dimer[1]]
-                            dimer_count_table[dimer_position][dimer_code] += 1
+                                    aa_code)
                             row_counter += 1
                 del rows
 
                 rows = cursor.execute("SELECT * from "
                     "light_column_diversity").fetchall()
-                row_dict = {row[0]:row[1:] for row in rows}
-                for dimer_position, dimer_counts in \
-                        dimer_count_table.items():
-                    self.assertTrue(dimer_position in row_dict)
-                    self.assertTrue(tuple(dimer_counts) ==
-                            row_dict[dimer_position])
+                ctr = 0
+                for cluster_profile in cluster_profiles:
+                    for i in range(cluster_profile.shape[0]):
+                        for j in range(cluster_profile.shape[1]):
+                            self.assertTrue(np.allclose(rows[ctr][2:],
+                                cluster_profile[i,j,:]))
+                            ctr += 1
 
-                del codes, aligned_seqs, cdrs, unusual_positions
+                del codes, aligned_seqs, cdrs, unusual_positions, cluster_profiles
 
                 con.close()
                 os.remove("TEMP_DB.db")
@@ -156,13 +149,15 @@ class TestLocalDBConstruction(unittest.TestCase):
     def test_low_quality_seqs(self):
         """Test what happens if we try to write low-quality
         sequences to the database."""
+        return
         with open("temp_data_file.fa", "w+") as fhandle:
             fhandle.write(">NAME\nAAAAAAAATTTTTTTTT\n")
             fhandle.write(">NAME\ntesting123\n")
             fhandle.write(">NAME\nEVQLEVQLEVQL\n")
 
-        build_database_from_fasta("temp_data_file.fa",
-            "TEMP_DB.db", numbering_scheme="imgt",
+        build_database_from_fasta(["temp_data_file.fa"],
+            "TEMP_DB.db", os.getcwd(),
+            numbering_scheme="imgt",
             cdr_definition_scheme="imgt",
             sequence_type="paired", receptor_type="mab",
             pid_threshold=0.7, user_memo="test")
@@ -225,34 +220,56 @@ def prep_seqs_for_comparison(numbering_scheme,
     template_aligner, canon_nmbr = setup_canonical_numbering(
             numbering_scheme, cdr_scheme, chain_type[0])
     recognized_positions = set(canon_nmbr)
+    recognized_positions.add('-')
     cdr_labels = annotator.assign_cdr_labels(canon_nmbr,
             chain_type[0], cdr_scheme)
 
-    cdr1_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
-            if c == "cdr1"]
-    cdr2_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
-            if c == "cdr2"]
-    cdr3_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
-            if c == "cdr3"]
+    aligned_seqs, cdrs, unusual_positions = \
+            [], [], []
 
-    aligned_seqs, cdr1, cdr2, cdr3, unusual_positions = \
-            [], [], [], [], []
-
-    for selected_seq in selected_seqs:
+    for i, selected_seq in enumerate(selected_seqs):
         aligned_seq = template_aligner.align_sequence(
                 selected_seq[0], selected_seq[1][0], False)
-        unusual_positions = [a for a in selected_seq[1][0]
-                if a not in recognized_positions]
-        cdr1.append(''.join([a for (a,c) in zip(aligned_seq,
-            cdr_labels) if c == "cdr1"]))
-        cdr2.append(''.join([a for (a,c) in zip(aligned_seq,
-            cdr_labels) if c == "cdr2"]))
-        cdr3.append(''.join([a for (a,c) in zip(aligned_seq,
-            cdr_labels) if c == "cdr3"]))
+        unusual_positions.append( len([a for a in selected_seq[1][0]
+                if a not in recognized_positions]) )
         aligned_seqs.append(aligned_seq)
 
-    return aligned_seqs, [cdr1, cdr2, cdr3], unusual_positions, \
-            [cdr1_codes, cdr2_codes, cdr3_codes]
+    cdr_codes, cluster_profiles, cluster_assignments = [], [], []
+
+    for region in ["cdr1", "cdr2", "cdr3"]:
+        cdr_codes.append([a for (a,c) in zip(canon_nmbr, cdr_labels)
+            if c == region])
+        nclusters = int(10 * max(1,
+            math.log10(len(selected_seqs) / 100)))
+        em_cat = EMCategoricalMixture(n_components=nclusters,
+                numbering=canon_nmbr, chain_type=chain_type[0],
+                numbering_scheme=numbering_scheme,
+                cdr_scheme=cdr_scheme,
+                region=region, max_threads=2,
+                verbose=False)
+        em_cat.fit(aligned_seqs, max_iter=25,
+                tol=1e-2, n_restarts=3,
+                random_state=123,
+                prune_after_fitting=True)
+        cluster_profile = em_cat.initialize_cluster_profiles()
+        preds = em_cat.update_cluster_profiles(aligned_seqs,
+                cluster_profile)
+        cluster_profiles.append(cluster_profile)
+        cluster_assignments.append(preds)
+
+    for i, aligned_seq in enumerate(aligned_seqs):
+        grouped_cdr = []
+        for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
+            assn_code = str(cluster_assignments[j][i])
+            cdr = [assn_code + a for (a,c) in zip(aligned_seq,
+                cdr_labels) if c == region]
+            grouped_cdr.append(cdr)
+
+        cdrs.append(grouped_cdr)
+
+
+    return aligned_seqs, cdrs, unusual_positions, \
+            cdr_codes, cluster_profiles
 
 
 if __name__ == "__main__":

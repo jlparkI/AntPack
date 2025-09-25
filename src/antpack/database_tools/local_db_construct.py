@@ -4,6 +4,7 @@ import os
 import math
 import gc
 import gzip
+import numpy as np
 from ..numbering_tools import SingleChainAnnotator, PairedChainAnnotator
 from ..clustering_tools import EMCategoricalMixture
 from ..vj_tools.vj_gene_assignment import VJGeneTool
@@ -120,30 +121,33 @@ def build_database_from_fasta(fasta_files:list,
                             "", "", "", ""
                     heavy_species, light_species = "", ""
                     aligned_heavy, aligned_light = "", ""
+                    unusual_heavy, unusual_light = "", ""
 
                     if annotation[2] in ("A", "G", "H"):
                         chain_counts[0] += 1
-                        aligned_heavy = heavy_aligner.align_sequence(
+                        aligned_heavy, unusual_heavy = heavy_aligner.align_sequence_save_unusual_positions(
                                 seq, annotation[0])
+                        unusual_heavy = len(unusual_heavy)
                         heavy_vgenes, heavy_jgenes, _, _, heavy_species = \
                                 vj_tool.assign_vj_genes(
                             annotation, seq, "unknown", "identity")
                     else:
                         chain_counts[1] += 1
-                        aligned_light = light_aligner.align_sequence(seq,
+                        aligned_light, unusual_light = light_aligner.align_sequence_save_unusual_positions(seq,
                                 annotation[0])
+                        unusual_light = len(unusual_light)
                         light_vgenes, light_jgenes, _, _, light_species = \
                                 vj_tool.assign_vj_genes(
                             annotation, seq, "unknown", "identity")
                 except Exception as e:
-                    print(e)
                     storage_handle.close()
                     os.remove(temp_fname)
+                    raise Exception from e
 
                 storage_handle.write(f"{seq},{aligned_heavy},{aligned_light},"
                         f"{heavy_vgenes},{heavy_jgenes},{heavy_species},"
                         f"{light_vgenes},{light_jgenes},{light_species},"
-                        f"{seqinfo},,\n")
+                        f"{seqinfo},{unusual_heavy},{unusual_light},,\n")
 
         del sca_tool
 
@@ -163,30 +167,33 @@ def build_database_from_fasta(fasta_files:list,
                             "", "", "", ""
                     heavy_species, light_species = "", ""
                     aligned_heavy, aligned_light = "", ""
+                    unusual_heavy, unusual_light = "", ""
 
                     if heavy_annotation[1] >= pid_threshold:
                         chain_counts[0] += 1
-                        aligned_heavy = heavy_aligner.align_sequence(
+                        aligned_heavy, unusual_heavy = heavy_aligner.align_sequence_save_unusual_positions(
                                 seq, heavy_annotation[0])
+                        unusual_heavy = len(unusual_heavy)
                         heavy_vgenes, heavy_jgenes, _, _, heavy_species = \
                                 vj_tool.assign_vj_genes(
                             heavy_annotation, seq, "unknown", "identity")
                     if light_annotation[1] >= pid_threshold:
                         chain_counts[1] += 1
-                        aligned_light = light_aligner.align_sequence(seq,
+                        aligned_light, unusual_light = light_aligner.align_sequence_save_unusual_positions(seq,
                                 light_annotation[0])
+                        unusual_light = len(unusual_light)
                         light_vgenes, light_jgenes, _, _, light_species = \
                                 vj_tool.assign_vj_genes(
                             light_annotation, seq, "unknown", "identity")
                 except Exception as e:
-                    print(e)
                     storage_handle.close()
                     os.remove(temp_fname)
+                    raise Exception from e
 
                 storage_handle.write(f"{seq},{aligned_heavy},{aligned_light},"
                         f"{heavy_vgenes},{heavy_jgenes},{heavy_species},"
                         f"{light_vgenes},{light_jgenes},{light_species},"
-                        f"{seqinfo},\n")
+                        f"{seqinfo},{unusual_heavy},{unusual_light},,\n")
 
         del pca_tool
 
@@ -206,6 +213,8 @@ def build_database_from_fasta(fasta_files:list,
     if verbose:
         print("*****\nClustering complete. Now constructing database...")
 
+    cluster_profiles = [model.initialize_cluster_profiles() for
+                model in cluster_models]
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             numbering_scheme, cdr_definition_scheme,
             sequence_type, receptor_type,
@@ -216,6 +225,11 @@ def build_database_from_fasta(fasta_files:list,
     # Process lines from the storage file in batches for more efficiency
     # in cluster assignment / profile update.
     line_batch = []
+    
+    if gzip_temp_files:
+        storage_handle = gzip.open(temp_fname, "rt")
+    else:
+        storage_handle = open(temp_fname, "r", encoding="utf-8")
 
     for i, line in enumerate(storage_handle):
         if i % 10000 == 0:
@@ -225,20 +239,22 @@ def build_database_from_fasta(fasta_files:list,
                 print(f"{i} complete.")
         line_batch.append(line)
         if len(line_batch) > 100:
-            _prep_line_batch(cluster_models, line_batch,
-                    db_construct_tool)
+            _prep_line_batch(cluster_models, cluster_profiles,
+                    line_batch, db_construct_tool)
+            line_batch = []
+
+    storage_handle.close()
 
     if len(line_batch) > 0:
-        _prep_line_batch(cluster_models, line_batch,
-                db_construct_tool)
-
+        _prep_line_batch(cluster_models, cluster_profiles,
+                line_batch, db_construct_tool)
 
     if verbose:
         print("Now constructing database indices...")
 
     db_construct_tool.close_transaction()
     db_construct_tool.open_transaction()
-    db_construct_tool.finalize_db_construction()
+    db_construct_tool.finalize_db_construction(cluster_profiles[:3], cluster_profiles[3:])
     db_construct_tool.close_transaction()
 
     if verbose:
@@ -280,7 +296,7 @@ def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
                     numbering_scheme=numbering_scheme,
                     cdr_scheme=cdr_scheme,
                     region=region, max_threads=max_threads,
-                    verbose=verbose)
+                    verbose=False)
             file_list = em_cluster.encode_temp_db_prep_file(storage_fname,
                     temp_storage_dir, chain_designator + 1,
                     chunk_size=5000)
@@ -296,11 +312,19 @@ def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
     return cluster_models
 
 
-def _prep_line_batch(cluster_models, line_batch, db_construct_tool):
+def _prep_line_batch(cluster_models, cluster_profiles,
+        line_batch, db_construct_tool):
     """Adds a batch of lines loaded from a temp storage file
     to the database. Used internally by AntPack only."""
-    line_elements = [l.split(',') for l in line_batch]
-    heavy_seqs = [l[1] for l in line_elements]
-    light_seqs = [l[2] for l in line_elements]
+    line_elements = [l.strip().split(',') for l in line_batch]
+    aligned_seqs = ( [l[1] for l in line_elements],
+            [l[2] for l in line_elements] )
+    cluster_assignments = []
 
-    
+    for i, cluster_model in enumerate(cluster_models):
+        cluster_assignments.append(cluster_model.update_cluster_profiles(
+                    aligned_seqs[math.floor(i/3)], cluster_profiles[i] ))
+
+    del aligned_seqs
+    cluster_assignments = np.ascontiguousarray(np.stack(cluster_assignments).T)
+    db_construct_tool.insert_batch(line_elements, cluster_assignments)
