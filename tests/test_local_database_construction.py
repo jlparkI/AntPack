@@ -96,13 +96,12 @@ class TestLocalDBConstruction(unittest.TestCase):
 
                 rows = cursor.execute("SELECT * from "
                     "heavy_column_diversity").fetchall()
-                ctr = 0
-                for cluster_profile in cluster_profiles:
-                    for i in range(cluster_profile.shape[0]):
-                        for j in range(cluster_profile.shape[1]):
-                            self.assertTrue(np.allclose(rows[ctr][2:],
-                                cluster_profile[i,j,:]))
-                            ctr += 1
+                for i, cluster_profile in enumerate(cluster_profiles):
+                    test_arr = np.frombuffer(rows[i][-1], dtype=np.int64)
+                    test_arr = test_arr.reshape((rows[i][2],
+                        rows[i][3], rows[i][4]))
+                    self.assertTrue(np.allclose(test_arr,
+                                cluster_profile))
 
                 del codes, aligned_seqs, cdrs, unusual_positions
 
@@ -127,13 +126,12 @@ class TestLocalDBConstruction(unittest.TestCase):
 
                 rows = cursor.execute("SELECT * from "
                     "light_column_diversity").fetchall()
-                ctr = 0
-                for cluster_profile in cluster_profiles:
-                    for i in range(cluster_profile.shape[0]):
-                        for j in range(cluster_profile.shape[1]):
-                            self.assertTrue(np.allclose(rows[ctr][2:],
-                                cluster_profile[i,j,:]))
-                            ctr += 1
+                for i, cluster_profile in enumerate(cluster_profiles):
+                    test_arr = np.frombuffer(rows[i][-1], dtype=np.int64)
+                    test_arr = test_arr.reshape((rows[i][2],
+                        rows[i][3], rows[i][4]))
+                    self.assertTrue(np.allclose(test_arr,
+                                cluster_profile))
 
                 del codes, aligned_seqs, cdrs, unusual_positions, cluster_profiles
 
