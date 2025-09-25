@@ -282,32 +282,47 @@ def _cluster_cdr_regions(storage_fname:str, chain_counts:list,
             if verbose:
                 print(f"Now clustering chain {chain}, region {region}")
 
-            if chain_counts[chain_designator] == 0:
-                cluster_models.append(None)
-                continue
 
-            # This is a heuristic. May find a better way to set this
-            # in future.
-            nclusters = int(10 * max(1,
-                    math.log10(chain_counts[chain_designator] / 100)))
-            em_cluster = EMCategoricalMixture(n_components=nclusters,
-                    numbering=chain_canon_nmbr[chain_designator],
-                    chain_type=chain_codes[chain_designator],
-                    numbering_scheme=numbering_scheme,
-                    cdr_scheme=cdr_scheme,
-                    region=region, max_threads=max_threads,
-                    verbose=False)
-            file_list = em_cluster.encode_temp_db_prep_file(storage_fname,
-                    temp_storage_dir, chain_designator + 1,
-                    chunk_size=5000)
-            em_cluster.fit(filepaths=file_list, max_iter=25,
+            # We don't have a good procedure at present for situations
+            # where only one chain type is present. For now, generate
+            # a 'dummy cluster' with an all blank sequence.
+            if chain_counts[chain_designator] == 0:
+                dummy_seq = '-' * len(chain_canon_nmbr[chain_designator])
+                em_cluster = EMCategoricalMixture(n_components=1,
+                        numbering=chain_canon_nmbr[chain_designator],
+                        chain_type=chain_codes[chain_designator],
+                        numbering_scheme=numbering_scheme,
+                        cdr_scheme=cdr_scheme,
+                        region=region, max_threads=1,
+                        verbose=False)
+                em_cluster.fit([dummy_seq], max_iter=25,
                     tol=1e-2, n_restarts=3, random_state=123,
                     prune_after_fitting=True)
 
+            else:
+                # This is a heuristic. May find a better way to set this
+                # in future.
+                nclusters = int(10 * max(1,
+                        math.log10(chain_counts[chain_designator] / 100)))
+                em_cluster = EMCategoricalMixture(n_components=nclusters,
+                        numbering=chain_canon_nmbr[chain_designator],
+                        chain_type=chain_codes[chain_designator],
+                        numbering_scheme=numbering_scheme,
+                        cdr_scheme=cdr_scheme,
+                        region=region, max_threads=max_threads,
+                        verbose=False)
+                file_list = em_cluster.encode_temp_db_prep_file(storage_fname,
+                    temp_storage_dir, chain_designator + 1,
+                    chunk_size=5000)
+                em_cluster.fit(filepaths=file_list, max_iter=25,
+                    tol=1e-2, n_restarts=3, random_state=123,
+                    prune_after_fitting=True)
+
+                for fpath in file_list:
+                    os.remove(fpath)
+
             cluster_models.append(em_cluster)
 
-            for fpath in file_list:
-                os.remove(fpath)
 
     return cluster_models
 

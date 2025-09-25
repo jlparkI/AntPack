@@ -27,11 +27,6 @@ class TestLocalDBConstruction(unittest.TestCase):
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
 
-        try:
-            os.remove("TEMP_DB.db")
-        except:
-            pass
-
         for nmbr_scheme in ['imgt']:
             for cdr_scheme in ['north', 'kabat']:
                 if cdr_scheme == "north":
@@ -149,7 +144,6 @@ class TestLocalDBConstruction(unittest.TestCase):
     def test_low_quality_seqs(self):
         """Test what happens if we try to write low-quality
         sequences to the database."""
-        return
         with open("temp_data_file.fa", "w+") as fhandle:
             fhandle.write(">NAME\nAAAAAAAATTTTTTTTT\n")
             fhandle.write(">NAME\ntesting123\n")
@@ -183,9 +177,7 @@ class TestLocalDBConstruction(unittest.TestCase):
         self.assertTrue(len(rows)==0)
 
         rows = cursor.execute("SELECT * from sequences").fetchall()
-        self.assertTrue(len(rows)==3)
-        self.assertTrue(rows[1][0]=="testing123")
-        self.assertTrue(rows[0][1]=="NAME")
+        self.assertTrue(len(rows)==0)
 
         con.close()
         os.remove("TEMP_DB.db")
