@@ -47,11 +47,11 @@ class LocalDBTool:
 
 
 
-    def search_seq(self, seq:str, annotation:tuple,
-            max_hamming_dist:int=5, max_hits:int=100,
-            region_label:str="cdr3",
-            min_num_for_full_search=1200,
-            require_same_length_cdrs:bool=False):
+    def search(self, seq:str, annotation:tuple,
+            cdr_cutoffs:list=[-1, -1, 0.33],
+            max_cdr_length_shift:int=2, max_hits:int=10,
+            retrieve_closest_only:bool=True,
+            vgene_filter=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
         be conducted using the full sequence or a sub-region
@@ -72,45 +72,18 @@ class LocalDBTool:
                 results. If you are unsure what set of definitions was
                 used when the database was created, call
                 get_database_metadata().
-            max_hamming_dist (int): The maximum number of differences
-                between the input sequence and any hits in the target
-                region (inclusive). If searching cdr3, you can use
-                any number up to 5. If searching all three cdrs or the
-                whole sequence, you can use any number up to 10.
-            max_hits (int): The maximum number of hits to retrieve.
-                The closest number of nearest neighbors up to this
-                value will be reported.
-            region_label (str): One of 'cdr3', 'cdr3' or 'all'. If
-                'cdr3', only cdr3 is searched. If 'cdr', all 3 cdrs
-                are used. 'all' searches for hits using the full
-                sequence.
-            min_num_for_full_search (int): When searching, as soon as
-                the number of sequences retrieved is less than this
-                procedure, the search algorithm directly compares the
-                query sequence with all of the retrieved sequences
-                without doing any further filtering. This setting can
-                affect speed; the default is usually fine.
-            require_same_length_cdrs (bool): If True, only sequences whose
-                cdr3 (if querying by cdr3) or all cdrs (for other queries)
-                have the same length as query are returned.
-
-        Returns:
-            hit_seqs (list): A list of sequences of length max_hits or
-                less. An empty list if no hits were found. If more hits
-                were found than max_hits, the *closest* hits are returned.
-            hit_metadata (list): The metadata associated with each hit
-                sequence (this is the sequence description from the
-                fasta file used to create the database).
-            row_ids (list): A list of the row ids in the database associated
-                with each hit. These row ids can be used to retrieve metadata,
-                species info etc about each hit using this class (call
-                retrieve_row_id).
         """
         return self.local_db_manager.search(seq, annotation,
-                max_hamming_dist, max_hits, region_label,
-                min_num_for_full_search, 15,
-                require_same_length_cdrs)
+                cdr_cutoffs, max_cdr_length_shift,
+                max_hits, retrieve_closest_only, vgene_filter)
 
+    def _retrieve_hit_dict(self, seq:str, annotation:tuple,
+            cdr_cutoffs = [-1, -1, 0.33], max_cdr_length_shift = 2):
+        """Used only for testing.
+        """
+        return self.local_db_manager.dummy_candidate_search(seq, annotation,
+                cdr_cutoffs, max_cdr_length_shift,
+                1000, "")
 
 
     def search_by_metadata(self, metadata:str, max_hits=100):
@@ -191,17 +164,6 @@ class LocalDBTool:
         """
         return self.local_db_manager.get_position_tables()
 
-
-    def get_database_position_counts(self, chain_type="H"):
-        """Returns metadata about the database (numbering scheme,
-        receptor type, cdr definition type, and memo entered when
-        creating the db if any).
-
-
-        Returns:
-            
-        """
-        return self.local_db_manager.get_database_metadata()
 
 
     def export_database_to_csv(self, csv_filepath, gzip_file=False):

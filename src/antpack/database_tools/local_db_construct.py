@@ -49,8 +49,13 @@ def build_database_from_fasta(fasta_filepaths,
         RuntimeError: A RuntimeError is raised if invalid arguments are
             supplied.
     """
+    if not isinstance(fasta_filepaths, list):
+        raise RuntimeError("The fasta filepaths should be a list of filepaths. "
+                "If you have only one filepath, you can enclose it in brackets "
+                "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
+
     license_key, user_email = get_license_key_info()
     project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
             "..")
