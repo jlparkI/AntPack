@@ -82,11 +82,9 @@ class TestLocalDBConstruction(unittest.TestCase):
                 rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
 
-                test_results, monomer_profile, dimer_profile = \
-                        test_nmbr_table_row_contents(rows,
+                dimer_profile, trimer_profile = \
+                        self.eval_nmbr_table_row_contents(rows,
                         cdrs, unusual_positions)
-                for test_result in test_results:
-                    self.assertTrue(test_result)
 
                 del rows
 
@@ -96,28 +94,18 @@ class TestLocalDBConstruction(unittest.TestCase):
                 for row in rows:
                     test_arr = np.frombuffer(row[-1], dtype=np.int64)
                     cdr_idx = int(row[0][-1]) - 1
-                    if row[2] == "monomer":
-                        profile_table = monomer_profile[cdr_idx]
-                    else:
+                    if row[1] == "dimer":
                         profile_table = dimer_profile[cdr_idx]
+                    else:
+                        profile_table = trimer_profile[cdr_idx]
 
-                    self.assertTrue(row[1] in profile_table)
-                    self.assertTrue(row[3]==profile_table[row[1]].shape[0])
-                    
-                    gt_prof = profile_table[row[1]]
+                    self.assertTrue(row[2]==profile_table.shape[0])
 
-                    test_arr = test_arr.reshape((row[3], row[4]))
-                    self.assertTrue(np.allclose(test_arr, gt_prof))
-                    profile_table[row[1]] = None
+                    test_arr = test_arr.reshape((row[2], row[3]))
+                    self.assertTrue(np.allclose(test_arr, profile_table))
 
-                for gt in monomer_profile:
-                    for _, cp in gt.items():
-                        self.assertTrue(cp is None)
-                for gt in dimer_profile:
-                    for _, cp in gt.items():
-                        self.assertTrue(cp is None)
                 del codes, aligned_seqs, cdrs, unusual_positions,\
-                        monomer_profile, dimer_profile
+                        dimer_profile, trimer_profile
 
 
                 # Now do the same for light chains.
@@ -128,11 +116,9 @@ class TestLocalDBConstruction(unittest.TestCase):
                 rows = cursor.execute("SELECT * from light_numbering").fetchall()
                 self.assertTrue([r[0] for r in rows] == aligned_seqs)
 
-                test_results, monomer_profile, dimer_profile = \
-                        test_nmbr_table_row_contents(rows,
+                dimer_profile, trimer_profile = \
+                        self.eval_nmbr_table_row_contents(rows,
                         cdrs, unusual_positions)
-                for test_result in test_results:
-                    self.assertTrue(test_result)
 
                 del rows
 
@@ -142,28 +128,18 @@ class TestLocalDBConstruction(unittest.TestCase):
                 for row in rows:
                     test_arr = np.frombuffer(row[-1], dtype=np.int64)
                     cdr_idx = int(row[0][-1]) - 1
-                    if row[2] == "monomer":
-                        profile_table = monomer_profile[cdr_idx]
-                    else:
+                    if row[1] == "dimer":
                         profile_table = dimer_profile[cdr_idx]
+                    else:
+                        profile_table = trimer_profile[cdr_idx]
 
-                    self.assertTrue(row[1] in profile_table)
-                    self.assertTrue(row[3]==profile_table[row[1]].shape[0])
-                    
-                    gt_prof = profile_table[row[1]]
+                    self.assertTrue(row[2]==profile_table.shape[0])
 
-                    test_arr = test_arr.reshape((row[3], row[4]))
-                    self.assertTrue(np.allclose(test_arr, gt_prof))
-                    profile_table[row[1]] = None
+                    test_arr = test_arr.reshape((row[2], row[3]))
+                    self.assertTrue(np.allclose(test_arr, profile_table))
 
-                for gt in monomer_profile:
-                    for _, cp in gt.items():
-                        self.assertTrue(cp is None)
-                for gt in dimer_profile:
-                    for _, cp in gt.items():
-                        self.assertTrue(cp is None)
                 del codes, aligned_seqs, cdrs, unusual_positions,\
-                        monomer_profile, dimer_profile
+                        dimer_profile, trimer_profile
 
                 con.close()
                 os.remove("TEMP_DB.db")
@@ -210,54 +186,51 @@ class TestLocalDBConstruction(unittest.TestCase):
         os.remove("TEMP_DB.db")
         os.remove("temp_data_file.fa")
 
+    def eval_nmbr_table_row_contents(self, rows, cdrs,
+            unusual_positions):
+        """Tests the contents of the rows from the numbering
+        table."""
+        dimer_profile_counts = [np.zeros(( int((len(cdr)+1)/2), 21*21 ))
+                for cdr in cdrs[0]]
+        trimer_profile_counts = [np.zeros(( int((len(cdr)+2)/3), 21*21*21 ))
+                for cdr in cdrs[0]]
 
+        AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
+        for i, cdr_group in enumerate(cdrs):
+            self.assertTrue(rows[i][1] == unusual_positions[i])
+            cdr3len = len(cdr_group[2].replace('-', ''))
+            self.assertTrue(rows[i][9] == cdr3len)
+            # Counts where we are in order to skip things like vj
+            # genes not checked in this test.
+            row_counter = 10
 
+            for cdr, dimer_count, trimer_count in \
+                    zip(cdr_group, dimer_profile_counts,
+                            trimer_profile_counts):
 
-def test_nmbr_table_row_contents(rows, cdrs,
-        unusual_positions):
-    """Tests the contents of the rows from the numbering
-    table."""
-    monomer_profile_counts = [{}, {}, {}]
-    dimer_profile_counts = [{}, {}, {}]
+                for j in range(0, len(cdr), 2):
+                    dimer = cdr[j:j+2]
+                    if len(dimer) == 1:
+                        dimer += '-'
 
-    test_results = []
-    AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
+                    codeval = AAMAP[dimer[0]] * 21 + AAMAP[dimer[1]]
+                    dimer_count[int(j/2), codeval] += 1
+                    self.assertTrue(rows[i][row_counter] == codeval)
+                    row_counter += 1
 
-    for i, cdr_group in enumerate(cdrs):
-        test_results.append(rows[i][1] == unusual_positions[i])
-        row_counter = 9
+                for j in range(0, len(cdr), 3):
+                    trimer = cdr[j:j+3]
+                    while len(trimer) < 3:
+                        trimer += '-'
 
-        for cdr, monomer_count, dimer_count in \
-                zip(cdr_group, monomer_profile_counts,
-                        dimer_profile_counts):
-            cdrlen = len([a for a in cdr if a != '-'])
-            if cdrlen not in monomer_count:
-                monomer_count[cdrlen] = np.zeros((len(cdr), 21),
-                        dtype=np.int64)
-                dimer_count[cdrlen] = np.zeros(( int((len(cdr) + 1) / 2),
-                    21*21), dtype=np.int64)
+                    codeval = AAMAP[trimer[0]] * 21 * 21 + \
+                        AAMAP[trimer[1]] * 21 + AAMAP[trimer[2]]
+                    trimer_count[int(j/3), codeval] += 1
+                    self.assertTrue(rows[i][row_counter] == codeval)
+                    row_counter += 1
 
-            for j, aa_code in enumerate(cdr):
-                test_results.append(rows[i][row_counter] ==
-                        str(cdrlen) + aa_code)
-                monomer_count[cdrlen][j,AAMAP[aa_code]] += 1
-                row_counter += 1
-
-            for j in range(0, len(cdr), 2):
-                dimer = cdr[j:j+2]
-                if len(dimer) == 1:
-                    dimer += '-'
-
-                codeval = AAMAP[dimer[0]] * 21 + AAMAP[dimer[1]]
-                dimer_count[cdrlen][int(j/2), codeval] += 1
-                test_results.append(rows[i][row_counter] ==
-                        str(cdrlen) + dimer)
-                row_counter += 1
-
-    return test_results, monomer_profile_counts,\
-            dimer_profile_counts
-
+        return dimer_profile_counts, trimer_profile_counts
 
 
 

@@ -48,7 +48,7 @@ class LocalDBTool:
 
 
     def search(self, seq:str, annotation:tuple,
-            cdr_cutoffs:list=[-1, -1, 0.33],
+            mode="3", cdr_cutoff=0.25,
             max_cdr_length_shift:int=2, max_hits:int=10,
             retrieve_closest_only:bool=True,
             vgene_filter=""):
@@ -74,11 +74,11 @@ class LocalDBTool:
                 get_database_metadata().
         """
         return self.local_db_manager.search(seq, annotation,
-                cdr_cutoffs, max_cdr_length_shift,
+                mode, cdr_cutoff, max_cdr_length_shift,
                 max_hits, retrieve_closest_only, vgene_filter)
 
     def _retrieve_hit_dict(self, seq:str, annotation:tuple,
-            cdr_cutoffs = [-1, -1, 0.33], max_cdr_length_shift = 2):
+            cdr_cutoffs = [-1, -1, 0.25], max_cdr_length_shift = 2):
         """Used only for testing.
         """
         return self.local_db_manager.dummy_candidate_search(seq, annotation,

@@ -112,13 +112,11 @@ class TestLocalDBManagement(unittest.TestCase):
 
         labels = sca.assign_cdr_labels(numbering,
                 "H", "imgt")
-        gt_mtable, gt_dtable = get_kmer_counts(msa, labels)
+        gt_dtable, gt_ttable = get_kmer_counts(msa, labels)
 
         for i in range(3):
-            for token, counts in gt_mtable[i].items():
-                self.assertTrue(mtables[0][i][token]==counts)
-            for token, counts in gt_dtable[i].items():
-                self.assertTrue(dtables[0][i][token]==counts)
+            self.assertTrue(mtables[0][i]==gt_dtable[i])
+            self.assertTrue(dtables[0][i]==gt_ttable[i])
 
         del numbering, msa, labels, sta
 
@@ -136,13 +134,11 @@ class TestLocalDBManagement(unittest.TestCase):
 
         labels = sca.assign_cdr_labels(numbering,
                 "L", "imgt")
-        gt_mtable, gt_dtable = get_kmer_counts(msa, labels)
+        gt_dtable, gt_ttable = get_kmer_counts(msa, labels)
 
         for i in range(3):
-            for token, counts in gt_mtable[i].items():
-                self.assertTrue(mtables[1][i][token]==counts)
-            for token, counts in gt_dtable[i].items():
-                self.assertTrue(dtables[1][i][token]==counts)
+            self.assertTrue(mtables[1][i]==gt_dtable[i])
+            self.assertTrue(dtables[1][i]==gt_ttable[i])
 
         del numbering, msa, labels, sta
 
@@ -187,9 +183,9 @@ class TestLocalDBManagement(unittest.TestCase):
             query_seq = "".join(query_seq)
 
             if random.randint(0,1) == 1:
-                cdr_cutoffs = [0.33, 0.33, 0.33]
+                mode = "123"
             else:
-                cdr_cutoffs = [-1, -1, 0.33]
+                mode = "3"
             if random.randint(0,1) == 1:
                 max_cdr_length_shift = 2
             else:
@@ -208,12 +204,12 @@ class TestLocalDBManagement(unittest.TestCase):
 
             hit_idx, hit_dists, _ = db_tool.search(
                     query_seq, (codes, 1, chain_code, ""),
-                    cdr_cutoffs, max_cdr_length_shift,
+                    mode, 0.25, max_cdr_length_shift,
                     max_hits, retrieve_closest_only,
                     vgene_filter)
 
             gt_hit_idx, gt_hit_dists = perform_exact_search(query_seq,
-                    msa, labels, cdr_cutoffs, max_cdr_length_shift,
+                    msa, labels, mode, 0.25, max_cdr_length_shift,
                     retrieve_closest_only, max_hits,
                     vgenes, vgene_filter)
 
@@ -231,25 +227,26 @@ class TestLocalDBManagement(unittest.TestCase):
                 h2 = [h for h,d in zip(hit_idx, hit_dists)
                         if d == hdist]
                 h2.sort()
+                if h1 != h2:
+                    import pdb
+                    pdb.set_trace()
                 self.assertTrue(h1==h2)
 
 
-def perform_exact_search(query, msa, labels, cdr_cutoffs,
+def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
         max_cdr_length_shift, retrieve_closest_only,
         max_hits, vgenes, vgene_filter=""):
     """Performs an exact search on an input msa, finding
     all sequences that have hamming distance <= specified."""
-    all_dists, retained_dists, hit_idx, cdrlen = [], [], [], []
-    max_hamming = []
-    largest_allowed_dist = 0
+    retained_dists, hit_idx, cdrlen = [], [], []
+    max_hamming = 0
 
-    for region, cdr_cutoff in zip(["cdr1", "cdr2", "cdr3"],
-            cdr_cutoffs):
+    for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
         cdrlen.append(len([q for (q,l) in zip(query, labels)
             if q != '-' and l == region]))
-        max_hamming.append(round(cdrlen[-1] * cdr_cutoff))
-        if max_hamming[-1] > 0:
-            largest_allowed_dist += max_hamming[-1]
+        if str(j+1) not in mode:
+            continue
+        max_hamming += round(cdrlen[-1] * cdr_cutoff)
 
     for i, seq in enumerate(msa):
         net_dist = 0
@@ -258,7 +255,7 @@ def perform_exact_search(query, msa, labels, cdr_cutoffs,
                 continue
 
         for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
-            if cdr_cutoffs[j] < 0:
+            if str(j+1) not in mode:
                 continue
             region_dist = len([a for (a,b,l) in zip(seq, query,
                 labels) if l==region and a != b])
@@ -271,12 +268,8 @@ def perform_exact_search(query, msa, labels, cdr_cutoffs,
             if region_len > cdrlen[j] + max_cdr_length_shift or \
                     region_len < cdrlen[j] - max_cdr_length_shift:
                 net_dist += 100
-            if region_dist > max_hamming[j]:
-                net_dist += 100
 
-        all_dists.append(net_dist)
-
-        if net_dist <= largest_allowed_dist:
+        if net_dist <= max_hamming:
             hit_idx.append(i)
             retained_dists.append(net_dist)
 
@@ -300,8 +293,7 @@ def perform_exact_search(query, msa, labels, cdr_cutoffs,
 def get_kmer_counts(msa, cdr_labels):
     """Extract kmers from the cdrs of an msa and
     count the number present of each."""
-    monomer_count_tables = [{} for i in range(3)]
-    dimer_count_tables = [{} for i in range(3)]
+    dimer_count_tables, trimer_count_tables = [], []
 
     for t, (cdr, next_fmwk) in enumerate([("cdr1", "fmwk2"),
             ("cdr2", "fmwk3"), ("cdr3", "fmwk4")]):
@@ -309,39 +301,37 @@ def get_kmer_counts(msa, cdr_labels):
         cdr_end = cdr_labels.index(next_fmwk)
         full_cdrlen = cdr_end - cdr_start
 
-        cdrs_by_length = {}
-        for msa_seq in msa:
-            cdrlen = len([m for m,l in zip(msa_seq,
-                    cdr_labels) if m != '-' and l==cdr])
-            if cdrlen not in cdrs_by_length:
-                cdrs_by_length[cdrlen] = []
-            cdrs_by_length[cdrlen].append(msa_seq)
+        dimer_count_tables.append(
+                [0]*int((full_cdrlen + 1)/2)*21*21)
+        trimer_count_tables.append(
+                [0]*int((full_cdrlen + 2)/3)*21*21*21)
 
-        for cdrlen, msa_subset in cdrs_by_length.items():
-            monomer_count_tables[t][cdrlen] = [0]*full_cdrlen*21
-            dimer_count_tables[t][cdrlen] = \
-                    [0]*int((full_cdrlen + 1)/2)*21*21
+        ctr = 0
+        for i in range(cdr_start, cdr_end, 2):
+            if i < cdr_end - 1:
+                for m in msa:
+                    kmer_code = AAMAP[m[i]] * 21 + AAMAP[m[i+1]]
+                    dimer_count_tables[t][kmer_code+ctr] += 1
+            else:
+                for m in msa:
+                    kmer_code = AAMAP[m[i]] * 21 + 20
+                    dimer_count_tables[t][kmer_code+ctr] += 1
+            ctr += 21*21
 
-            ctr = 0
-            for i in range(cdr_start, cdr_end, 2):
-                if i < cdr_end - 1:
-                    for m in msa_subset:
-                        kmer_code = AAMAP[m[i]] * 21 + AAMAP[m[i+1]]
-                        dimer_count_tables[t][cdrlen][kmer_code+ctr] += 1
-                else:
-                    for m in msa_subset:
-                        kmer_code = AAMAP[m[i]] * 21 + 20
-                        dimer_count_tables[t][cdrlen][kmer_code+ctr] += 1
-                ctr += 21*21
+        ctr = 0
+        for i in range(cdr_start, cdr_end, 3):
+            for m in msa:
+                cutpoint = min(cdr_end, i+3)
+                trimer = m[i:cutpoint]
+                while len(trimer) < 3:
+                    trimer += '-'
+                kmer_code = AAMAP[trimer[0]] * 21 * 21 + \
+                            AAMAP[trimer[1]] * 21 + \
+                            AAMAP[trimer[2]]
+                trimer_count_tables[t][kmer_code+ctr] += 1
+            ctr += 21*21*21
 
-            ctr = 0
-            for i in range(cdr_start, cdr_end):
-                for m in msa_subset:
-                    kmer_code = AAMAP[m[i]]
-                    monomer_count_tables[t][cdrlen][kmer_code+ctr] += 1
-                ctr += 21
-
-    return monomer_count_tables, dimer_count_tables
+    return dimer_count_tables, trimer_count_tables
 
 
 
