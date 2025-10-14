@@ -51,7 +51,7 @@ class LocalDBTool:
             mode="3", cdr_cutoff=0.25,
             max_cdr_length_shift:int=2, max_hits:int=10,
             retrieve_closest_only:bool=True,
-            vgene_filter=""):
+            vgene="", species=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
         be conducted using the full sequence or a sub-region
@@ -75,7 +75,7 @@ class LocalDBTool:
         """
         return self.local_db_manager.search(seq, annotation,
                 mode, cdr_cutoff, max_cdr_length_shift,
-                max_hits, retrieve_closest_only, vgene_filter)
+                max_hits, retrieve_closest_only, vgene, species)
 
     def _retrieve_hit_dict(self, seq:str, annotation:tuple,
             cdr_cutoffs = [-1, -1, 0.25], max_cdr_length_shift = 2):

@@ -6,7 +6,7 @@ import sqlite3
 import unittest
 import numpy as np
 from antpack import (build_database_from_fasta,
-        SingleChainAnnotator, EMCategoricalMixture)
+        SingleChainAnnotator, VJGeneTool)
 from antpack.utilities import read_fasta
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
         return_imgt_canonical_numbering_cpp)
@@ -72,15 +72,20 @@ class TestLocalDBConstruction(unittest.TestCase):
 
                 sca = SingleChainAnnotator(scheme=nmbr_scheme)
                 annotations = sca.analyze_seqs(seqs)
+                vj_tool = VJGeneTool(scheme=nmbr_scheme)
 
                 # Check heavy chains first. Make sure numbering table
                 # contains expected info.
-                aligned_seqs, cdrs, unusual_positions, codes = \
+                aligned_seqs, cdrs, unusual_positions, codes, vgenes, _, vspecies = \
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("H",), seqs,
-                        annotations, sca)
+                        annotations, sca, vj_tool)
                 rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
-                self.assertTrue([r[0] for r in rows] == aligned_seqs)
+                for i, row in enumerate(rows):
+                    self.assertTrue(row[0]==aligned_seqs[i][0])
+                    self.assertTrue(row[1]==aligned_seqs[i][1])
+                    vcode = get_vgene_code(vgenes[i], vspecies[i], vj_tool)
+                    self.assertTrue(row[3]==vcode)
 
                 dimer_profile, trimer_profile = \
                         self.eval_nmbr_table_row_contents(rows,
@@ -109,12 +114,16 @@ class TestLocalDBConstruction(unittest.TestCase):
 
 
                 # Now do the same for light chains.
-                aligned_seqs, cdrs, unusual_positions, codes = \
+                aligned_seqs, cdrs, unusual_positions, codes, vgenes, _, vspecies = \
                         prep_seqs_for_comparison(nmbr_scheme,
                         cdr_scheme, ("L","K"), seqs,
-                        annotations, sca)
+                        annotations, sca, vj_tool)
                 rows = cursor.execute("SELECT * from light_numbering").fetchall()
-                self.assertTrue([r[0] for r in rows] == aligned_seqs)
+                for i, row in enumerate(rows):
+                    self.assertTrue(row[0]==aligned_seqs[i][0])
+                    self.assertTrue(row[1]==aligned_seqs[i][1])
+                    vcode = get_vgene_code(vgenes[i], vspecies[i], vj_tool)
+                    self.assertTrue(row[3]==vcode)
 
                 dimer_profile, trimer_profile = \
                         self.eval_nmbr_table_row_contents(rows,
@@ -198,16 +207,17 @@ class TestLocalDBConstruction(unittest.TestCase):
         AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
         for i, cdr_group in enumerate(cdrs):
-            self.assertTrue(rows[i][1] == unusual_positions[i])
+            self.assertTrue(rows[i][2] == unusual_positions[i])
             cdr3len = len(cdr_group[2].replace('-', ''))
-            self.assertTrue(rows[i][9] == cdr3len)
+            self.assertTrue(rows[i][6] == cdr3len)
             # Counts where we are in order to skip things like vj
             # genes not checked in this test.
-            row_counter = 10
+            row_counter = 7
 
+            # TODO: For now only considering cdr3 for indexing.
             for cdr, dimer_count, trimer_count in \
-                    zip(cdr_group, dimer_profile_counts,
-                            trimer_profile_counts):
+                    zip(cdr_group[2:], dimer_profile_counts[2:],
+                            trimer_profile_counts[2:]):
 
                 for j in range(0, len(cdr), 2):
                     dimer = cdr[j:j+2]
@@ -250,12 +260,31 @@ def setup_canonical_numbering(numbering_scheme,
 
 def prep_seqs_for_comparison(numbering_scheme,
         cdr_scheme, chain_type, sequences,
-        annotations, annotator):
+        annotations, annotator,
+        vj_tool):
     """Prep sequences which are of the specified chain
     type for analysis by aligning to the template,
     extracting cdrs etc."""
     selected_seqs = [(s, a) for (s, a) in zip(
         sequences, annotations) if a[2] in chain_type]
+    vgenes, jgenes = [], []
+    vjspecies = []
+
+    for selected_seq in selected_seqs:
+        vgene, jgene, _, _, species = vj_tool.assign_vj_genes(
+                selected_seq[1], selected_seq[0], "unknown",
+                "identity")
+        vgenes.append(vgene)
+        jgenes.append(jgene)
+        if species == "human":
+            vjspecies.append(0)
+        elif species == "mouse":
+            vjspecies.append(1)
+        elif species == "alpaca":
+            vjspecies.append(2)
+        elif species == "rabbit":
+            vjspecies.append(3)
+
     template_aligner, canon_nmbr = setup_canonical_numbering(
             numbering_scheme, cdr_scheme, chain_type[0])
     recognized_positions = set(canon_nmbr)
@@ -285,10 +314,45 @@ def prep_seqs_for_comparison(numbering_scheme,
         cdr3 = ''.join([a for (a,c) in zip(aligned_seq,
             cdr_labels) if c == "cdr3"])
         cdrs.append((cdr1, cdr2, cdr3))
-        aligned_seqs.append(aligned_seq)
+        aligned_seqs.append((cdr1 + cdr2 + cdr3, cdr3))
 
     return aligned_seqs, cdrs, unusual_positions, \
-            [cdr1_codes, cdr2_codes, cdr3_codes]
+            [cdr1_codes, cdr2_codes, cdr3_codes], \
+            vgenes, jgenes, vjspecies
+
+
+def get_vgene_code(vgene, species_code, vj_tool):
+    """Converts the input vgene and species to a code."""
+    if vgene[2] == "A":
+        chain_code = 0
+    elif vgene[2] == "G":
+        chain_code = 1
+    elif vgene[2] == "H":
+        chain_code = 2
+    elif vgene[2] == "L":
+        chain_code = 3
+    elif vgene[2] == "K":
+        chain_code = 4
+    elif vgene[2] == "B":
+        chain_code = 5
+    elif vgene[2] == "D":
+        chain_code = 6
+    else:
+        return -1
+
+    family_number = -1
+    for i in range(4, len(vgene)):
+        if not vgene[i].isnumeric():
+            break
+    try:
+        family_number = int(vgene[4:i])
+    except:
+        return -1
+
+    if species_code == -1:
+        return -1
+
+    return family_number * 500 * 500 + chain_code * 500 + species_code
 
 
 if __name__ == "__main__":

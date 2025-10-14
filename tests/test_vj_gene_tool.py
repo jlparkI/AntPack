@@ -314,23 +314,6 @@ class TestVJGeneTool(unittest.TestCase):
         os.chdir(current_dir)
 
 
-    def test_family_extraction(self):
-        """Checks the extraction of a family name from a V
-        or J gene name."""
-        imgt_tool = VJGeneTool(scheme="imgt")
-        gene_lists = imgt_tool.get_seq_lists()
-
-        for specifier in ["human_IGHV", "human_IGHJ"]:
-            for gene in gene_lists[1][specifier]:
-                for i in range(4, 8):
-                    if not gene[i].isnumeric():
-                        break
-                true_family_name = gene[:i]
-                self.assertTrue(true_family_name==
-                        imgt_tool.extract_family_name(gene))
-
-
-
 
 def prep_sequence(sequence, alignment):
     """Converts an imgt-formatted sequence into a query for

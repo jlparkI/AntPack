@@ -183,6 +183,11 @@ class TestLocalDBManagement(unittest.TestCase):
             query_seq = "".join(query_seq)
 
             if random.randint(0,1) == 1:
+                cutoff = 0.33
+            else:
+                cutoff = 0.25
+
+            if random.randint(0,1) == 1:
                 mode = "123"
             else:
                 mode = "3"
@@ -195,30 +200,29 @@ class TestLocalDBManagement(unittest.TestCase):
             else:
                 retrieve_closest_only = False
             if random.randint(0,4) == 4:
-                vgene, _, _, _, _ = vj.assign_vj_genes(
-                        chains[idx][0], query_seq,
+                vgene, _, _, _, species = vj.assign_vj_genes(
+                        chains[idx][0], chains[idx][1],
                         "unknown", "identity")
-                vgene_filter = vgene[:4]
             else:
-                vgene_filter = ""
+                species, vgene = "", ""
 
             hit_idx, hit_dists, _ = db_tool.search(
                     query_seq, (codes, 1, chain_code, ""),
-                    mode, 0.25, max_cdr_length_shift,
+                    mode, cutoff, max_cdr_length_shift,
                     max_hits, retrieve_closest_only,
-                    vgene_filter)
+                    vgene, species)
 
             gt_hit_idx, gt_hit_dists = perform_exact_search(query_seq,
-                    msa, labels, mode, 0.25, max_cdr_length_shift,
+                    msa, labels, mode, cutoff, max_cdr_length_shift,
                     retrieve_closest_only, max_hits,
-                    vgenes, vgene_filter)
+                    vgenes, vgene)
 
             # Necessary because the cpp search routine adds 1 to each
             # hit idx.
             hit_idx = [h-1 for h in hit_idx]
 
-            print(f"{ctr}, {mut_percentage} mut percentage, "
-                    f"max hits {max_hits}, vgene_filter {vgene_filter}, "
+            print(f"{ctr}, {mut_percentage} mut percentage, cutoff {cutoff}, "
+                    f"max hits {max_hits}, vgene_filter {vgene}, "
                     f"num gt hits was {len(gt_hit_idx)}", flush=True)
             for hdist in list(set(gt_hit_dists)):
                 h1 = [h for h,d in zip(gt_hit_idx, gt_hit_dists)
@@ -248,10 +252,18 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
             continue
         max_hamming += round(cdrlen[-1] * cdr_cutoff)
 
+    max_hamming_cdr3 = cdrlen[-1] * cdr_cutoff
+
+    vgene_cutoff = -1
+    for i in range(4, len(vgene_filter)):
+        if not vgene_filter[i].isnumeric():
+            vgene_cutoff = i
+            break
+
     for i, seq in enumerate(msa):
         net_dist = 0
         if vgene_filter != "":
-            if vgenes[i][:len(vgene_filter)] != vgene_filter:
+            if vgenes[i][:vgene_cutoff] != vgene_filter[:vgene_cutoff]:
                 continue
 
         for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
@@ -267,6 +279,10 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
             # unacceptable so that the sequence is not saved.
             if region_len > cdrlen[j] + max_cdr_length_shift or \
                     region_len < cdrlen[j] - max_cdr_length_shift:
+                net_dist += 100
+            # Do the same if this is cdr3 and the distance for cdr3
+            # only is out of bounds.
+            if region == "cdr3" and region_dist > max_hamming_cdr3:
                 net_dist += 100
 
         if net_dist <= max_hamming:
@@ -305,6 +321,10 @@ def get_kmer_counts(msa, cdr_labels):
                 [0]*int((full_cdrlen + 1)/2)*21*21)
         trimer_count_tables.append(
                 [0]*int((full_cdrlen + 2)/3)*21*21*21)
+
+        # TODO: For now we are indexing on cdr3 only. Update this.
+        if cdr != "cdr3":
+            continue
 
         ctr = 0
         for i in range(cdr_start, cdr_end, 2):
