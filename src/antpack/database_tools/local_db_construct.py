@@ -1,6 +1,7 @@
 """Wraps tools for constructing a searchable database from
 various input types."""
 import os
+import gc
 import numpy as np
 from ..utilities import read_fasta
 from ..numbering_tools.cterm_finder import _load_nterm_kmers
@@ -10,11 +11,13 @@ from antpack.antpack_cpp_ext import DatabaseConstructionTool
 
 
 
-def build_database_from_fasta(fasta_filepaths,
-        database_filepath, numbering_scheme="imgt",
-        cdr_definition_scheme="imgt",
-        sequence_type="single", receptor_type="mab",
-        pid_threshold=0.7, user_memo="", verbose=True):
+def build_database_from_fasta(fasta_filepaths:list,
+        database_filepath:str, numbering_scheme:str="imgt",
+        cdr_definition_scheme:str="imgt",
+        sequence_type:str="single", receptor_type:str="mab",
+        pid_threshold:float=0.7, user_memo:str="",
+        reject_file:str = None,
+        verbose:bool=True):
     """Builds a database from a fasta file which may or may
     not be gzipped. The database is constructed so it can be
     searched in sublinear time and the sequence descriptions
@@ -37,12 +40,15 @@ def build_database_from_fasta(fasta_filepaths,
         receptor_type (str): One of 'mab', 'tcr'.
         pid_threshold (float): A value between 0 and 1 for percent identity
             threshold. If sequence_type is 'single' or 'unknown', sequences
-            not meeting this threshold are excluded. If sequence_type is
+            not meeting this threshold are rejected. If sequence_type is
             'paired' the sequences are still retained as long as one of
             the chains meets this threshold.
         user_memo (str): A string describing the purpose of the database / anything
             important you want your future self or other users to know about the
             contents. Will be saved as part of the database metadata.
+        reject_file (str): Either None or a filepath. If None, any sequences that
+            are rejected are silently ignored. If a filepath, rejected sequences
+            are written to that filepath which is saved as a fasta file.
         verbose (bool): If True, print regular updates while running.
 
     Raises:
@@ -55,6 +61,8 @@ def build_database_from_fasta(fasta_filepaths,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
+
+    os.makedirs(database_filepath)
 
     license_key, user_email = get_license_key_info()
     project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
@@ -71,25 +79,49 @@ def build_database_from_fasta(fasta_filepaths,
         "numbering_tools", "consensus_data", "mabs",
         "blosum_matrix.npy")).astype(np.float64)
 
+    print("Estimating number of sequences.")
+    nseqs = 0
+
+    for fasta_filepath in fasta_filepaths:
+        for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+            nseqs += 1
+
+    if nseqs == 0:
+        print("No sequences found.")
+        return
+
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             numbering_scheme, cdr_definition_scheme,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
             vj_names, vj_seqs, blosum_matrix,
-            user_memo)
+            user_memo, nseqs)
 
     print("Starting db construction.")
     db_construct_tool.open_transaction()
 
-    for fasta_filepath in fasta_filepaths:
-        for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
-            db_construct_tool.add_sequence(seq, seqinfo, "", "", 0)
-            if i % 10000 == 0:
-                db_construct_tool.close_transaction()
-                db_construct_tool.open_transaction()
-                if verbose:
-                    print(f"{i} complete.")
+    if reject_file is None:
+        for fasta_filepath in fasta_filepaths:
+            for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+                db_construct_tool.add_sequence(seq, seqinfo, "", "", 0)
+                if i % 10000 == 0:
+                    db_construct_tool.close_transaction()
+                    db_construct_tool.open_transaction()
+                    if verbose:
+                        print(f"{i} complete.")
+    else:
+        with open(reject_file, "w+", encoding="utf-8") as reject_handle:
+            for fasta_filepath in fasta_filepaths:
+                for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+                    rcode = db_construct_tool.add_sequence(seq, seqinfo, "", "", 0)
+                    if rcode > 0:
+                        reject_handle.write(f">{seqinfo}\n{seq}\n")
+                    if i % 10000 == 0:
+                        db_construct_tool.close_transaction()
+                        db_construct_tool.open_transaction()
+                        if verbose:
+                            print(f"{i} complete.")
 
     if verbose:
         print("Now constructing database indices...")
@@ -98,3 +130,4 @@ def build_database_from_fasta(fasta_filepaths,
     db_construct_tool.open_transaction()
     db_construct_tool.finalize_db_construction()
     db_construct_tool.close_transaction()
+    gc.collect()

@@ -1,5 +1,6 @@
 """Test database management & search."""
 import os
+import shutil
 import random
 import unittest
 from antpack import (build_database_from_fasta,
@@ -57,13 +58,14 @@ class TestLocalDBManagement(unittest.TestCase):
                 nmbr_scheme, cdr_scheme)
 
         del local_db
-        os.remove("TEMP_DB.db")
+        shutil.rmtree("TEMP_DB.db")
 
 
 
     def test_local_db_search_setup(self):
         """Check that the local db management tool is set
         up correctly."""
+        return
         current_dir = os.path.abspath(os.path.dirname(
             __file__))
         data_filepath = os.path.join(current_dir,

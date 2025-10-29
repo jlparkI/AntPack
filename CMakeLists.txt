@@ -32,6 +32,9 @@ find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_C_STANDARD 99)
+
+
 # Extremely annoying but MSVC requires an additional flag to be set.
 if (MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "/O3")
@@ -50,6 +53,25 @@ find_package(nanobind CONFIG REQUIRED)
 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+
+
+############################################
+# The following flags are lmdb-specific.
+set(MDB_DEVEL "" CACHE STRING "Enable functions under development")
+set(MDB_DEBUG "0" CACHE STRING "Enable debug output.  Needs variable argument macros (a C99 feature).
+Set this to 1 for copious tracing. Set to 2 to add dumps of all IDLs
+read from and written to the database (used for free space management).")
+
+set(MDB_USE_POSIX_SEM "" CACHE STRING "Use posix semiphores (instead of mutexes) from <semiphore.h>")
+set(MDB_DSYNC "" CACHE STRING "Use O_DSYNC on write to avoid extra syscall to flush.")
+set(MDB_FDATASYNC "fsync" CACHE STRING "Function to use for syncing, define to `fsync` if `fdatasync` doesn exist")
+set(MDB_FDATASYNC_WORKS "1" CACHE STRING "Use if fdatasync is guarenteed to work. May not be the case for old kernels and ext3/4.")
+set(MDB_USE_PWRITEV "" CACHE STRING "If the `pwritev` function is available.")
+set(MDB_USE_ROBUST "" CACHE STRING "Some platforms define the EOWNERDEAD error code
+ even though they don't support Robust Mutexes.
+ Unset or use MDB_USE_POSIX_SEM on such platforms.")
+
 
 
 
@@ -112,6 +134,9 @@ nanobind_add_module(
     extern/antpack_private/src/license_key_handling/crypto_support/sign.c
     extern/antpack_private/src/license_key_handling/crypto_support/verify.c
 
+    extern/antpack_private/src/database_tools/lmdb/mdb.c
+    extern/antpack_private/src/database_tools/lmdb/midl.c
+
 )
 
 
@@ -120,7 +145,6 @@ nanobind_add_module(
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 #SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 #SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
-
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)

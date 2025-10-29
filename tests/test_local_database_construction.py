@@ -1,9 +1,12 @@
 """Test database construction for errors.
 Use sqlite for testing and prototyping."""
 import os
-import math
+import sys
+import struct
+import shutil
 import sqlite3
 import unittest
+import lmdb
 import numpy as np
 from antpack import (build_database_from_fasta,
         SingleChainAnnotator, VJGeneTool)
@@ -25,6 +28,11 @@ class TestLocalDBConstruction(unittest.TestCase):
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
 
+        try:
+            shutil.rmtree("TEMP_DB")
+        except:
+            pass
+
         for nmbr_scheme in ['imgt']:
             for cdr_scheme in ['north', 'kabat']:
                 if cdr_scheme == "north":
@@ -38,10 +46,11 @@ class TestLocalDBConstruction(unittest.TestCase):
                     sequence_type = "paired"
 
                 build_database_from_fasta([data_filepath],
-                    "TEMP_DB.db", numbering_scheme=nmbr_scheme,
+                    "TEMP_DB", numbering_scheme=nmbr_scheme,
                     cdr_definition_scheme=cdr_scheme,
                     sequence_type=sequence_type, receptor_type="mab",
-                    pid_threshold=0.7, user_memo=memo)
+                    pid_threshold=0.7, user_memo=memo,
+                    reject_file=None)
 
                 seqs, seqinfos = [], []
 
@@ -49,109 +58,106 @@ class TestLocalDBConstruction(unittest.TestCase):
                     seqs.append(seq)
                     seqinfos.append(seqinfo)
 
-                con = sqlite3.connect("TEMP_DB.db")
-                cursor = con.cursor()
-
-                # First, check that the database metadata is what
-                # was expected.
-                rows = cursor.execute("SELECT * from database_info").fetchall()
-                self.assertTrue(rows[0][0]==nmbr_scheme)
-                self.assertTrue(rows[0][1]=="mab")
-                self.assertTrue(rows[0][2]==sequence_type)
-                self.assertTrue(rows[0][3]==cdr_scheme)
-                self.assertTrue(rows[0][4]==memo)
-                self.assertTrue(rows[0][5]==0.7)
-                del rows
+                env = lmdb.Environment("TEMP_DB", readonly=True,
+                        max_dbs=10)
+                with env.begin() as txn:
+                    subdb = env.open_db(b"metadata", txn, create=False)
+                    cursor = lmdb.Cursor(subdb, txn)
+                    self.assertTrue(cursor.get(b"numbering_scheme").decode()==
+                            nmbr_scheme)
+                    self.assertTrue(cursor.get(b"receptor_type").decode()==
+                            "mab")
+                    self.assertTrue(cursor.get(b"sequence_type").decode()==
+                            sequence_type)
+                    self.assertTrue(cursor.get(b"cdr_definition_scheme").decode()==
+                            cdr_scheme)
+                    self.assertTrue(cursor.get(b"user_memo").decode()==
+                            memo)
+                    pid = struct.unpack('@d',
+                            cursor.get(b"pid_threshold"))[0]
+                    self.assertTrue(pid==0.7)
 
                 # Next, check that the sequences and seqinfo in
                 # the db match what we loaded.
-                rows = cursor.execute("SELECT * from sequences").fetchall()
-                self.assertTrue(seqs==[r[0] for r in rows])
-                self.assertTrue(seqinfos==[r[1] for r in rows])
-                del rows
+                txn = env.begin()
+                subdb = env.open_db(b"main_seq_table",
+                        txn, create=False)
+                cursor = lmdb.Cursor(subdb, txn)
+                for i, seq in enumerate(seqs):
+                    key = struct.pack('@I', i+1)
+                    self.assertTrue(seq==cursor.get(key).decode())
+
+                subdb = env.open_db(b"seq_metadata_table",
+                        txn, create=False)
+                cursor = lmdb.Cursor(subdb, txn)
+                for i, seqinfo in enumerate(seqinfos):
+                    key = struct.pack('@I', i+1)
+                    self.assertTrue(seqinfo==cursor.get(key).decode())
 
                 sca = SingleChainAnnotator(scheme=nmbr_scheme)
                 annotations = sca.analyze_seqs(seqs)
                 vj_tool = VJGeneTool(scheme=nmbr_scheme)
 
-                # Check heavy chains first. Make sure numbering table
-                # contains expected info.
-                aligned_seqs, cdrs, unusual_positions, codes, vgenes, _, vspecies = \
-                        prep_seqs_for_comparison(nmbr_scheme,
-                        cdr_scheme, ("H",), seqs,
-                        annotations, sca, vj_tool)
-                rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
-                for i, row in enumerate(rows):
-                    self.assertTrue(row[0]==aligned_seqs[i][0])
-                    self.assertTrue(row[1]==aligned_seqs[i][1])
-                    vcode = get_vgene_code(vgenes[i], vspecies[i], vj_tool)
-                    self.assertTrue(row[3]==vcode)
+                # Check each set of chain tables for expected info.
+                for chain, chain_coding in zip(["heavy", "light"],
+                        [("H",), ("L", "K")]):
+                    aligned_seqs, cdrs, unusual_positions, codes, vgenes, _, vspecies, child_ids = \
+                            prep_seqs_for_comparison(nmbr_scheme,
+                            cdr_scheme, chain_coding, seqs,
+                            annotations, sca, vj_tool)
+                    subdb = env.open_db(f"{chain}_cdrs".encode(),
+                        txn, create=False)
+                    cursor = lmdb.Cursor(subdb, txn)
+                    for i, (child_id, cdr_grp) in enumerate(
+                            zip(child_ids, aligned_seqs)):
+                        key = struct.pack('@I', child_id)
+                        value = cursor.get(key)
+                        self.assertTrue(value[:-4].decode()==cdr_grp[0])
+                        for j, vcode in enumerate(
+                                get_vgene_code(vgenes[i], vspecies[i])[1]):
+                            self.assertTrue(int(value[-4:][j])==int(vcode))
 
-                dimer_profile, trimer_profile = \
-                        self.eval_nmbr_table_row_contents(rows,
-                        cdrs, unusual_positions)
+                    subdb = env.open_db(f"{chain}_dimers".encode(),
+                            txn, create=False, dupsort=True)
+                    cursor = lmdb.Cursor(subdb, txn)
+                    kmer_to_child = {struct.unpack('@i', key)[0]:set()
+                            for key in cursor.iternext(values=False)}
+                    for key in kmer_to_child.keys():
+                        value = cursor.get(struct.pack('@i', key))
+                        kmer_to_child[key].add(
+                                struct.unpack('@I', value)[0])
+                        for value in cursor.iternext_dup(keys=False):
+                            kmer_to_child[key].add(
+                                    struct.unpack('@I', value)[0])
+                    
+                    kmer_profile = \
+                        self.eval_nmbr_table_row_contents(kmer_to_child,
+                        cdrs, child_ids)
 
-                del rows
+                    subdb = env.open_db(f"{chain}_diversity".encode(),
+                            txn, create=False)
+                    cursor = lmdb.Cursor(subdb, txn)
 
-                rows = cursor.execute("SELECT * from "
-                    "heavy_column_diversity").fetchall()
+                    cursor = lmdb.Cursor(subdb, txn)
+                    for key, value in cursor.iternext():
+                        int_key = struct.unpack('@i', key)[0]
+                        self.assertTrue(int_key in kmer_profile)
 
-                for row in rows:
-                    test_arr = np.frombuffer(row[-1], dtype=np.int64)
-                    cdr_idx = int(row[0][-1]) - 1
-                    if row[1] == "dimer":
-                        profile_table = dimer_profile[cdr_idx]
-                    else:
-                        profile_table = trimer_profile[cdr_idx]
+                        self.assertTrue(len(value) % 8 == 0)
+                        self.assertTrue(len(value) / 8 ==
+                                kmer_profile[int_key].flatten().shape[0])
 
-                    self.assertTrue(row[2]==profile_table.shape[0])
+                        loaded_kmer_table = \
+                                np.frombuffer(value, dtype=np.int64)
+                        self.assertTrue(np.allclose(loaded_kmer_table,
+                            kmer_profile[int_key].flatten()))
+                        kmer_profile[int_key] = None
 
-                    test_arr = test_arr.reshape((row[2], row[3]))
-                    self.assertTrue(np.allclose(test_arr, profile_table))
+                    for _, value in kmer_profile.items():
+                        self.assertTrue(value is None)
 
-                del codes, aligned_seqs, cdrs, unusual_positions,\
-                        dimer_profile, trimer_profile
+                shutil.rmtree("TEMP_DB")
 
-
-                # Now do the same for light chains.
-                aligned_seqs, cdrs, unusual_positions, codes, vgenes, _, vspecies = \
-                        prep_seqs_for_comparison(nmbr_scheme,
-                        cdr_scheme, ("L","K"), seqs,
-                        annotations, sca, vj_tool)
-                rows = cursor.execute("SELECT * from light_numbering").fetchall()
-                for i, row in enumerate(rows):
-                    self.assertTrue(row[0]==aligned_seqs[i][0])
-                    self.assertTrue(row[1]==aligned_seqs[i][1])
-                    vcode = get_vgene_code(vgenes[i], vspecies[i], vj_tool)
-                    self.assertTrue(row[3]==vcode)
-
-                dimer_profile, trimer_profile = \
-                        self.eval_nmbr_table_row_contents(rows,
-                        cdrs, unusual_positions)
-
-                del rows
-
-                rows = cursor.execute("SELECT * from "
-                    "light_column_diversity").fetchall()
-
-                for row in rows:
-                    test_arr = np.frombuffer(row[-1], dtype=np.int64)
-                    cdr_idx = int(row[0][-1]) - 1
-                    if row[1] == "dimer":
-                        profile_table = dimer_profile[cdr_idx]
-                    else:
-                        profile_table = trimer_profile[cdr_idx]
-
-                    self.assertTrue(row[2]==profile_table.shape[0])
-
-                    test_arr = test_arr.reshape((row[2], row[3]))
-                    self.assertTrue(np.allclose(test_arr, profile_table))
-
-                del codes, aligned_seqs, cdrs, unusual_positions,\
-                        dimer_profile, trimer_profile
-
-                con.close()
-                os.remove("TEMP_DB.db")
 
 
     def test_low_quality_seqs(self):
@@ -163,84 +169,73 @@ class TestLocalDBConstruction(unittest.TestCase):
             fhandle.write(">NAME\nEVQLEVQLEVQL\n")
 
         build_database_from_fasta(["temp_data_file.fa"],
-            "TEMP_DB.db", numbering_scheme="imgt",
+            "TEMP_DB", numbering_scheme="imgt",
             cdr_definition_scheme="imgt",
             sequence_type="paired", receptor_type="mab",
-            pid_threshold=0.7, user_memo="test")
+            pid_threshold=0.7, user_memo="test",
+            reject_file="REJECTS")
 
         # There should be no error in writing the db;
         # we expect that the sequences that failed the
-        # threshold test will still be inserted into the
-        # raw sequences table but not the heavy numbering
-        # or light numbering tables.
-        con = sqlite3.connect("TEMP_DB.db")
-        cursor = con.cursor()
-        rows = cursor.execute("SELECT * from database_info").fetchall()
-        self.assertTrue(rows[0][0]=="imgt")
-        self.assertTrue(rows[0][1]=="mab")
-        self.assertTrue(rows[0][2]=="paired")
-        self.assertTrue(rows[0][3]=="imgt")
-        self.assertTrue(rows[0][4]=="test")
-        del rows
+        # threshold test will be written to the reject file,
+        # and the relevant database tables will be empty.
+        with open("REJECTS", "r", encoding="utf-8") as reject_handle:
+            with open("temp_data_file.fa", "r", encoding="utf-8") as \
+                    fhandle:
+                for line1, line2 in zip(reject_handle, fhandle):
+                    self.assertTrue(line1==line2)
 
-        rows = cursor.execute("SELECT * from heavy_numbering").fetchall()
-        self.assertTrue(len(rows)==0)
-        rows = cursor.execute("SELECT * from light_numbering").fetchall()
-        self.assertTrue(len(rows)==0)
-
-        rows = cursor.execute("SELECT * from sequences").fetchall()
-        self.assertTrue(len(rows)==3)
-
-        con.close()
-        os.remove("TEMP_DB.db")
+        shutil.rmtree("TEMP_DB")
         os.remove("temp_data_file.fa")
+        os.remove("REJECTS")
 
-    def eval_nmbr_table_row_contents(self, rows, cdrs,
-            unusual_positions):
+
+    def eval_nmbr_table_row_contents(self, kmer_to_child,
+            cdrs, child_ids):
         """Tests the contents of the rows from the numbering
         table."""
-        dimer_profile_counts = [np.zeros(( int((len(cdr)+1)/2), 21*21 ))
-                for cdr in cdrs[0]]
-        trimer_profile_counts = [np.zeros(( int((len(cdr)+2)/3), 21*21*21 ))
-                for cdr in cdrs[0]]
+        profile_counts = {}
 
         AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
         for i, cdr_group in enumerate(cdrs):
-            self.assertTrue(rows[i][2] == unusual_positions[i])
-            cdr3len = len(cdr_group[2].replace('-', ''))
-            self.assertTrue(rows[i][6] == cdr3len)
-            # Counts where we are in order to skip things like vj
-            # genes not checked in this test.
-            row_counter = 7
-
             # TODO: For now only considering cdr3 for indexing.
-            for cdr, dimer_count, trimer_count in \
-                    zip(cdr_group[2:], dimer_profile_counts[2:],
-                            trimer_profile_counts[2:]):
+            cdr = cdr_group[2]
+            cdr3len = len(cdr.replace('-', ''))
+            child_id = child_ids[i]
 
-                for j in range(0, len(cdr), 2):
-                    dimer = cdr[j:j+2]
-                    if len(dimer) == 1:
-                        dimer += '-'
+            if cdr3len not in profile_counts:
+                profile_counts[cdr3len] = \
+                        np.zeros(( len(cdr) - 1, 21*21))
+                profile_counts[cdr3len + 1000] = \
+                        np.zeros(( len(cdr) - 2, 21*21*21))
 
-                    codeval = AAMAP[dimer[0]] * 21 + AAMAP[dimer[1]]
-                    dimer_count[int(j/2), codeval] += 1
-                    self.assertTrue(rows[i][row_counter] == codeval)
-                    row_counter += 1
 
-                for j in range(0, len(cdr), 3):
-                    trimer = cdr[j:j+3]
-                    while len(trimer) < 3:
-                        trimer += '-'
+            for j in range(0, len(cdr) - 1):
+                kmer = cdr[j:j+2]
+                codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
+                profile_counts[cdr3len][j, codeval] += 1
+                codeval = j * 10500 + cdr3len * 250 * 10500 + \
+                        codeval
 
-                    codeval = AAMAP[trimer[0]] * 21 * 21 + \
-                        AAMAP[trimer[1]] * 21 + AAMAP[trimer[2]]
-                    trimer_count[int(j/3), codeval] += 1
-                    self.assertTrue(rows[i][row_counter] == codeval)
-                    row_counter += 1
+                self.assertTrue(codeval in kmer_to_child)
+                self.assertTrue(child_id in kmer_to_child[codeval])
+                kmer_to_child[codeval].remove(child_id)
 
-        return dimer_profile_counts, trimer_profile_counts
+
+            for j in range(0, len(cdr) - 2):
+                kmer = cdr[j:j+3]
+                codeval = AAMAP[kmer[0]] * 21 * 21 + \
+                        AAMAP[kmer[1]] * 21 + AAMAP[kmer[2]]
+                profile_counts[cdr3len + 1000][j, codeval] += 1
+                codeval = j * 10500 + cdr3len * 250 * 10500 + \
+                        codeval + 475
+
+                self.assertTrue(codeval in kmer_to_child)
+                self.assertTrue(child_id in kmer_to_child[codeval])
+                kmer_to_child[codeval].remove(child_id)
+
+        return profile_counts
 
 
 
@@ -258,6 +253,7 @@ def setup_canonical_numbering(numbering_scheme,
 
 
 
+
 def prep_seqs_for_comparison(numbering_scheme,
         cdr_scheme, chain_type, sequences,
         annotations, annotator,
@@ -267,6 +263,8 @@ def prep_seqs_for_comparison(numbering_scheme,
     extracting cdrs etc."""
     selected_seqs = [(s, a) for (s, a) in zip(
         sequences, annotations) if a[2] in chain_type]
+    child_ids = [i+1 for i,a in enumerate(annotations)
+            if a[2] in chain_type]
     vgenes, jgenes = [], []
     vjspecies = []
 
@@ -318,10 +316,10 @@ def prep_seqs_for_comparison(numbering_scheme,
 
     return aligned_seqs, cdrs, unusual_positions, \
             [cdr1_codes, cdr2_codes, cdr3_codes], \
-            vgenes, jgenes, vjspecies
+            vgenes, jgenes, vjspecies, child_ids
 
 
-def get_vgene_code(vgene, species_code, vj_tool):
+def get_vgene_code(vgene, species_code):
     """Converts the input vgene and species to a code."""
     if vgene[2] == "A":
         chain_code = 0
@@ -352,7 +350,8 @@ def get_vgene_code(vgene, species_code, vj_tool):
     if species_code == -1:
         return -1
 
-    return family_number * 500 * 500 + chain_code * 500 + species_code
+    return family_number * 500 * 500 + chain_code * 500 + species_code,\
+            (chain_code, species_code, family_number)
 
 
 if __name__ == "__main__":
