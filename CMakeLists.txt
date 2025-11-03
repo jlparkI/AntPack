@@ -153,7 +153,7 @@ nanobind_add_module(
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(antpack_cpp_ext PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(antpack_cpp_ext PRIVATE OpenMP::OpenMP_CXX)
     if (MSVC)
 	    list(APPEND OpenMP_CXX_FLAGS "-openmp:experimental")
     endif()
@@ -164,7 +164,7 @@ endif()
 
 
 # Add abseil
-target_link_libraries(antpack_cpp_ext absl::base)
+target_link_libraries(antpack_cpp_ext PRIVATE absl::base)
 
 
 install(TARGETS antpack_cpp_ext
