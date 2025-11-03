@@ -282,6 +282,8 @@ def prep_seqs_for_comparison(numbering_scheme,
             vjspecies.append(2)
         elif species == "rabbit":
             vjspecies.append(3)
+        else:
+            vjspecies.append(255)
 
     template_aligner, canon_nmbr = setup_canonical_numbering(
             numbering_scheme, cdr_scheme, chain_type[0])
@@ -321,6 +323,7 @@ def prep_seqs_for_comparison(numbering_scheme,
 
 def get_vgene_code(vgene, species_code):
     """Converts the input vgene and species to a code."""
+    chain_code = 255
     if vgene[2] == "A":
         chain_code = 0
     elif vgene[2] == "G":
@@ -338,7 +341,7 @@ def get_vgene_code(vgene, species_code):
     else:
         return -1
 
-    family_number = -1
+    family_number = 255
     for i in range(4, len(vgene)):
         if not vgene[i].isnumeric():
             break
@@ -347,7 +350,7 @@ def get_vgene_code(vgene, species_code):
     except:
         return -1
 
-    if species_code == -1:
+    if species_code == 255:
         return -1
 
     return family_number * 500 * 500 + chain_code * 500 + species_code,\

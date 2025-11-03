@@ -208,6 +208,8 @@ class TestLocalDBManagement(unittest.TestCase):
             else:
                 species, vgene = "", ""
 
+            if ctr < 3:
+                continue
             hit_idx, hit_dists, _ = db_tool.search(
                     query_seq, (codes, 1, chain_code, ""),
                     mode, cutoff, max_cdr_length_shift,
@@ -250,11 +252,9 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
     for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
         cdrlen.append(len([q for (q,l) in zip(query, labels)
             if q != '-' and l == region]))
-        if str(j+1) not in mode:
-            continue
-        max_hamming += round(cdrlen[-1] * cdr_cutoff)
 
-    max_hamming_cdr3 = cdrlen[-1] * cdr_cutoff
+    max_hamming = [(cdrlen[0] + cdrlen[1]) * cdr_cutoff,
+            cdrlen[2] * cdr_cutoff]
 
     vgene_cutoff = -1
     for i in range(4, len(vgene_filter)):
@@ -263,7 +263,7 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
             break
 
     for i, seq in enumerate(msa):
-        net_dist = 0
+        cdr_dists = [0,0]
         if vgene_filter != "":
             if vgenes[i][:vgene_cutoff] != vgene_filter[:vgene_cutoff]:
                 continue
@@ -273,7 +273,7 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
                 continue
             region_dist = len([a for (a,b,l) in zip(seq, query,
                 labels) if l==region and a != b])
-            net_dist += region_dist
+            cdr_dists[int(j/2)] += region_dist
             region_len = len([s for (s,l) in zip(seq, labels)
                 if l==region and s != '-'])
             # Add an arbitrary large number if the cdr length is
@@ -281,15 +281,12 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
             # unacceptable so that the sequence is not saved.
             if region_len > cdrlen[j] + max_cdr_length_shift or \
                     region_len < cdrlen[j] - max_cdr_length_shift:
-                net_dist += 100
-            # Do the same if this is cdr3 and the distance for cdr3
-            # only is out of bounds.
-            if region == "cdr3" and region_dist > max_hamming_cdr3:
-                net_dist += 100
+                cdr_dists[int(j/2)] += 200
 
-        if net_dist <= max_hamming:
+        if cdr_dists[0] < max_hamming[0] and \
+                cdr_dists[1] < max_hamming[1]:
             hit_idx.append(i)
-            retained_dists.append(net_dist)
+            retained_dists.append(cdr_dists[0] + cdr_dists[1])
 
     if len(hit_idx) == 0:
         return [], []

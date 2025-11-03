@@ -55,6 +55,11 @@ find_package(nanobind CONFIG REQUIRED)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
+##########
+#Add abseil.
+add_subdirectory(extern/abseil-cpp)
+
+
 
 ############################################
 # The following flags are lmdb-specific.
@@ -153,7 +158,14 @@ if(OpenMP_CXX_FOUND)
 	    list(APPEND OpenMP_CXX_FLAGS "-openmp:experimental")
     endif()
     target_compile_options(antpack_cpp_ext PRIVATE ${OpenMP_CXX_FLAGS})
+else()
+    message( FATAL_ERROR "OpenMP is required and was not found.")
 endif()
+
+
+# Add abseil
+target_link_libraries(antpack_cpp_ext absl::base)
+
 
 install(TARGETS antpack_cpp_ext
     LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
