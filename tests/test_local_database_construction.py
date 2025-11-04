@@ -120,19 +120,18 @@ class TestLocalDBConstruction(unittest.TestCase):
                     subdb = env.open_db(f"{chain}_dimers".encode(),
                             txn, create=False, dupsort=True)
                     cursor = lmdb.Cursor(subdb, txn)
-                    kmer_to_child = {struct.unpack('@i', key)[0]:set()
-                            for key in cursor.iternext(values=False)}
+                    kmer_key_list = list(cursor.iternext(values=False))
+                    kmer_to_child = {int.from_bytes(kmer[:4], sys.byteorder,
+                        signed=False):set() for kmer in kmer_key_list}
                     for key in kmer_to_child.keys():
                         value = cursor.get(struct.pack('@i', key))
-                        kmer_to_child[key].add(
-                                struct.unpack('@I', value)[0])
+                        kmer_to_child[key].add(convert_value_to_bin(value))
                         for value in cursor.iternext_dup(keys=False):
-                            kmer_to_child[key].add(
-                                    struct.unpack('@I', value)[0])
-                    
+                            kmer_to_child[key].add(convert_value_to_bin(value))
+
                     kmer_profile = \
                         self.eval_nmbr_table_row_contents(kmer_to_child,
-                        cdrs, child_ids)
+                            cdrs, child_ids)
 
                     subdb = env.open_db(f"{chain}_diversity".encode(),
                             txn, create=False)
@@ -191,7 +190,7 @@ class TestLocalDBConstruction(unittest.TestCase):
 
 
     def eval_nmbr_table_row_contents(self, kmer_to_child,
-            cdrs, child_ids):
+            cdrs, child_ids, numbering_scheme="imgt"):
         """Tests the contents of the rows from the numbering
         table."""
         profile_counts = {}
@@ -202,38 +201,44 @@ class TestLocalDBConstruction(unittest.TestCase):
             # TODO: For now only considering cdr3 for indexing.
             cdr = cdr_group[2]
             cdr3len = len(cdr.replace('-', ''))
-            child_id = child_ids[i]
 
             if cdr3len not in profile_counts:
                 profile_counts[cdr3len] = \
                         np.zeros(( len(cdr) - 1, 21*21))
-                profile_counts[cdr3len + 1000] = \
-                        np.zeros(( len(cdr) - 2, 21*21*21))
 
+            # Construct the augmented child id.
+            if numbering_scheme in ("imgt", "aho"):
+                cdr_extract = cdr[:8] + cdr[-8:]
+            else:
+                cdr_extract = cdr[:16]
+
+            bytestring = ['0' for j in range(32)]
+            for j, letter in enumerate(cdr_extract):
+                if letter in ('C', 'G', 'P', 'H', 'M', 'X'):
+                    bytestring[j] = '1'
+                elif letter in ('S', 'T', 'N', 'Q', 'Y'):
+                    bytestring[j+16] = '1'
+                elif letter in ('R', 'K', 'D', 'E'):
+                    bytestring[j] = '1'
+                    bytestring[j+16] = '1'
+
+            bytestring = (child_ids[i], int(''.join(bytestring)[::-1], 2))
 
             for j in range(0, len(cdr) - 1):
                 kmer = cdr[j:j+2]
                 codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
                 profile_counts[cdr3len][j, codeval] += 1
-                codeval = j * 10500 + cdr3len * 250 * 10500 + \
+                if kmer == "--":
+                    continue
+                codeval = j * 500 * 500 + cdr3len * 500 + \
                         codeval
 
                 self.assertTrue(codeval in kmer_to_child)
-                self.assertTrue(child_id in kmer_to_child[codeval])
-                kmer_to_child[codeval].remove(child_id)
+                #import pdb
+                #pdb.set_trace()
 
-
-            for j in range(0, len(cdr) - 2):
-                kmer = cdr[j:j+3]
-                codeval = AAMAP[kmer[0]] * 21 * 21 + \
-                        AAMAP[kmer[1]] * 21 + AAMAP[kmer[2]]
-                profile_counts[cdr3len + 1000][j, codeval] += 1
-                codeval = j * 10500 + cdr3len * 250 * 10500 + \
-                        codeval + 475
-
-                self.assertTrue(codeval in kmer_to_child)
-                self.assertTrue(child_id in kmer_to_child[codeval])
-                kmer_to_child[codeval].remove(child_id)
+                self.assertTrue(bytestring in kmer_to_child[codeval])
+                kmer_to_child[codeval].remove(bytestring)
 
         return profile_counts
 
@@ -251,6 +256,15 @@ def setup_canonical_numbering(numbering_scheme,
                         cdr_scheme)
     return sta, numbering
 
+
+
+def convert_value_to_bin(value):
+    """Converts an input value to an
+    integer and a binary string."""
+    output_int = int.from_bytes(value[:4], sys.byteorder,
+            signed=False)
+    binstring = int.from_bytes(value[4:], sys.byteorder, signed=False)
+    return (output_int, binstring)
 
 
 

@@ -37,7 +37,7 @@ class TestLocalDBManagement(unittest.TestCase):
             seqs.append(seq)
             seqinfos.append(seqinfo)
 
-        local_db = LocalDBTool("TEMP_DB.db")
+        local_db = LocalDBTool("TEMP_DB.db", "single")
 
         nmbr_scheme = "imgt"
         cdr_scheme = "imgt"
@@ -197,10 +197,6 @@ class TestLocalDBManagement(unittest.TestCase):
                 max_cdr_length_shift = 2
             else:
                 max_cdr_length_shift = 0
-            if random.randint(0,1) == 1:
-                retrieve_closest_only = True
-            else:
-                retrieve_closest_only = False
             if random.randint(0,4) == 4:
                 vgene, _, _, _, species = vj.assign_vj_genes(
                         chains[idx][0], chains[idx][1],
@@ -213,13 +209,11 @@ class TestLocalDBManagement(unittest.TestCase):
             hit_idx, hit_dists, _ = db_tool.search(
                     query_seq, (codes, 1, chain_code, ""),
                     mode, cutoff, max_cdr_length_shift,
-                    max_hits, retrieve_closest_only,
-                    vgene, species)
+                    max_hits, vgene, species)
 
             gt_hit_idx, gt_hit_dists = perform_exact_search(query_seq,
                     msa, labels, mode, cutoff, max_cdr_length_shift,
-                    retrieve_closest_only, max_hits,
-                    vgenes, vgene)
+                    max_hits, vgenes, vgene)
 
             # Necessary because the cpp search routine adds 1 to each
             # hit idx.
@@ -242,8 +236,7 @@ class TestLocalDBManagement(unittest.TestCase):
 
 
 def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
-        max_cdr_length_shift, retrieve_closest_only,
-        max_hits, vgenes, vgene_filter=""):
+        max_cdr_length_shift, max_hits, vgenes, vgene_filter=""):
     """Performs an exact search on an input msa, finding
     all sequences that have hamming distance <= specified."""
     retained_dists, hit_idx, cdrlen = [], [], []
@@ -283,20 +276,14 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
                     region_len < cdrlen[j] - max_cdr_length_shift:
                 cdr_dists[int(j/2)] += 200
 
-        if cdr_dists[0] < max_hamming[0] and \
-                cdr_dists[1] < max_hamming[1]:
+
+        if cdr_dists[0] <= max_hamming[0] and \
+                cdr_dists[1] <= max_hamming[1]:
             hit_idx.append(i)
             retained_dists.append(cdr_dists[0] + cdr_dists[1])
 
     if len(hit_idx) == 0:
         return [], []
-
-    if retrieve_closest_only:
-        best_dist = min(retained_dists)
-        output_idx = [h for (h,c) in zip(hit_idx,
-            retained_dists) if c == best_dist]
-        output_dists = [best_dist for o in output_idx]
-        return output_idx, output_dists
 
     hit_idx = [x for _, x in sorted(zip(retained_dists,
         hit_idx), key=lambda pair: pair[0])]

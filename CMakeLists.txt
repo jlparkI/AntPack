@@ -124,7 +124,6 @@ nanobind_add_module(
 
     extern/antpack_private/src/database_tools/local_database_construction_tool.cpp
     extern/antpack_private/src/database_tools/local_database_management_tool.cpp
-    extern/antpack_private/src/database_tools/sequence_thread_queue.cpp
     extern/antpack_private/src/database_tools/database_utilities.cpp
     extern/antpack_private/src/database_tools/sqlite3.c
 
@@ -153,7 +152,7 @@ nanobind_add_module(
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(antpack_cpp_ext PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(antpack_cpp_ext PUBLIC OpenMP::OpenMP_CXX)
     if (MSVC)
 	    list(APPEND OpenMP_CXX_FLAGS "-openmp:experimental")
     endif()
@@ -164,7 +163,7 @@ endif()
 
 
 # Add abseil
-target_link_libraries(antpack_cpp_ext PRIVATE absl::base)
+target_link_libraries(antpack_cpp_ext PRIVATE absl::base absl::flat_hash_set)
 
 
 install(TARGETS antpack_cpp_ext

@@ -13,7 +13,8 @@ class LocalDBTool:
     exporting or clustering its contents and adding
     or deleting records."""
 
-    def __init__(self, database_path:str):
+    def __init__(self, database_path:str,
+            thread_mode:str="single"):
         """Class constructor.
 
         Args:
@@ -21,6 +22,14 @@ class LocalDBTool:
                 database. All other necessary info about
                 the database will be retrieved from the
                 database.
+            thread_mode (str): One of 'single', 'multi',
+                'prodcon'. 'multi' uses multithreading
+                and works well on solid-state drives; it should not
+                be used on hard drives where it may be slightly
+                slower than single threading due to seek cost.
+                'prodcon' uses two threads at all times
+                and works better for hard drives. 'single' uses
+                only a single thread.
 
         Raises:
             RuntimeError: A runtime error is raised if the
@@ -43,14 +52,14 @@ class LocalDBTool:
             "blosum_matrix.npy")).astype(np.float64)
         self.local_db_manager = LocalDatabaseToolCpp(database_path,
                 license_key, user_email, consensus_path,
-                nterm_kmer_dict, vj_names, vj_seqs, blosum_matrix)
+                nterm_kmer_dict, vj_names, vj_seqs, blosum_matrix,
+                thread_mode)
 
 
 
     def search(self, seq:str, annotation:tuple,
             mode="3", cdr_cutoff=0.25,
             max_cdr_length_shift:int=2, max_hits:int=10,
-            retrieve_closest_only:bool=True,
             vgene="", species=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
@@ -58,24 +67,28 @@ class LocalDBTool:
         of it (e.g. cdr3, the cdrs etc).
 
         Args:
-            seq (str): A sequence. Can contain the normal 20 AAs
-                and 'X' (although 'X' should be used sparingly).
-            annotation (tuple): A tuple containing (numbering,
-                percent_identity, chain_name, error_message). This
-                is what you will get as output if you pass sequences
-                to the analyze_seq method of SingleChainAnnotator or
-                PairedChainAnnotator.
-                
-                Note that MUST be generated using the same numbering
-                scheme and set of cdr definitions used to create the
-                database, or you may get unexpected / nonsensical
-                results. If you are unsure what set of definitions was
-                used when the database was created, call
-                get_database_metadata().
         """
         return self.local_db_manager.search(seq, annotation,
                 mode, cdr_cutoff, max_cdr_length_shift,
-                max_hits, retrieve_closest_only, vgene, species)
+                max_hits, vgene, species, False)
+
+
+    def search_batch(self, seqs:list, annotations:list,
+            mode="3", cdr_cutoff=0.25,
+            max_cdr_length_shift:int=2, max_hits:int=10,
+            vgenes:list=[], species:list=[]):
+        """Searches the database and returns a list of nearest
+        neighbors that meet the input criteria for each of the input
+        sequences. This is essentially a batch version of search.
+        The search can be conducted using the full sequence or a
+        sub-region of it (e.g. cdr3, the cdrs etc).
+
+        Args:
+        """
+        return self.local_db_manager.search_seqs(seqs, annotations,
+                mode, cdr_cutoff, max_cdr_length_shift,
+                max_hits, vgenes, species)
+
 
     def _retrieve_hit_dict(self, seq:str, annotation:tuple,
             cdr_cutoffs = [-1, -1, 0.25], max_cdr_length_shift = 2):
