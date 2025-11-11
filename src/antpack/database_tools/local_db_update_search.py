@@ -37,23 +37,8 @@ class LocalDBTool:
                 does not contain expected tables and metadata.
         """
         license_key, user_email = get_license_key_info()
-        project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                "..")
-        consensus_path = os.path.join(project_path,
-                "numbering_tools", "consensus_data")
-        nterm_kmer_dict = _load_nterm_kmers()
-
-        vj_db_path = os.path.join(project_path, "vj_tools", "consensus_data")
-        vj_names, vj_seqs, _ = load_vj_gene_consensus_db(os.getcwd(),
-                vj_db_path, "imgt")
-
-        blosum_matrix = np.load(os.path.join(project_path,
-            "numbering_tools", "consensus_data", "mabs",
-            "blosum_matrix.npy")).astype(np.float64)
         self.local_db_manager = LocalDatabaseToolCpp(database_path,
-                license_key, user_email, consensus_path,
-                nterm_kmer_dict, vj_names, vj_seqs, blosum_matrix,
-                thread_mode)
+                license_key, user_email, thread_mode)
 
 
 
@@ -70,7 +55,7 @@ class LocalDBTool:
         """
         return self.local_db_manager.search(seq, annotation,
                 mode, cdr_cutoff, max_cdr_length_shift,
-                max_hits, vgene, species, False)
+                max_hits, vgene, species)
 
 
     def search_batch(self, seqs:list, annotations:list,
@@ -90,54 +75,25 @@ class LocalDBTool:
                 max_hits, vgenes, species)
 
 
-    def _retrieve_hit_dict(self, seq:str, annotation:tuple,
-            cdr_cutoffs = [-1, -1, 0.25], max_cdr_length_shift = 2):
-        """Used only for testing.
-        """
-        return self.local_db_manager.dummy_candidate_search(seq, annotation,
-                cdr_cutoffs, max_cdr_length_shift,
-                1000, "")
-
-
-    def search_by_metadata(self, metadata:str, max_hits=100):
-        """Searches the database and returns a list of sequences for
-        which the metadata contains a string supplied in the input.
-        Notice that this search is slow because it requires scanning
-        the full database (no shortcuts).
+    def get_sequence(self, seq_id:int):
+        """Retrieves the sequence and metadata associated with
+        a given sequence id. Sequence ids can be obtained from
+        any of the search functions.
 
         Args:
-            metadata (str): A string that you want to search for.
-                Sequences whose metadata contains this string will
-                be returned. This is case-sensitive.
-            max_hits (int): The maximum number of sequences to retrieve.
-                Any hits above and beyond this will not be returned.
+            seq_id (int): A sequence id associated with one of the
+                sequences in the database.
 
         Returns:
-            hit_seqs (list): A list of sequences of length max_hits or
-                less. An empty list if no hits were found. If more hits
-                were found than max_hits, the *closest* hits are returned.
-            hit_metadata (list): The metadata associated with each hit
-                sequence (this is the sequence description from the
-                fasta file used to create the database).
+            sequence (str): Either a blank string if the id that was supplied
+                does not match any database sequences, or the sequence from
+                the database.
+            metadata (str): Either a blank string if the id that was supplied
+                does not match any database sequences, or the metadata associated
+                with the sequence from the database.
         """
-        return self.local_db_manager.metadata_search(metadata, max_hits)
+        return self.local_db_manager.retrieve_sequence(seq_id)
 
-
-
-
-    def add_seq(self, seq:str, metadata:str):
-        """Adds a sequence to the database. The sequence will
-        be numbered and its cdrs assigned using the same schemes
-        used to originally construct the db.
-
-        Args:
-            seq (str): A sequence which should be either a cdr3,
-                all three concatenated cdrs, or a full heavy or
-                light chain.
-            metadata (str): Any metadata associated with the sequence
-                (e.g. a description).
-        """
-        self.local_db_manager.add_sequence(seq, metadata)
 
 
 
@@ -164,7 +120,7 @@ class LocalDBTool:
 
     def get_database_counts(self):
         """Returns key cdr positions for heavy and light chain
-        mapped to the number of occurrences of each amino acid
+        mapped to the number of occurrences of each dimer
         at each position. Mainly used for testing, not really
         intended for use by end users (but maybe occasionally
         useful).
@@ -176,32 +132,3 @@ class LocalDBTool:
                 counts.
         """
         return self.local_db_manager.get_position_tables()
-
-
-
-    def export_database_to_csv(self, csv_filepath, gzip_file=False):
-        """Takes all sequences from the database and exports
-        them to a csv file with the following columns:
-        Metadata:        The metadata for that sequence
-        Sequence:        The raw sequence
-        Heavy numbering: The numbering tokens concatenated with
-                         '_' as a divider
-        Light numbering: The numbering tokens concatenated with
-                         '_' as a divider
-        Heavy chain:     The heavy chain (if any)
-        Light chain:     The light chain (if any)
-        Vgene family:    The vgene family
-        Jgene family:    The jgene family
-        Vgenes:          All matching vgenes (by percent identity)
-        Jgenes:          All matching jgenes (by percent identity)
-
-        Args:
-            csv_filepath (str): The filepath for the csv output.
-            gzip_file (bool): If True, the file is gzipped and .gz is
-                added to the specified filepath.
-
-        Raises:
-            RuntimeError: A RuntimeError is raised if the csv cannot be
-                opened or an error is encountered.
-        """
-        pass

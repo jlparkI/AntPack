@@ -65,7 +65,6 @@ class TestLocalDBManagement(unittest.TestCase):
     def test_local_db_search_setup(self):
         """Check that the local db management tool is set
         up correctly."""
-        return
         current_dir = os.path.abspath(os.path.dirname(
             __file__))
         data_filepath = os.path.join(current_dir,
@@ -98,7 +97,7 @@ class TestLocalDBManagement(unittest.TestCase):
         # expected. First check for heavy. The database
         # returns the tables all together but the Python
         # test code will check them separately.
-        mtables, dtables = local_db.get_database_counts()
+        dtables = local_db.get_database_counts()
 
         sca = SingleChainAnnotator(scheme="imgt")
         annotations = sca.analyze_seqs(seqs)
@@ -114,11 +113,10 @@ class TestLocalDBManagement(unittest.TestCase):
 
         labels = sca.assign_cdr_labels(numbering,
                 "H", "imgt")
-        gt_dtable, gt_ttable = get_kmer_counts(msa, labels)
+        gt_dtable = get_kmer_counts(msa, labels)
 
-        for i in range(3):
-            self.assertTrue(mtables[0][i]==gt_dtable[i])
-            self.assertTrue(dtables[0][i]==gt_ttable[i])
+        for key, value in gt_dtable.items():
+            self.assertTrue(dtables[0][key]==value)
 
         del numbering, msa, labels, sta
 
@@ -136,16 +134,15 @@ class TestLocalDBManagement(unittest.TestCase):
 
         labels = sca.assign_cdr_labels(numbering,
                 "L", "imgt")
-        gt_dtable, gt_ttable = get_kmer_counts(msa, labels)
+        gt_dtable = get_kmer_counts(msa, labels)
 
-        for i in range(3):
-            self.assertTrue(mtables[1][i]==gt_dtable[i])
-            self.assertTrue(dtables[1][i]==gt_ttable[i])
+        for key, value in gt_dtable.items():
+            self.assertTrue(dtables[1][key]==value)
 
         del numbering, msa, labels, sta
 
         del local_db
-        os.remove("TEMP_DB.db")
+        shutil.rmtree("TEMP_DB.db")
 
 
 
@@ -204,8 +201,6 @@ class TestLocalDBManagement(unittest.TestCase):
             else:
                 species, vgene = "", ""
 
-            if ctr < 3:
-                continue
             hit_idx, hit_dists, _ = db_tool.search(
                     query_seq, (codes, 1, chain_code, ""),
                     mode, cutoff, max_cdr_length_shift,
@@ -295,49 +290,22 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
 def get_kmer_counts(msa, cdr_labels):
     """Extract kmers from the cdrs of an msa and
     count the number present of each."""
-    dimer_count_tables, trimer_count_tables = [], []
+    dimer_count_tables = {}
 
-    for t, (cdr, next_fmwk) in enumerate([("cdr1", "fmwk2"),
-            ("cdr2", "fmwk3"), ("cdr3", "fmwk4")]):
-        cdr_start = cdr_labels.index(cdr)
-        cdr_end = cdr_labels.index(next_fmwk)
-        full_cdrlen = cdr_end - cdr_start
+    cdr_start = cdr_labels.index('cdr3')
+    cdr_end = cdr_labels.index('fmwk4')
+    ndimers = cdr_end - cdr_start - 1
 
-        dimer_count_tables.append(
-                [0]*int((full_cdrlen + 1)/2)*21*21)
-        trimer_count_tables.append(
-                [0]*int((full_cdrlen + 2)/3)*21*21*21)
+    for m in msa:
+        cdr = m[cdr_start:cdr_end]
+        cdrlen = len([a for a in cdr if a != '-'])
+        if cdrlen not in dimer_count_tables:
+            dimer_count_tables[cdrlen] = [0] * ndimers * 21 * 21
+        for i in range(ndimers):
+            kmer_code = AAMAP[cdr[i]] * 21 + AAMAP[cdr[i+1]]
+            dimer_count_tables[cdrlen][kmer_code+i*21*21] += 1
 
-        # TODO: For now we are indexing on cdr3 only. Update this.
-        if cdr != "cdr3":
-            continue
-
-        ctr = 0
-        for i in range(cdr_start, cdr_end, 2):
-            if i < cdr_end - 1:
-                for m in msa:
-                    kmer_code = AAMAP[m[i]] * 21 + AAMAP[m[i+1]]
-                    dimer_count_tables[t][kmer_code+ctr] += 1
-            else:
-                for m in msa:
-                    kmer_code = AAMAP[m[i]] * 21 + 20
-                    dimer_count_tables[t][kmer_code+ctr] += 1
-            ctr += 21*21
-
-        ctr = 0
-        for i in range(cdr_start, cdr_end, 3):
-            for m in msa:
-                cutpoint = min(cdr_end, i+3)
-                trimer = m[i:cutpoint]
-                while len(trimer) < 3:
-                    trimer += '-'
-                kmer_code = AAMAP[trimer[0]] * 21 * 21 + \
-                            AAMAP[trimer[1]] * 21 + \
-                            AAMAP[trimer[2]]
-                trimer_count_tables[t][kmer_code+ctr] += 1
-            ctr += 21*21*21
-
-    return dimer_count_tables, trimer_count_tables
+    return dimer_count_tables
 
 
 
