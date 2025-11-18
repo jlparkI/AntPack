@@ -37,27 +37,51 @@ class TestLocalDBManagement(unittest.TestCase):
             seqs.append(seq)
             seqinfos.append(seqinfo)
 
-        local_db = LocalDBTool("TEMP_DB.db", "single")
+        for thread_scheme in ["single", "multi"]:
+            print(f"Testing {thread_scheme} scheme...")
+            local_db = LocalDBTool("TEMP_DB.db", thread_scheme)
 
-        nmbr_scheme = "imgt"
-        cdr_scheme = "imgt"
+            nmbr_scheme = "imgt"
+            cdr_scheme = "imgt"
 
-        # First annotate the heavy chains and build an MSA.
-        # Use this msa to do brute force searches and compare
-        # the results with those we get back from the database.
-        sca = SingleChainAnnotator(scheme=nmbr_scheme)
-        annotations = sca.analyze_seqs(seqs)
+            # First annotate the chains and build a heavy and light
+            # MSA, then interleave them.
+            # Use this msa to do brute force searches and compare
+            # the results with those we get back from the database.
+            sca = SingleChainAnnotator(scheme=nmbr_scheme)
+            vj = VJGeneTool(scheme=nmbr_scheme)
 
-        chains = [(a,s) for (a,s) in zip(annotations,
-            seqs) if a[2]=="H"]
-        codes, msa = sca.build_msa([t[1] for t in chains],
-                [t[0] for t in chains])
+            annotations = sca.analyze_seqs(seqs)
+            heavy_msa = [(a,s) for (a,s) in zip(annotations, seqs)
+                    if a[2]=="H"]
+            light_msa = [(a,s) for (a,s) in zip(annotations, seqs)
+                    if a[2]!="H"]
+            heavy_codes, heavy_msa = sca.build_msa([t[1] for t in
+                heavy_msa], [t[0] for t in heavy_msa])
+            light_codes, light_msa = sca.build_msa([t[1] for t in
+                light_msa], [t[0] for t in light_msa])
 
-        self.random_search_function_test(msa, codes,
-                sca, local_db, chains,
-                nmbr_scheme, cdr_scheme)
+            heavy_codes = (heavy_codes, sca.assign_cdr_labels(heavy_codes,
+                "H", cdr_scheme))
+            light_codes = (light_codes, sca.assign_cdr_labels(light_codes,
+                "L", cdr_scheme))
 
-        del local_db
+            msa, hctr, lctr = [], 0, 0
+            for seq, annotation in zip(seqs, annotations):
+                vgene, _, _, _, species = vj.assign_vj_genes(annotation, seq,
+                        "unknown", "identity")
+                if annotation[2] == "H":
+                    msa.append( (heavy_msa[hctr], vgene, species, annotation[2]) )
+                    hctr += 1
+                else:
+                    msa.append( (light_msa[lctr], vgene, species, annotation[2]) )
+                    lctr += 1
+
+            self.random_search_function_test(msa, heavy_codes,
+                        light_codes, local_db, seqinfos,
+                        seqs)
+
+            del local_db
         shutil.rmtree("TEMP_DB.db")
 
 
@@ -147,41 +171,43 @@ class TestLocalDBManagement(unittest.TestCase):
 
 
 
-    def random_search_function_test(self, msa, codes,
-        annotator, db_tool, chains,
-        nmbr_scheme = "imgt", cdr_scheme = "imgt"):
-        """Runs a test for a supplied set of chains and
-        msas using randomly selected search parameters."""
-        chain_code = chains[0][0][2]
-
-        labels = annotator.assign_cdr_labels(codes, chain_code, cdr_scheme)
-        vj = VJGeneTool(scheme=nmbr_scheme)
-        vgenes = [vj.assign_vj_genes(c[0], c[1], "unknown",
-            "identity")[0] for c in chains]
-
+    def random_search_function_test(self, msa, heavy_codes,
+        light_codes, db_tool, seqinfo, raw_seqs):
+        """Runs exact tests to serve as ground truth for comparison with
+        fast-scheme searches."""
         AALIST = list("ACDEFGHIKLMNPQRSTVWY")
 
-        # Randomly select a sequence, randomly mutated it and
+        # Randomly select a sequence, randomly mutate it and
         # find its closest matches using a random setting for
-        # distance and other parameters.
+        # distance and other parameters. Check it on the fly
+        # against the search tool. Simultaneously store the
+        # results grouped by search criteria so that we can
+        # later test all of the results against the batch
+        # search.
         random.seed(123)
+        output_search_res = {}
 
         for ctr in range(250):
             idx = random.randint(0, len(msa) - 1)
-            query_seq = list(msa[idx])
+            query_seq = list(msa[idx][0])
+            if msa[idx][3] == "H":
+                codes = heavy_codes
+            else:
+                codes = light_codes
             mut_percentage = random.uniform(0, 0.2)
-            max_hits = random.randint(1,100)
 
             for i, qletter in enumerate(query_seq):
                 if qletter == '-':
                     continue
-                if labels[i].startswith("cdr") and \
+                if codes[1][i].startswith("cdr") and \
                         random.uniform(0,1) < mut_percentage:
                     query_seq[i] = random.choice(AALIST)
 
             query_seq = "".join(query_seq)
-
-            if random.randint(0,1) == 1:
+            cutoff_selector = random.randint(0,2)
+            if cutoff_selector == 0:
+                cutoff = 0.4
+            elif cutoff_selector == 1:
                 cutoff = 0.33
             else:
                 cutoff = 0.25
@@ -190,59 +216,101 @@ class TestLocalDBManagement(unittest.TestCase):
                 mode = "123"
             else:
                 mode = "3"
-            if random.randint(0,1) == 1:
+
+            length_selector = random.randint(0,2)
+            if length_selector == 0:
                 max_cdr_length_shift = 2
-            else:
+            elif length_selector == 1:
                 max_cdr_length_shift = 0
+            else:
+                max_cdr_length_shift = 3
+
             if random.randint(0,4) == 4:
-                vgene, _, _, _, species = vj.assign_vj_genes(
-                        chains[idx][0], chains[idx][1],
-                        "unknown", "identity")
+                vgene = msa[idx][1]
+                species = msa[idx][2]
             else:
                 species, vgene = "", ""
 
+            check_seq_retrieval = random.randint(0,1) == 0
+
             hit_idx, hit_dists, _ = db_tool.search(
-                    query_seq, (codes, 1, chain_code, ""),
+                    query_seq, (codes[0], 1, msa[idx][3], ""),
                     mode, cutoff, max_cdr_length_shift,
-                    max_hits, vgene, species)
+                    1000, vgene, species)
+            if len(hit_idx) == 0:
+                hit_idx = ([], [])
+            else:
+                hit_idx = list(zip(hit_idx, hit_dists))
+                hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
 
-            gt_hit_idx, gt_hit_dists = perform_exact_search(query_seq,
-                    msa, labels, mode, cutoff, max_cdr_length_shift,
-                    max_hits, vgenes, vgene)
+            gt_hit_idx = perform_exact_search(query_seq, msa, msa[idx][3],
+                    codes, mode, cutoff, max_cdr_length_shift,
+                    1000, vgene, species)
 
-            # Necessary because the cpp search routine adds 1 to each
-            # hit idx.
-            hit_idx = [h-1 for h in hit_idx]
+            criteria = (mode, cutoff, max_cdr_length_shift)
+            if criteria not in output_search_res:
+                output_search_res[criteria] = []
+            output_search_res[ criteria ].append(
+                    (query_seq, vgene, species, gt_hit_idx,
+                        msa[idx][3], codes[0])
+                )
 
-            print(f"{ctr}, {mut_percentage} mut percentage, cutoff {cutoff}, "
-                    f"max hits {max_hits}, vgene_filter {vgene}, "
-                    f"num gt hits was {len(gt_hit_idx)}", flush=True)
-            for hdist in list(set(gt_hit_dists)):
-                h1 = [h for h,d in zip(gt_hit_idx, gt_hit_dists)
-                        if d == hdist]
-                h1.sort()
-                h2 = [h for h,d in zip(hit_idx, hit_dists)
-                        if d == hdist]
-                h2.sort()
-                if h1 != h2:
+            if hit_idx != gt_hit_idx:
+                print(f"Error! {ctr}, {mut_percentage} mut percentage, cutoff {cutoff}, "
+                            f"max hits 100, vgene_filter {vgene}, "
+                            f"num gt hits was {len(gt_hit_idx[0])}", flush=True)
+            self.assertTrue(hit_idx==gt_hit_idx)
+
+            # Randomly check some of the sequences to make sure the
+            # metadata and sequence retrieved from the database for a given
+            # id code match those in the input.
+            if check_seq_retrieval and len(hit_idx[0]) > 0:
+                for hit in hit_idx:
+                    db_seq, db_metadata = db_tool.get_sequence(hit[0])
+                    self.assertTrue(db_seq==raw_seqs[hit[0]])
+                    self.assertTrue(seqinfo[hit[0]]==db_metadata)
+
+
+        # Now evaluate batch search tools, using batches with specific settings.
+        for criteria, seq_data in output_search_res.items():
+            query_seqs = [q[0] for q in seq_data]
+            annotations = [ (q[5], 1, q[4], "") for q in seq_data]
+            vgene_list = [q[1] for q in seq_data]
+            species_list = [q[2] for q in seq_data]
+
+            for i, hit_result in enumerate(db_tool.search_batch(
+                    query_seqs, annotations, criteria[0],
+                    criteria[1], criteria[2],
+                    1000, vgene_list, species_list)):
+                if len(hit_result[0]) == 0:
+                    hit_idx = ([], [])
+                else:
+                    hit_idx = list(zip(hit_result[0], hit_result[1]))
+                    hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
+                if hit_idx != seq_data[i][3]:
                     import pdb
                     pdb.set_trace()
-                self.assertTrue(h1==h2)
+                    print(f"Batch error! {criteria}, {hit_result}, {seq_data[i]}",
+                            flush=True)
+                self.assertTrue(hit_idx==seq_data[i][3])
 
 
-def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
-        max_cdr_length_shift, max_hits, vgenes, vgene_filter=""):
+
+
+def perform_exact_search(query, msa, chain_code, msa_codes,
+        mode, cdr_cutoff, max_cdr_length_shift, max_hits,
+        vgene_filter="", species_filter=""):
     """Performs an exact search on an input msa, finding
     all sequences that have hamming distance <= specified."""
     retained_dists, hit_idx, cdrlen = [], [], []
     max_hamming = 0
 
     for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
-        cdrlen.append(len([q for (q,l) in zip(query, labels)
+        cdrlen.append(len([q for (q,l) in zip(query, msa_codes[1])
             if q != '-' and l == region]))
 
-    max_hamming = [(cdrlen[0] + cdrlen[1]) * cdr_cutoff,
-            cdrlen[2] * cdr_cutoff]
+    max_hamming = [int(round((cdrlen[0] + cdrlen[1]) * cdr_cutoff + 0.0001)),
+            int(round(cdrlen[2] * cdr_cutoff + 0.0001))]
 
     vgene_cutoff = -1
     for i in range(4, len(vgene_filter)):
@@ -250,27 +318,34 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
             vgene_cutoff = i
             break
 
-    for i, seq in enumerate(msa):
+    for i, seq_data in enumerate(msa):
+        if seq_data[3] != chain_code:
+            continue
+
         cdr_dists = [0,0]
         if vgene_filter != "":
-            if vgenes[i][:vgene_cutoff] != vgene_filter[:vgene_cutoff]:
+            if seq_data[1][:vgene_cutoff] != vgene_filter[:vgene_cutoff]:
+                continue
+        if species_filter != "":
+            if seq_data[2] != species_filter:
                 continue
 
         for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
             if str(j+1) not in mode:
                 continue
-            region_dist = len([a for (a,b,l) in zip(seq, query,
-                labels) if l==region and a != b])
+            region_dist = len([a for (a,b,l) in zip(seq_data[0], query,
+                msa_codes[1]) if l==region and a != b])
             cdr_dists[int(j/2)] += region_dist
-            region_len = len([s for (s,l) in zip(seq, labels)
-                if l==region and s != '-'])
+
             # Add an arbitrary large number if the cdr length is
             # unacceptable or if an individual distance is
             # unacceptable so that the sequence is not saved.
-            if region_len > cdrlen[j] + max_cdr_length_shift or \
-                    region_len < cdrlen[j] - max_cdr_length_shift:
-                cdr_dists[int(j/2)] += 200
-
+            if region == "cdr3":
+                region_len = len([s for (s,l) in zip(seq_data[0], msa_codes[1])
+                    if l==region and s != '-'])
+                if region_len > cdrlen[j] + max_cdr_length_shift or \
+                        region_len < cdrlen[j] - max_cdr_length_shift:
+                    cdr_dists[int(j/2)] += 200
 
         if cdr_dists[0] <= max_hamming[0] and \
                 cdr_dists[1] <= max_hamming[1]:
@@ -280,11 +355,12 @@ def perform_exact_search(query, msa, labels, mode, cdr_cutoff,
     if len(hit_idx) == 0:
         return [], []
 
-    hit_idx = [x for _, x in sorted(zip(retained_dists,
-        hit_idx), key=lambda pair: pair[0])]
-    retained_dists.sort()
+    # The +1 is necessary because the cpp search routine adds 1 to each
+    # hit idx.
+    hit_idx = [(h+1, d) for h,d in zip(hit_idx, retained_dists)]
+    hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
 
-    return hit_idx[:max_hits], retained_dists[:max_hits]
+    return hit_idx[:max_hits]
 
 
 def get_kmer_counts(msa, cdr_labels):

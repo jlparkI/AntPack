@@ -23,12 +23,10 @@ class LocalDBTool:
                 the database will be retrieved from the
                 database.
             thread_mode (str): One of 'single', 'multi',
-                'prodcon'. 'multi' uses multithreading
-                and works well on solid-state drives; it should not
-                be used on hard drives where it may be slightly
-                slower than single threading due to seek cost.
-                'prodcon' uses two threads at all times
-                and works better for hard drives. 'single' uses
+                'multi' uses multithreading and works well on
+                solid-state drives; it should not be used on hard
+                drives where it may be slightly slower than single
+                threading due to seek cost. 'single' uses
                 only a single thread.
 
         Raises:
@@ -44,7 +42,7 @@ class LocalDBTool:
 
     def search(self, seq:str, annotation:tuple,
             mode="3", cdr_cutoff=0.25,
-            max_cdr_length_shift:int=2, max_hits:int=10,
+            max_cdr_length_shift:int=2, max_hits:int=1000,
             vgene="", species=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
@@ -52,6 +50,48 @@ class LocalDBTool:
         of it (e.g. cdr3, the cdrs etc).
 
         Args:
+            seq (str): The input amino acid sequence. May contain
+                'X', must not contain '*'.
+            annotation (tuple): A tuple of (numbering, percent id,
+                chain type, error message) that is returned by
+                any of the analyze_seq functions for annotators
+                in AntPack.
+            mode (str): One of "3" or "123", indicating whether to
+                look for sequences that are similar based on cdr3 or
+                based on all three cdrs.
+            cdr_cutoff (float): The maximum number of differences
+                allowed from the query seq as a percentage of the
+                query seq cdr length(s) (excluding gaps). This
+                is assessed separately for cdr3 and cdrs 1/2 if
+                using mode "123". In other words, if searching
+                all three cdrs with cutoff 0.25, the maximum
+                number of differences allowed in cdr3 is 25%
+                of that cdr length rounded to the nearest integer,
+                and the maximum number of differences in cdrs 1 & 2
+                combined is 25% of their combined lengths rounded
+                to the nearest integer. cdr_cutoff is allowed to
+                range from 0 to 0.4 (if you want to use a larger
+                value you will need to do a slower full-table scan
+                instead of using this function).
+            max_cdr_length_shift (int): The maximum +/- amount by
+                which the length of cdr3 for a match can differ from
+                the query. If 0, the results are required to have cdr3
+                be the same length as the query.
+            max_hits (int): The maximum number of hits to return.
+            vgene (str): One of "" or a valid vgene. If a valid vgene,
+                hits are required to belong to the same v-gene family.
+            species (str): One of "" or a valid species (human, mouse,
+                alpaca, rabbit). If "", hits are required to belong to
+                the same assigned species.
+
+        Returns:
+            hits (list): A list of the sequence id numbers for the hits.
+                These can be used to retrieve the sequences and their
+                metadata using the get_sequence call.
+            distances (list): A list of the hamming distances of each
+                hit to the query.
+            error_message (str): Either "" or a message if a fatal error
+                occurred.
         """
         return self.local_db_manager.search(seq, annotation,
                 mode, cdr_cutoff, max_cdr_length_shift,
@@ -66,9 +106,59 @@ class LocalDBTool:
         neighbors that meet the input criteria for each of the input
         sequences. This is essentially a batch version of search.
         The search can be conducted using the full sequence or a
-        sub-region of it (e.g. cdr3, the cdrs etc).
+        sub-region of it (e.g. cdr3, the cdrs etc). This is faster
+        than doing individual searches if multithreading is in use
+        and you have a large number of queries.
 
         Args:
+            seq (str): A list of input amino acid sequences. May contain
+                'X', must not contain '*'.
+            annotation (tuple): A list of tuples of (numbering, percent id,
+                chain type, error message) that is returned by
+                any of the analyze_seq functions for annotators
+                in AntPack.
+            mode (str): One of "3" or "123", indicating whether to
+                look for sequences that are similar based on cdr3 or
+                based on all three cdrs.
+            cdr_cutoff (float): The maximum number of differences
+                allowed from each query seq as a percentage of the
+                query seq cdr length(s) (excluding gaps). This
+                is assessed separately for cdr3 and cdrs 1/2 if
+                using mode "123". In other words, if searching
+                all three cdrs with cutoff 0.25, the maximum
+                number of differences allowed in cdr3 is 25%
+                of that cdr length rounded to the nearest integer,
+                and the maximum number of differences in cdrs 1 & 2
+                combined is 25% of their combined lengths rounded
+                to the nearest integer. cdr_cutoff is allowed to
+                range from 0 to 0.4 (if you want to use a larger
+                value you will need to do a slower full-table scan
+                instead of using this function).
+            max_cdr_length_shift (int): The maximum +/- amount by
+                which the length of cdr3 for a match can differ from
+                a query. If 0, the results are required to have cdr3
+                be the same length as the query.
+            max_hits (int): The maximum number of hits to return for
+                each query.
+            vgene (str): Either an empty list or a list of valid vgenes
+                of the same length as seqs. If not empty, each hit is
+                required to belong to the same vgene family as the vgene
+                for that query.
+            species (str): Either an empty list or a list of valid species
+                of the same length as seqs. If not empty, each hit is
+                required to belong to the same species as the species
+                for that query.
+
+        Returns:
+            hits (list): A list of lists of sequence id numbers for hits
+                for each query. List[i] is the hits for query [i].
+                These can be used to retrieve the sequences and their
+                metadata using the get_sequence call.
+            distances (list): A list of lists of hamming distances of each
+                hit to the query. List[i] is the hamming distances for
+                query[i].
+            error_message (str): Either "" or a message if a fatal error
+                occurred.
         """
         return self.local_db_manager.search_seqs(seqs, annotations,
                 mode, cdr_cutoff, max_cdr_length_shift,
@@ -94,6 +184,74 @@ class LocalDBTool:
         """
         return self.local_db_manager.retrieve_sequence(seq_id)
 
+
+
+    def build_sparse_distance_matrix(self, chain_type:str="heavy",
+            mode:str="3", cdr_cutoff:float=0.25,
+            max_hits_per_query:int=10000,
+            max_cdr_length_offset:int=0, distance_type:str="pid",
+            filter_by_vgene:bool=True, filter_by_species:bool=True):
+        """Assembles the lists needed to build a sparse
+        distance matrix for the existing database. The matrix
+        is sparse because distances for sequences outside the cutoff
+        is not calculated. The resulting matrix can be used as input
+        to sklearn's DBSCAN.
+
+        It is important to realize the resulting matrix may not be
+        symmetric depending on the settings that are selected. This will
+        not however be a problem for the DBSCAN algorithm.
+
+        Returns:
+            chain_type (str): One of "heavy", "light".
+            mode (str): One of "3" or "123", indicating whether to
+                assess cutoffs and calculate distances based on cdr 3
+                only or all 3 cdrs.
+            cdr_cutoff (float): The maximum number of differences
+                allowed from each sequence as a percentage of its
+                cdr length(s) (excluding gaps). This
+                is assessed separately for cdr3 and cdrs 1/2 if
+                using mode "123". In other words, if searching
+                all three cdrs with cutoff 0.25, the maximum
+                number of differences allowed in cdr3 is 25%
+                of that cdr length rounded to the nearest integer,
+                and the maximum number of differences in cdrs 1 & 2
+                combined is 25% of their combined lengths rounded
+                to the nearest integer. cdr_cutoff is allowed to
+                range from 0 to 0.4 (if you want to use a larger
+                value you will need to do a slower full-table scan
+                instead of using this function).
+            max_hits_per_query (int): Only up to this many neighbors
+                will be stored per datapoint.
+            max_cdr_length_shift (int): The maximum +/- amount by
+                which the length of cdr3 for a match can differ from
+                a query. If 0, the results are required to have cdr3
+                be the same length as the query. Notice that the
+                matrix may not be symmetric if this value is not 0,
+                since it is possible for A to be inside B's cutoff
+                but not vice versa.
+            distance_type (str): One of 'pid', 'hamming'. If 'pid',
+                the number of differences from each sequence to each
+                partner is calculated as a percentage of that sequence's
+                cdr length(s) (depending on whether using cdr3 only or
+                all three). If 'hamming' the hamming distance is
+                calculated.
+            filter_by_vgene (bool): If True, each sequence only considers
+                possible partners that are in the same vgene family.
+            filter_by_species (bool): If True, each sequence only considers
+                possible partners that are assigned to the same species.
+
+        Returns:
+            data (list): A list of length S for S distances in the dataset
+                that are inside the cdr cutoff.
+            indices (list): A length S list of lists of length 2. Each
+                length-2 list at position k is the [first,second] seq ids
+                for each distance measurement in data. indices can be passed
+                to the csr_matrix constructor in scipy together with data
+                to build a sparse matrix.
+        """
+        return self.local_db_manager.build_sparse_dmat_lists(chain_type,
+                mode, cdr_cutoff, max_cdr_length_shift,
+                distance_type, filter_by_vgene, filter_by_species)
 
 
 
