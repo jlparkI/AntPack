@@ -1,14 +1,15 @@
 """Test database construction for errors.
 Use sqlite for testing and prototyping."""
 import os
+import gzip
 import sys
 import struct
 import shutil
-import sqlite3
 import unittest
 import lmdb
 import numpy as np
 from antpack import (build_database_from_fasta,
+        build_database_from_csv,
         SingleChainAnnotator, VJGeneTool)
 from antpack.utilities import read_fasta
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
@@ -25,16 +26,19 @@ class TestLocalDBConstruction(unittest.TestCase):
         database containing the information we expect."""
         current_dir = os.path.abspath(os.path.dirname(
             __file__))
-        data_filepath = os.path.join(current_dir,
+        fasta_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
+        csv_filepath = os.path.join(current_dir,
+                "test_data", "db_csv_load_testing.csv.gz")
 
         try:
             shutil.rmtree("TEMP_DB")
         except:
             pass
 
-        for nmbr_scheme in ['imgt']:
-            for cdr_scheme in ['north', 'kabat']:
+        for use_csv in [True, False]:
+            for (nmbr_scheme, cdr_scheme) in [('imgt', 'north'),
+                ('imgt', 'kabat')]:
                 if cdr_scheme == "north":
                     sequence_type = "single"
                     memo = ""
@@ -44,19 +48,43 @@ class TestLocalDBConstruction(unittest.TestCase):
                 else:
                     memo="t"
                     sequence_type = "paired"
+                if use_csv:
+                    sequence_type = "single"
 
-                build_database_from_fasta([data_filepath],
-                    "TEMP_DB", numbering_scheme=nmbr_scheme,
-                    cdr_definition_scheme=cdr_scheme,
-                    sequence_type=sequence_type, receptor_type="mab",
-                    pid_threshold=0.7, user_memo=memo,
-                    reject_file=None)
+                seqs, seqinfos, vgenes = [], [], []
 
-                seqs, seqinfos = [], []
+                if use_csv:
+                    # Using hardcoded column selections here (since the
+                    # test data is always the same)
+                    build_database_from_csv([csv_filepath],"TEMP_DB",
+                            {"heavy_chain":0, "light_chain":3,
+                                "heavy_chaintype":2, "light_chaintype":5,
+                                "heavy_numbering":6, "light_numbering":7},
+                            numbering_scheme=nmbr_scheme,
+                            cdr_definition_scheme=cdr_scheme,
+                            receptor_type="mab", pid_threshold=0.7,
+                            user_memo=memo, reject_file=None)
+                    with gzip.open(csv_filepath, "rt") as fhandle:
+                        _ = fhandle.readline()
+                        for line in fhandle:
+                            seqinfos.append("")
+                            elements = line.split(",")
+                            if len(elements[0]) == 0:
+                                seqs.append(elements[3])
+                            else:
+                                seqs.append(elements[0])
 
-                for seqinfo, seq in read_fasta(data_filepath):
-                    seqs.append(seq)
-                    seqinfos.append(seqinfo)
+                else:
+                    build_database_from_fasta([fasta_filepath],
+                        "TEMP_DB", numbering_scheme=nmbr_scheme,
+                        cdr_definition_scheme=cdr_scheme,
+                        sequence_type=sequence_type, receptor_type="mab",
+                        pid_threshold=0.7, user_memo=memo,
+                        reject_file=None)
+                    for seqinfo, seq in read_fasta(fasta_filepath):
+                        seqs.append(seq)
+                        seqinfos.append(seqinfo)
+
 
                 env = lmdb.Environment("TEMP_DB", readonly=True,
                         max_dbs=10)
@@ -85,7 +113,8 @@ class TestLocalDBConstruction(unittest.TestCase):
                 cursor = lmdb.Cursor(subdb, txn)
                 for i, seq in enumerate(seqs):
                     key = struct.pack('@I', i)
-                    self.assertTrue(seq==cursor.get(key).decode())
+                    test_seq = cursor.get(key).decode()
+                    self.assertTrue(seq==test_seq)
 
                 subdb = env.open_db(b"seq_metadata_table",
                         txn, create=False)
@@ -101,7 +130,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                 # Check each set of chain tables for expected info.
                 for chain, chain_coding in zip(["heavy", "light"],
                         [("H",), ("L", "K")]):
-                    aligned_seqs, cdrs, unusual_positions, codes, vgenes, _, vspecies, child_ids = \
+                    aligned_seqs, cdrs, _, _, vgenes, _, vspecies, child_ids = \
                             prep_seqs_for_comparison(nmbr_scheme,
                             cdr_scheme, chain_coding, seqs,
                             annotations, sca, vj_tool)
@@ -114,7 +143,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                         value = cursor.get(key)
                         self.assertTrue(value[:-4].decode()==cdr_grp[0])
                         for j, vcode in enumerate(
-                                get_vgene_code(vgenes[i], vspecies[i])[1]):
+                            get_vgene_code(vgenes[i], vspecies[i])[1]):
                             self.assertTrue(int(value[-4:][j])==int(vcode))
 
                     subdb = env.open_db(f"{chain}_dimers".encode(),
@@ -187,6 +216,37 @@ class TestLocalDBConstruction(unittest.TestCase):
         shutil.rmtree("TEMP_DB")
         os.remove("temp_data_file.fa")
         os.remove("REJECTS")
+        
+
+        with open("temp_data_file.csv", "w+") as fhandle:
+            fhandle.write("AAAAAAAATTTTTTTTT,H,VJ123,humanoid\n")
+            fhandle.write(">NAME,H,XYZ123,alien\n")
+            fhandle.write("$$ALT,H,,unknown\n")
+
+        build_database_from_csv(["temp_data_file.csv"],"TEMP_DB",
+                {"heavy_chain":0, "heavy_chaintype":1,
+                    "heavy_vgene":2, "species":3},
+                numbering_scheme='imgt',
+                cdr_definition_scheme='imgt',
+                receptor_type="mab", pid_threshold=0.7,
+                user_memo="", reject_file="REJECTS",
+                header_rows=0)
+
+        # There should be no error in writing the db;
+        # we expect that the sequences that failed the
+        # threshold test will be written to the reject file,
+        # and the relevant database tables will be empty.
+        with open("REJECTS", "r", encoding="utf-8") as reject_handle:
+            with open("temp_data_file.csv", "r", encoding="utf-8") as \
+                    fhandle:
+                for line1, line2 in zip(reject_handle, fhandle):
+                    self.assertTrue(line1==line2)
+
+        shutil.rmtree("TEMP_DB")
+        os.remove("temp_data_file.csv")
+        os.remove("REJECTS")
+
+
 
 
     def eval_nmbr_table_row_contents(self, kmer_to_child,
@@ -234,8 +294,6 @@ class TestLocalDBConstruction(unittest.TestCase):
                         codeval
 
                 self.assertTrue(codeval in kmer_to_child)
-                #import pdb
-                #pdb.set_trace()
 
                 self.assertTrue(bytestring in kmer_to_child[codeval])
                 kmer_to_child[codeval].remove(bytestring)
@@ -286,6 +344,7 @@ def prep_seqs_for_comparison(numbering_scheme,
         vgene, jgene, _, _, species = vj_tool.assign_vj_genes(
                 selected_seq[1], selected_seq[0], "unknown",
                 "identity")
+
         vgenes.append(vgene)
         jgenes.append(jgene)
         if species == "human":

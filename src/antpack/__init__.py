@@ -11,7 +11,8 @@ from antpack.antpack_cpp_ext import LiabilitySearchTool, SequenceTemplateAligner
 from .clustering_tools import EMCategoricalMixture
 from .antpack_cli import run_cli_interface
 from .antpack_license import run_license_key_setter
-from .database_tools import build_database_from_fasta, LocalDBTool
+from .database_tools import (build_database_from_fasta,
+        LocalDBTool, build_database_from_csv)
 
 pyside = importlib.util.find_spec("PySide6")
 if pyside is not None:

@@ -296,7 +296,7 @@ def build_database_from_csv(csv_filepaths:list,
 
     if reject_file is None:
         for csv_filepath in csv_filepaths:
-            for i, row in enumerate(read_csv(csv_filepath)):
+            for i, row in enumerate(read_csv(csv_filepath, skiprows=header_rows)):
                 if len(row) == 0:
                     continue
                 db_construct_tool.add_csv_sequence(row, settings_list)
@@ -308,10 +308,10 @@ def build_database_from_csv(csv_filepaths:list,
     else:
         with open(reject_file, "w+", encoding="utf-8") as reject_handle:
             for csv_filepath in csv_filepaths:
-                for i, row in enumerate(read_fasta(csv_filepath)):
+                for i, row in enumerate(read_csv(csv_filepath, skiprows=header_rows)):
                     if len(row) == 0:
                         continue
-                    rcode = db_construct_tool.add_sequence(row, settings_list)
+                    rcode = db_construct_tool.add_csv_sequence(row, settings_list)
                     if rcode > 0:
                         reject_handle.write(f"{','.join(row)}\n")
                     if i % 10000 == 0:
