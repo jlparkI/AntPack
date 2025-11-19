@@ -189,8 +189,9 @@ class LocalDBTool:
     def build_sparse_distance_matrix(self, chain_type:str="heavy",
             mode:str="3", cdr_cutoff:float=0.25,
             max_hits_per_query:int=10000,
-            max_cdr_length_offset:int=0, distance_type:str="pid",
-            filter_by_vgene:bool=True, filter_by_species:bool=True):
+            max_cdr_length_shift:int=0, distance_type:str="pid",
+            filter_by_vgene:bool=True, filter_by_species:bool=True,
+            verbose=True):
         """Assembles the lists needed to build a sparse
         distance matrix for the existing database. The matrix
         is sparse because distances for sequences outside the cutoff
@@ -239,6 +240,7 @@ class LocalDBTool:
                 possible partners that are in the same vgene family.
             filter_by_species (bool): If True, each sequence only considers
                 possible partners that are assigned to the same species.
+            verbose (bool): If True, print out updates every 10,000 sequences.
 
         Returns:
             data (list): A list of length S for S distances in the dataset
@@ -250,8 +252,9 @@ class LocalDBTool:
                 to build a sparse matrix.
         """
         return self.local_db_manager.build_sparse_dmat_lists(chain_type,
-                mode, cdr_cutoff, max_cdr_length_shift,
-                distance_type, filter_by_vgene, filter_by_species)
+                mode, cdr_cutoff, max_hits_per_query, max_cdr_length_shift,
+                distance_type, filter_by_vgene, filter_by_species,
+                verbose)
 
 
 
@@ -274,6 +277,23 @@ class LocalDBTool:
                 no memo was supplied.
         """
         return self.local_db_manager.get_database_metadata()
+
+
+    def get_num_seqs(self, chain_type="all"):
+        """Gets either the total number of sequences OR
+        the total number of entries in the heavy chain table
+        or the light chain table, as requested.
+
+        Args:
+            chain_type (str): One of "all", "heavy", "light".
+                Determines whether to count all chains or just
+                heavy or light.
+
+        Returns:
+            count (int): The number of sequences in the table
+                matching the specifications.
+        """
+        return self.local_db_manager.get_sequence_count(chain_type)
 
 
     def get_database_counts(self):

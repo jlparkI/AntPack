@@ -3,6 +3,8 @@ import os
 import shutil
 import random
 import unittest
+import numpy as np
+from scipy.sparse import csr_matrix
 from antpack import (build_database_from_fasta,
         SingleChainAnnotator, LocalDBTool, VJGeneTool)
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
@@ -23,11 +25,13 @@ class TestLocalDBManagement(unittest.TestCase):
             __file__))
         data_filepath = os.path.join(current_dir,
                 "test_data", "addtnl_test_data.fasta.gz")
+        nmbr_scheme = "imgt"
+        cdr_scheme = "imgt"
 
         if not os.path.exists('TEMP_DB.db'):
             build_database_from_fasta([data_filepath],
-                "TEMP_DB.db", numbering_scheme="imgt",
-                cdr_definition_scheme="imgt",
+                "TEMP_DB.db", numbering_scheme=nmbr_scheme,
+                cdr_definition_scheme=cdr_scheme,
                 sequence_type="single", receptor_type="mab",
                 pid_threshold=0.7, user_memo="")
 
@@ -40,9 +44,6 @@ class TestLocalDBManagement(unittest.TestCase):
         for thread_scheme in ["single", "multi"]:
             print(f"Testing {thread_scheme} scheme...")
             local_db = LocalDBTool("TEMP_DB.db", thread_scheme)
-
-            nmbr_scheme = "imgt"
-            cdr_scheme = "imgt"
 
             # First annotate the chains and build a heavy and light
             # MSA, then interleave them.
@@ -60,6 +61,13 @@ class TestLocalDBManagement(unittest.TestCase):
                 heavy_msa], [t[0] for t in heavy_msa])
             light_codes, light_msa = sca.build_msa([t[1] for t in
                 light_msa], [t[0] for t in light_msa])
+
+            # Check that get_num_seqs works correctly.
+            self.assertTrue(local_db.get_num_seqs("all") == len(seqs))
+            self.assertTrue(local_db.get_num_seqs("heavy") ==
+                    len(heavy_msa))
+            self.assertTrue(local_db.get_num_seqs("light") ==
+                    len(light_msa))
 
             heavy_codes = (heavy_codes, sca.assign_cdr_labels(heavy_codes,
                 "H", cdr_scheme))
@@ -80,9 +88,12 @@ class TestLocalDBManagement(unittest.TestCase):
             self.random_search_function_test(msa, heavy_codes,
                         light_codes, local_db, seqinfos,
                         seqs)
+            self.distmat_construction_test(msa, heavy_codes,
+                        light_codes, local_db)
 
             del local_db
         shutil.rmtree("TEMP_DB.db")
+
 
 
 
@@ -288,13 +299,46 @@ class TestLocalDBManagement(unittest.TestCase):
                     hit_idx = list(zip(hit_result[0], hit_result[1]))
                     hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
                 if hit_idx != seq_data[i][3]:
-                    import pdb
-                    pdb.set_trace()
                     print(f"Batch error! {criteria}, {hit_result}, {seq_data[i]}",
                             flush=True)
                 self.assertTrue(hit_idx==seq_data[i][3])
 
 
+
+    def distmat_construction_test(self, msa, heavy_codes,
+            light_codes, local_db):
+        """Compare the results of exact distance matrix construction
+        using a simple if brutally inefficient procedure
+        with those provided by the much more efficient
+        procedure used by the API."""
+        for chain_type in [("H",), ("L", "K")]:
+            if chain_type[0] == "H":
+                codes = heavy_codes
+                ldb_chain_type = "heavy"
+            else:
+                codes = light_codes
+                ldb_chain_type = "light"
+
+            distances, row_idx, col_idx = [], [], []
+
+            for i, seq_data in enumerate(msa):
+                if seq_data[3] not in chain_type:
+                    continue
+                hits = perform_exact_search(seq_data[0], msa, seq_data[3],
+                        codes, "3", 0.25, 1, 1000, seq_data[1], seq_data[2])
+                for hit in hits:
+                    distances.append(hit[1])
+                    row_idx.append(i)
+                    col_idx.append(hit[0])
+
+            ldb_distances, ldb_rows, ldb_cols = local_db.build_sparse_distance_matrix(
+                    ldb_chain_type, "3", 0.25, 10000, 1, "hamming", True, True)
+
+            csr_test = csr_matrix((ldb_distances, (ldb_rows, ldb_cols)),
+                    [(len(msa), len(msa))])
+            csr_gt = csr_matrix((distances, (row_idx, col_idx)),
+                    [(len(msa), len(msa))])
+            self.assertTrue(np.allclose(csr_test.toarray(), csr_gt.toarray()))
 
 
 def perform_exact_search(query, msa, chain_code, msa_codes,
@@ -355,9 +399,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
     if len(hit_idx) == 0:
         return [], []
 
-    # The +1 is necessary because the cpp search routine adds 1 to each
-    # hit idx.
-    hit_idx = [(h+1, d) for h,d in zip(hit_idx, retained_dists)]
+    hit_idx = [(h, d) for h,d in zip(hit_idx, retained_dists)]
     hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
 
     return hit_idx[:max_hits]

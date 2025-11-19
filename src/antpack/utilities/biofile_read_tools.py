@@ -1,6 +1,7 @@
 """Simple tools for reading biological data files. This avoids
 any need to use Biopython or other similar libraries as dependencies."""
 import gzip
+import csv
 
 
 def read_fasta(filepath):
@@ -8,35 +9,53 @@ def read_fasta(filepath):
     one sequence at a time. Can take either gzipped or non-
     gzipped files as input. Assumes utf-8 encoding."""
     if filepath.endswith(".gz"):
-        fhandle = gzip.open(filepath, "rt", encoding="utf-8")
+        fopener = gzip.open
+        fopen_code = "rt"
     else:
-        fhandle = open(filepath, "r", encoding="utf-8")
+        fopener = open
+        fopen_code = "r"
 
     sequence, seqinfo = [], ""
 
-    for line in fhandle:
-        if line.startswith(">"):
-            if len(sequence) > 0 and len(seqinfo) > 0:
-                yield seqinfo, "".join(sequence)
-                sequence, seqinfo = [], line[1:].strip()
+    with fopener(filepath, fopen_code, encoding="utf-8") as fhandle:
+        for line in fhandle:
+            if line.startswith(">"):
+                if len(sequence) > 0 and len(seqinfo) > 0:
+                    yield seqinfo, "".join(sequence)
+                    sequence, seqinfo = [], line[1:].strip()
 
-            elif len(sequence) == 0 and len(seqinfo) == 0:
-                seqinfo = line[1:].strip()
+                elif len(sequence) == 0 and len(seqinfo) == 0:
+                    seqinfo = line[1:].strip()
+
+                else:
+                    raise RuntimeError("Incorrect fasta file formatting or missing "
+                            f"sequence id / name; please check input file {filepath}.")
+
+            elif len(line.strip()) == 0:
+                continue
 
             else:
-                raise RuntimeError("Incorrect fasta file formatting or missing "
-                        f"sequence id / name; please check input file {filepath}.")
+                sequence.append(line.strip())
 
-        elif len(line.strip()) == 0:
-            continue
+        if len(sequence) > 0 and len(seqinfo) > 0:
+            yield seqinfo, "".join(sequence)
+        elif len(sequence) != 0 or len(seqinfo) != 0:
+            raise RuntimeError("Incorrect fasta file formatting or missing "
+                    f"sequence id / name; please check input file {filepath}.")
 
-        else:
-            sequence.append(line.strip())
 
-    if len(sequence) > 0 and len(seqinfo) > 0:
-        yield seqinfo, "".join(sequence)
-    elif len(sequence) != 0 or len(seqinfo) != 0:
-        raise RuntimeError("Incorrect fasta file formatting or missing "
-                f"sequence id / name; please check input file {filepath}.")
 
-    fhandle.close()
+def read_csv(filepath):
+    """Generator for reading csv files. By default, reads
+    one sequence at a time. Can take either gzipped or non-
+    gzipped files as input. Assumes utf-8 encoding."""
+    if filepath.endswith(".gz"):
+        with gzip.open(filepath, "rt", encoding="utf-8") as fhandle:
+            reader = csv.reader(fhandle)
+            for row in reader:
+                yield row
+    else:
+        with open(filepath, "rt", encoding="utf-8") as fhandle:
+            reader = csv.reader(fhandle)
+            for row in reader:
+                yield row

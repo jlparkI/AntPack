@@ -84,14 +84,14 @@ class TestLocalDBConstruction(unittest.TestCase):
                         txn, create=False)
                 cursor = lmdb.Cursor(subdb, txn)
                 for i, seq in enumerate(seqs):
-                    key = struct.pack('@I', i+1)
+                    key = struct.pack('@I', i)
                     self.assertTrue(seq==cursor.get(key).decode())
 
                 subdb = env.open_db(b"seq_metadata_table",
                         txn, create=False)
                 cursor = lmdb.Cursor(subdb, txn)
                 for i, seqinfo in enumerate(seqinfos):
-                    key = struct.pack('@I', i+1)
+                    key = struct.pack('@I', i)
                     self.assertTrue(seqinfo==cursor.get(key).decode())
 
                 sca = SingleChainAnnotator(scheme=nmbr_scheme)
@@ -277,7 +277,7 @@ def prep_seqs_for_comparison(numbering_scheme,
     extracting cdrs etc."""
     selected_seqs = [(s, a) for (s, a) in zip(
         sequences, annotations) if a[2] in chain_type]
-    child_ids = [i+1 for i,a in enumerate(annotations)
+    child_ids = [i for i,a in enumerate(annotations)
             if a[2] in chain_type]
     vgenes, jgenes = [], []
     vjspecies = []
