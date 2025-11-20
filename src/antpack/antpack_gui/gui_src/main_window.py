@@ -142,6 +142,13 @@ class MainWindow(QMainWindow):
         quit_command.triggered.connect(self.quit_event)
         quit_command.setShortcut('Ctrl+Q')
         file_menu.addAction(quit_command)
+        
+
+        data_menu = menu_bar.addMenu("Data")
+
+        build_db = data_menu.addMenu("Build local database")
+        build_db = data_menu.addMenu("Search local database")
+        build_db = data_menu.addMenu("Search CAS database")
 
         self.setMenuBar(menu_bar)
 

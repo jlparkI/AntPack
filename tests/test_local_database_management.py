@@ -244,15 +244,11 @@ class TestLocalDBManagement(unittest.TestCase):
 
             check_seq_retrieval = random.randint(0,1) == 0
 
-            hit_idx, hit_dists, _ = db_tool.search(
-                    query_seq, (codes[0], 1, msa[idx][3], ""),
+            hits = db_tool.search(query_seq,
+                    (codes[0], 1, msa[idx][3], ""),
                     mode, cutoff, max_cdr_length_shift,
                     1000, vgene, species)
-            if len(hit_idx) == 0:
-                hit_idx = ([], [])
-            else:
-                hit_idx = list(zip(hit_idx, hit_dists))
-                hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
+            hits = sorted(hits, key=lambda x: (x[1], x[0]))
 
             gt_hit_idx = perform_exact_search(query_seq, msa, msa[idx][3],
                     codes, mode, cutoff, max_cdr_length_shift,
@@ -266,17 +262,19 @@ class TestLocalDBManagement(unittest.TestCase):
                         msa[idx][3], codes[0])
                 )
 
-            if hit_idx != gt_hit_idx:
+            if hits != gt_hit_idx:
+                import pdb
+                pdb.set_trace()
                 print(f"Error! {ctr}, {mut_percentage} mut percentage, cutoff {cutoff}, "
                             f"max hits 100, vgene_filter {vgene}, "
                             f"num gt hits was {len(gt_hit_idx[0])}", flush=True)
-            self.assertTrue(hit_idx==gt_hit_idx)
+            self.assertTrue(hits==gt_hit_idx)
 
             # Randomly check some of the sequences to make sure the
             # metadata and sequence retrieved from the database for a given
             # id code match those in the input.
-            if check_seq_retrieval and len(hit_idx[0]) > 0:
-                for hit in hit_idx:
+            if check_seq_retrieval and len(hits) > 0:
+                for hit in hits:
                     db_seq, db_metadata = db_tool.get_sequence(hit[0])
                     self.assertTrue(db_seq==raw_seqs[hit[0]])
                     self.assertTrue(seqinfo[hit[0]]==db_metadata)
@@ -289,17 +287,13 @@ class TestLocalDBManagement(unittest.TestCase):
             vgene_list = [q[1] for q in seq_data]
             species_list = [q[2] for q in seq_data]
 
-            for i, hit_result in enumerate(db_tool.search_batch(
+            for i, hit_idx in enumerate(db_tool.search_batch(
                     query_seqs, annotations, criteria[0],
                     criteria[1], criteria[2],
                     1000, vgene_list, species_list)):
-                if len(hit_result[0]) == 0:
-                    hit_idx = ([], [])
-                else:
-                    hit_idx = list(zip(hit_result[0], hit_result[1]))
-                    hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
+                hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
                 if hit_idx != seq_data[i][3]:
-                    print(f"Batch error! {criteria}, {hit_result}, {seq_data[i]}",
+                    print(f"Batch error! {criteria}, {hit_idx}, {seq_data[i]}",
                             flush=True)
                 self.assertTrue(hit_idx==seq_data[i][3])
 
@@ -397,7 +391,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
             retained_dists.append(cdr_dists[0] + cdr_dists[1])
 
     if len(hit_idx) == 0:
-        return [], []
+        return []
 
     hit_idx = [(h, d) for h,d in zip(hit_idx, retained_dists)]
     hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
