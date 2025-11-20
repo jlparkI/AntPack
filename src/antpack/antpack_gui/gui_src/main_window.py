@@ -183,6 +183,8 @@ class MainWindow(QMainWindow):
                 self.update_seq_comparison_tabs()
                 return
 
+            seq = self.sc_annotator.clean_sequence(seq)
+
             if self.selected_seqs is None:
                 self.selected_seqs = MultiSequenceData()
             err = ""
@@ -236,6 +238,8 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
+            seq = self.sc_annotator.clean_sequence(seq)
 
             try:
                 self.selected_seqs = process_for_vj_comparison(seq, seq_type,
