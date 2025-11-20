@@ -32,13 +32,10 @@ class VJGeneTool(VJMatchCounter):
         vj_names, vj_seqs, retrieved_dates = load_vj_gene_consensus_db(os.getcwd(),
                 db_path, "imgt")
 
-        blosum_matrix = np.load(os.path.join(project_path, "..",
-            "numbering_tools", "consensus_data", "mabs",
-            "blosum_matrix.npy")).astype(np.float64)
         self.retrieved_dates = retrieved_dates
         ig_aligner_consensus_path = os.path.join(project_path, "..", "numbering_tools",
                 "consensus_data")
-        super().__init__(vj_names, vj_seqs, blosum_matrix,
+        super().__init__(vj_names, vj_seqs,
                 scheme, ig_aligner_consensus_path,
                 license_key, user_email)
 

@@ -75,10 +75,6 @@ def build_database_from_fasta(fasta_filepaths:list,
     vj_names, vj_seqs, _ = load_vj_gene_consensus_db(os.getcwd(),
             vj_db_path, "imgt")
 
-    blosum_matrix = np.load(os.path.join(project_path,
-        "numbering_tools", "consensus_data", "mabs",
-        "blosum_matrix.npy")).astype(np.float64)
-
     print("Estimating number of sequences.")
     nseqs = 0
 
@@ -95,8 +91,7 @@ def build_database_from_fasta(fasta_filepaths:list,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, blosum_matrix,
-            user_memo, nseqs)
+            vj_names, vj_seqs, user_memo, nseqs)
 
     print("Starting db construction.")
     db_construct_tool.open_transaction()
@@ -241,10 +236,6 @@ def build_database_from_csv(csv_filepaths:list,
     vj_names, vj_seqs, _ = load_vj_gene_consensus_db(os.getcwd(),
             vj_db_path, "imgt")
 
-    blosum_matrix = np.load(os.path.join(project_path,
-        "numbering_tools", "consensus_data", "mabs",
-        "blosum_matrix.npy")).astype(np.float64)
-
     print("Estimating number of sequences.")
     nseqs = 0
 
@@ -264,8 +255,7 @@ def build_database_from_csv(csv_filepaths:list,
             "single", receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, blosum_matrix,
-            user_memo, nseqs)
+            vj_names, vj_seqs, user_memo, nseqs)
 
     settings_list = []
     for expected_key in ["heavy_chain", "light_chain",
