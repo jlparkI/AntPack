@@ -56,7 +56,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                 if use_csv:
                     # Using hardcoded column selections here (since the
                     # test data is always the same)
-                    build_database_from_csv([csv_filepath],"TEMP_DB",
+                    build_database_from_csv([csv_filepath], "TEMP_DB",
                             {"heavy_chain":0, "light_chain":3,
                                 "heavy_chaintype":2, "light_chaintype":5,
                                 "heavy_numbering":6, "light_numbering":7},
