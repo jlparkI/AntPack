@@ -122,7 +122,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
             if (sequence.at(i) == 'M' || sequence.at(i) == 'W') {
                 std::pair<std::pair<int, int>, std::string> error =
                     { {i, i+1}, "Methionine / Tryptophan oxidation "
-                        "moderate risk"};
+                        "(severity: medium)"};
                 output.push_back(error);
                 // In this case, if the letter is MW, no other liabilities
                 // are applicable, so continue.
@@ -133,7 +133,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                 std::string next2 = sequence.substr(i, 2);
                 if (next2 == "TS") {
                     std::pair<std::pair<int, int>, std::string> error =
-                        { {i, i+2}, "pH-dependent hydrolysis risk"};
+                        { {i, i+2}, "Fragmentation (severity: medium)"};
                     output.push_back(error);
                     // In this case, if the letters are TS, no other liabilities
                     // are applicable, so continue.
@@ -145,17 +145,25 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                         // (re.compile(r"[STK]N"), True,
                         // "Deamidation (low risk)"),
                         std::pair<std::pair<int, int>, std::string> error =
-                            { {i, i+2}, "Deamidation (low risk)"};
+                            { {i, i+2}, "Deamidation (severity: low)"};
                         output.push_back(error);
                     }
                 }
-                if (next2.at(0) == 'N' || next2.at(0) == 'D') {
+                if (next2.at(0) == 'N') {
                     if (next2.at(1) == 'P') {
                         // (re.compile(r"[ND]P"), True,
                         // "pH-dependent hydrolysis (moderate risk)"),
                         std::pair<std::pair<int, int>, std::string> error =
-                            { {i, i+2}, "pH-dependent hydrolysis "
-                                "(moderate risk)"};
+                            { {i, i+2}, "Hydrolysis (severity: medium)"};
+                        output.push_back(error);
+                    }
+                }
+                if (next2.at(0) == 'D') {
+                    if (next2.at(1) == 'P') {
+                        // (re.compile(r"[ND]P"), True,
+                        // "pH-dependent hydrolysis (moderate risk)"),
+                        std::pair<std::pair<int, int>, std::string> error =
+                            { {i, i+2}, "Fragmentation (severity: high)"};
                         output.push_back(error);
                     }
                 }
@@ -166,7 +174,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                         // (re.compile(r"D[DGHST]"), True,
                         // "Isomerization (elevated risk)"),
                         std::pair<std::pair<int, int>, std::string> error =
-                            { {i, i+2}, "Isomerization (elevated risk)"};
+                            { {i, i+2}, "Isomerization (severity: high)"};
                         output.push_back(error);
                     }
                 }
@@ -177,13 +185,13 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                     // "Deamidation (moderate risk)"),
                     if (next2.at(1) == 'G' || next2.at(1) == 'S') {
                         std::pair<std::pair<int, int>, std::string> error =
-                            { {i, i+2}, "Deamidation (elevated risk)"};
+                            { {i, i+2}, "Deamidation (severity: high)"};
                         output.push_back(error);
                     }
                     if (next2.at(1) == 'A' || next2.at(1) == 'H' ||
                             next2.at(1) == 'N' || next2.at(1) == 'T') {
                         std::pair<std::pair<int, int>, std::string> error =
-                            { {i, i+2}, "Deamidation (elevated risk)"};
+                            { {i, i+2}, "Deamidation (severity: medium)"};
                         output.push_back(error);
                     }
                 }
@@ -195,7 +203,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
             if (next3.at(0) == 'N' && next3.at(1) != 'P') {
                 if (next3.at(2) == 'S' || next3.at(2) == 'T') {
                     std::pair<std::pair<int, int>, std::string> error =
-                        { {i, i+3}, "N-glycosylation risk"};
+                        { {i, i+3}, "N-glycosylation (severity: high)"};
                     output.push_back(error);
                 }
             }
@@ -204,7 +212,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
             if (std::get<0>(alignment).at(i) != cysteine_positions[0] &&
                     std::get<0>(alignment).at(i) != cysteine_positions[1]) {
                 std::pair<std::pair<int, int>, std::string> error =
-                        { {i, i+1}, "Unusual cysteine"};
+                        { {i, i+1}, "Unusual cysteine (severity: high)"};
                 output.push_back(error);
             }
         }
@@ -212,8 +220,7 @@ LiabilitySearchToolCpp::analyze_seq(std::string sequence,
                 std::get<0>(alignment).at(i) == cysteine_positions[1]) {
             if (sequence.at(i) != 'C') {
                 std::pair<std::pair<int, int>, std::string> error =
-                        { {i, i+3}, "Cysteine missing at one of the "
-                            "two key conserved cysteine positions."};
+                        { {i, i+3}, "Cysteine missing (severity: high)"};
                 output.push_back(error);
             }
         }
