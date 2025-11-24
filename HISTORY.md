@@ -1,3 +1,9 @@
+### Version 0.3.8.6.1
+Updated liability search tool to more closely parallel Satlawa et al.
+
+### Version 0.3.8.6
+Bug fix for VJ gene assignment.
+
 ### Version 0.3.8.5
 Minor updates to the LiabilitySearchTool. Updated error messages
 from numbering to distinguish between situations where one of
