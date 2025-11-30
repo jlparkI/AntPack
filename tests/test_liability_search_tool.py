@@ -17,7 +17,8 @@ class TestLiabilitySearchTool(unittest.TestCase):
         result = search_tool.analyze_seq(generic_test_seq, alignment,
                 "imgt", "imgt")
         self.assertTrue(len(result)==3)
-        self.assertTrue(result[0][1] == "Methionine / Tryptophan oxidation (severity: medium)")
+        self.assertTrue(result[0][1] == "Methionine / Tryptophan oxidation "
+            "(severity: medium)")
         self.assertTrue(result[1][1] == "Deamidation (severity: low)")
         self.assertTrue(result[2][1] == "Deamidation (severity: high)")
 

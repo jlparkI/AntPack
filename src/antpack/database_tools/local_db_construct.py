@@ -12,7 +12,8 @@ from antpack.antpack_cpp_ext import DatabaseConstructionTool
 
 
 def build_database_from_fasta(fasta_filepaths:list,
-        database_filepath:str, numbering_scheme:str="imgt",
+        database_filepath:str, temp_file:str,
+        numbering_scheme:str="imgt",
         cdr_definition_scheme:str="imgt",
         sequence_type:str="single", receptor_type:str="mab",
         pid_threshold:float=0.7, user_memo:str="",
@@ -28,6 +29,9 @@ def build_database_from_fasta(fasta_filepaths:list,
             may or may not be gzipped.
         database_filepath (str): The desired location and filename
             for the database.
+        temp_file (str): A path to a temporary file where the application
+            can temporarily store data needed while initializing the
+            database.
         numbering_scheme (str): One of 'imgt', 'kabat', 'martin' or
             'aho'. If receptor_type is 'tcr', 'imgt' is the only
             allowed option.
@@ -87,7 +91,7 @@ def build_database_from_fasta(fasta_filepaths:list,
         return
 
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            numbering_scheme, cdr_definition_scheme,
+            temp_file, numbering_scheme, cdr_definition_scheme,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
@@ -130,7 +134,8 @@ def build_database_from_fasta(fasta_filepaths:list,
 
 
 def build_database_from_csv(csv_filepaths:list,
-        database_filepath:str, column_selections:dict,
+        database_filepath:str, temp_file:str,
+        column_selections:dict,
         header_rows:int=1,
         numbering_scheme:str="imgt",
         cdr_definition_scheme:str="imgt",
@@ -150,6 +155,9 @@ def build_database_from_csv(csv_filepaths:list,
             may not be gzipped.
         database_filepath (str): The desired location and filename
             for the database.
+        temp_file (str): A path to a temporary file where the application
+            can temporarily store data needed while initializing the
+            database.
         column_selections (dict): A dictionary which should contain at least
             some of the following keys:
 
@@ -251,7 +259,7 @@ def build_database_from_csv(csv_filepaths:list,
         return
 
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            numbering_scheme, cdr_definition_scheme,
+            temp_file, numbering_scheme, cdr_definition_scheme,
             "single", receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
