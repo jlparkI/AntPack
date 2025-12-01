@@ -30,7 +30,8 @@ class TestLocalDBManagement(unittest.TestCase):
 
         if not os.path.exists('TEMP_DB.db'):
             build_database_from_fasta([data_filepath],
-                "TEMP_DB.db", numbering_scheme=nmbr_scheme,
+                "TEMP_DB.db", "TEMP_FILE",
+                numbering_scheme=nmbr_scheme,
                 cdr_definition_scheme=cdr_scheme,
                 sequence_type="single", receptor_type="mab",
                 pid_threshold=0.7, user_memo="")
@@ -107,7 +108,8 @@ class TestLocalDBManagement(unittest.TestCase):
 
         if not os.path.exists('TEMP_DB.db'):
             build_database_from_fasta([data_filepath],
-                "TEMP_DB.db", numbering_scheme="imgt",
+                "TEMP_DB.db", "TEMP_FILE",
+                numbering_scheme="imgt",
                 cdr_definition_scheme="imgt",
                 sequence_type="single", receptor_type="mab",
                 pid_threshold=0.7, user_memo="")

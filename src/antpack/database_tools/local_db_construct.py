@@ -65,6 +65,9 @@ def build_database_from_fasta(fasta_filepaths:list,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
+    if os.path.exists(temp_file):
+        raise RuntimeError("The temporary filepath you supplied "
+                           "is a file that already exists.")
 
     os.makedirs(database_filepath)
 
@@ -91,7 +94,7 @@ def build_database_from_fasta(fasta_filepaths:list,
         return
 
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            temp_file, numbering_scheme, cdr_definition_scheme,
+            numbering_scheme, temp_file, cdr_definition_scheme,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
@@ -100,35 +103,36 @@ def build_database_from_fasta(fasta_filepaths:list,
     print("Starting db construction.")
     db_construct_tool.open_transaction()
 
+    seqcount = 0
+
     if reject_file is None:
         for fasta_filepath in fasta_filepaths:
-            for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+            for (seqinfo, seq) in read_fasta(fasta_filepath):
                 db_construct_tool.add_sequence(seq, seqinfo)
-                if i % 10000 == 0:
+                seqcount += 1
+                if seqcount % 10000 == 0:
                     db_construct_tool.close_transaction()
                     db_construct_tool.open_transaction()
                     if verbose:
-                        print(f"{i} complete.")
+                        print(f"{seqcount} complete.")
     else:
         with open(reject_file, "w+", encoding="utf-8") as reject_handle:
             for fasta_filepath in fasta_filepaths:
-                for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+                for (seqinfo, seq) in read_fasta(fasta_filepath):
                     rcode = db_construct_tool.add_sequence(seq, seqinfo)
                     if rcode > 0:
                         reject_handle.write(f">{seqinfo}\n{seq}\n")
-                    if i % 10000 == 0:
+                    if seqcount % 10000 == 0:
                         db_construct_tool.close_transaction()
                         db_construct_tool.open_transaction()
                         if verbose:
-                            print(f"{i} complete.")
+                            print(f"{seqcount} complete.")
 
     if verbose:
         print("Now constructing database indices...")
 
-    db_construct_tool.close_transaction()
-    db_construct_tool.open_transaction()
     db_construct_tool.finalize_db_construction()
-    db_construct_tool.close_transaction()
+    shutil.rmtree(temp_filepath)
     gc.collect()
 
 
@@ -230,6 +234,9 @@ def build_database_from_csv(csv_filepaths:list,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
+    if os.path.exists(temp_file):
+        raise RuntimeError("The temporary filepath you supplied "
+                           "is a file that already exists.")
 
     os.makedirs(database_filepath)
 
@@ -259,7 +266,7 @@ def build_database_from_csv(csv_filepaths:list,
         return
 
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            temp_file, numbering_scheme, cdr_definition_scheme,
+            numbering_scheme, temp_file, cdr_definition_scheme,
             "single", receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
@@ -291,38 +298,39 @@ def build_database_from_csv(csv_filepaths:list,
     print("Starting db construction.")
     db_construct_tool.open_transaction()
 
+    seqcount = 0
 
     if reject_file is None:
         for csv_filepath in csv_filepaths:
-            for i, row in enumerate(read_csv(csv_filepath, skiprows=header_rows)):
+            for row in read_csv(csv_filepath, skiprows=header_rows):
                 if len(row) == 0:
                     continue
                 db_construct_tool.add_csv_sequence(row, settings_list)
-                if i % 10000 == 0:
+                seqcount += 1
+                if seqcount % 10000 == 0:
                     db_construct_tool.close_transaction()
                     db_construct_tool.open_transaction()
                     if verbose:
-                        print(f"{i} complete.")
+                        print(f"{seqcount} complete.")
     else:
         with open(reject_file, "w+", encoding="utf-8") as reject_handle:
             for csv_filepath in csv_filepaths:
-                for i, row in enumerate(read_csv(csv_filepath, skiprows=header_rows)):
+                for row in read_csv(csv_filepath, skiprows=header_rows):
                     if len(row) == 0:
                         continue
                     rcode = db_construct_tool.add_csv_sequence(row, settings_list)
+                    seqcount += 1
                     if rcode > 0:
                         reject_handle.write(f"{','.join(row)}\n")
-                    if i % 10000 == 0:
+                    if seqcount % 10000 == 0:
                         db_construct_tool.close_transaction()
                         db_construct_tool.open_transaction()
                         if verbose:
-                            print(f"{i} complete.")
+                            print(f"{seqcount} complete.")
 
     if verbose:
         print("Now constructing database indices...")
 
-    db_construct_tool.close_transaction()
-    db_construct_tool.open_transaction()
     db_construct_tool.finalize_db_construction()
-    db_construct_tool.close_transaction()
+    shutil.rmtree(temp_filepath)
     gc.collect()

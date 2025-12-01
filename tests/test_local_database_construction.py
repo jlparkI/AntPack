@@ -57,6 +57,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                     # Using hardcoded column selections here (since the
                     # test data is always the same)
                     build_database_from_csv([csv_filepath], "TEMP_DB",
+                            "TEMP_FILE",
                             {"heavy_chain":0, "light_chain":3,
                                 "heavy_chaintype":2, "light_chaintype":5,
                                 "heavy_numbering":6, "light_numbering":7},
@@ -76,7 +77,8 @@ class TestLocalDBConstruction(unittest.TestCase):
 
                 else:
                     build_database_from_fasta([fasta_filepath],
-                        "TEMP_DB", numbering_scheme=nmbr_scheme,
+                        "TEMP_DB", "TEMP_FILE",
+                        numbering_scheme=nmbr_scheme,
                         cdr_definition_scheme=cdr_scheme,
                         sequence_type=sequence_type, receptor_type="mab",
                         pid_threshold=0.7, user_memo=memo,
@@ -197,7 +199,7 @@ class TestLocalDBConstruction(unittest.TestCase):
             fhandle.write(">NAME\nEVQLEVQLEVQL\n")
 
         build_database_from_fasta(["temp_data_file.fa"],
-            "TEMP_DB", numbering_scheme="imgt",
+            "TEMP_DB", "TEMP_FILE", numbering_scheme="imgt",
             cdr_definition_scheme="imgt",
             sequence_type="paired", receptor_type="mab",
             pid_threshold=0.7, user_memo="test",
@@ -224,6 +226,7 @@ class TestLocalDBConstruction(unittest.TestCase):
             fhandle.write("$$ALT,H,,unknown\n")
 
         build_database_from_csv(["temp_data_file.csv"],"TEMP_DB",
+                "TEMP_FILE",
                 {"heavy_chain":0, "heavy_chaintype":1,
                     "heavy_vgene":2, "species":3},
                 numbering_scheme='imgt',
@@ -290,7 +293,7 @@ class TestLocalDBConstruction(unittest.TestCase):
                 profile_counts[cdr3len][j, codeval] += 1
                 if kmer == "--":
                     continue
-                codeval = j * 500 * 500 + cdr3len * 500 + \
+                codeval = j * 441 * 441 + cdr3len * 441 + \
                         codeval
 
                 self.assertTrue(codeval in kmer_to_child)
