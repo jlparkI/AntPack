@@ -322,9 +322,9 @@ def setup_canonical_numbering(numbering_scheme,
 def convert_value_to_bin(value):
     """Converts an input value to an
     integer and a binary string."""
-    output_int = int.from_bytes(value[:4], sys.byteorder,
+    output_int = int.from_bytes(value[4:], sys.byteorder,
             signed=False)
-    binstring = int.from_bytes(value[4:], sys.byteorder, signed=False)
+    binstring = int.from_bytes(value[:4], sys.byteorder, signed=False)
     return (output_int, binstring)
 
 

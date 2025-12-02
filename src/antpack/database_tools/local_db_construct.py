@@ -132,7 +132,7 @@ def build_database_from_fasta(fasta_filepaths:list,
         print("Now constructing database indices...")
 
     db_construct_tool.finalize_db_construction()
-    shutil.rmtree(temp_filepath)
+    os.remove(temp_file)
     gc.collect()
 
 
@@ -332,5 +332,5 @@ def build_database_from_csv(csv_filepaths:list,
         print("Now constructing database indices...")
 
     db_construct_tool.finalize_db_construction()
-    shutil.rmtree(temp_filepath)
+    os.remove(temp_file)
     gc.collect()
