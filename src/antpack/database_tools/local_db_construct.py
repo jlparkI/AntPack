@@ -131,7 +131,7 @@ def build_database_from_fasta(fasta_filepaths:list,
     if verbose:
         print("Now constructing database indices...")
 
-    db_construct_tool.finalize_db_construction()
+    db_construct_tool.finalize_db_construction(verbose)
     os.remove(temp_file)
     gc.collect()
 
@@ -331,6 +331,6 @@ def build_database_from_csv(csv_filepaths:list,
     if verbose:
         print("Now constructing database indices...")
 
-    db_construct_tool.finalize_db_construction()
+    db_construct_tool.finalize_db_construction(verbose)
     os.remove(temp_file)
     gc.collect()

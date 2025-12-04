@@ -41,9 +41,9 @@ class LocalDBTool:
 
 
     def search(self, seq:str, annotation:tuple,
-            mode="3", cdr_cutoff=0.25,
-            max_cdr_length_shift:int=2, max_hits:int=1000,
-            vgene="", species=""):
+            mode:str="3", cdr_cutoff:float=0.25,
+            blosum_cutoff:float=-1, max_cdr_length_shift:int=2,
+            max_hits:int=1000, vgene:str="", species:str=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
         be conducted using the full sequence or a sub-region
@@ -73,6 +73,14 @@ class LocalDBTool:
                 range from 0 to 0.4 (if you want to use a larger
                 value you will need to do a slower full-table scan
                 instead of using this function).
+            blosum_cutoff (float): Either -1 or a value between 0 and
+                1 (inclusive). If < 0, this argument is ignored. If
+                between 0 and 1, any match that has BLOSUM mismatch score
+                less than (cdrlength * cutoff) for the query is
+                discarded. Specifying a value between 0 and 1 makes
+                the search more restrictive by excluding results that
+                are within CDR cutoff but have a highly improbable
+                mutation (as determined by BLOSUM scoring).
             max_cdr_length_shift (int): The maximum +/- amount by
                 which the length of cdr3 for a match can differ from
                 the query. If 0, the results are required to have cdr3
@@ -89,17 +97,18 @@ class LocalDBTool:
                 These can be used to retrieve the sequences and their
                 metadata using the get_sequence call.
             distances (list): A list of the hamming distances of each
-                hit to the query.
-            error_message (str): Either "" or a message if a fatal error
-                occurred.
+                hit to the query, unless a blosum cutoff >= 0 was supplied,
+                in which case BLOSUM mismatch distance is calculated.
         """
         return self.local_db_manager.search(seq, annotation,
-                mode, cdr_cutoff, max_cdr_length_shift,
-                max_hits, vgene, species)
+                mode, cdr_cutoff, blosum_cutoff,
+                max_cdr_length_shift, max_hits,
+                vgene, species)
 
 
     def search_batch(self, seqs:list, annotations:list,
-            mode="3", cdr_cutoff=0.25,
+            mode:str="3", cdr_cutoff:float=0.25,
+            blosum_cutoff:float=-1,
             max_cdr_length_shift:int=2, max_hits:int=10,
             vgenes:list=[], species:list=[]):
         """Searches the database and returns a list of nearest
@@ -134,6 +143,14 @@ class LocalDBTool:
                 range from 0 to 0.4 (if you want to use a larger
                 value you will need to do a slower full-table scan
                 instead of using this function).
+            blosum_cutoff (float): Either -1 or a value between 0 and
+                1 (inclusive). If < 0, this argument is ignored. If
+                between 0 and 1, any match that has BLOSUM mismatch score
+                less than (cdrlength * cutoff) for the query is
+                discarded. Specifying a value between 0 and 1 makes
+                the search more restrictive by excluding results that
+                are within CDR cutoff but have a highly improbable
+                mutation (as determined by BLOSUM scoring).
             max_cdr_length_shift (int): The maximum +/- amount by
                 which the length of cdr3 for a match can differ from
                 a query. If 0, the results are required to have cdr3
@@ -155,14 +172,14 @@ class LocalDBTool:
                 These can be used to retrieve the sequences and their
                 metadata using the get_sequence call.
             distances (list): A list of lists of hamming distances of each
-                hit to the query. List[i] is the hamming distances for
-                query[i].
-            error_message (str): Either "" or a message if a fatal error
-                occurred.
+                hit to the query, unless a blosum cutoff >= 0 was supplied,
+                in which case BLOSUM mismatch distance is calculated. List[i]
+                is the distance for query[i].
         """
         return self.local_db_manager.search_seqs(seqs, annotations,
-                mode, cdr_cutoff, max_cdr_length_shift,
-                max_hits, vgenes, species)
+                mode, cdr_cutoff, blosum_cutoff,
+                max_cdr_length_shift, max_hits,
+                vgenes, species)
 
 
     def get_sequence(self, seq_id:int):
@@ -188,6 +205,7 @@ class LocalDBTool:
 
     def build_sparse_distance_matrix(self, chain_type:str="heavy",
             mode:str="3", cdr_cutoff:float=0.25,
+            blosum_cutoff:float=-1,
             max_hits_per_query:int=10000,
             max_cdr_length_shift:int=0, distance_type:str="pid",
             filter_by_vgene:bool=True, filter_by_species:bool=True,
@@ -221,6 +239,14 @@ class LocalDBTool:
                 range from 0 to 0.4 (if you want to use a larger
                 value you will need to do a slower full-table scan
                 instead of using this function).
+            blosum_cutoff (float): Either -1 or a value between 0 and
+                1 (inclusive). If < 0, this argument is ignored. If
+                between 0 and 1, any match that has BLOSUM mismatch score
+                less than (cdrlength * cutoff) for the query is
+                discarded. Specifying a value between 0 and 1 makes
+                the search more restrictive by excluding results that
+                are within CDR cutoff but have a highly improbable
+                mutation (as determined by BLOSUM scoring).
             max_hits_per_query (int): Only up to this many neighbors
                 will be stored per datapoint.
             max_cdr_length_shift (int): The maximum +/- amount by
@@ -230,11 +256,13 @@ class LocalDBTool:
                 matrix may not be symmetric if this value is not 0,
                 since it is possible for A to be inside B's cutoff
                 but not vice versa.
-            distance_type (str): One of 'pid', 'hamming'. If 'pid',
-                the number of differences from each sequence to each
+            distance_type (str): One of 'pid', 'hamming', 'blosum'. If
+                'pid', the number of differences from each sequence to each
                 partner is calculated as a percentage of that sequence's
                 cdr length(s) (depending on whether using cdr3 only or
                 all three). If 'hamming' the hamming distance is
+                calculated. If 'blosum' a blosum cutoff of 0 or greater
+                must be supplied, and the blosum mismatch distance is
                 calculated.
             filter_by_vgene (bool): If True, each sequence only considers
                 possible partners that are in the same vgene family.
@@ -252,9 +280,9 @@ class LocalDBTool:
                 to build a sparse matrix.
         """
         return self.local_db_manager.build_sparse_dmat_lists(chain_type,
-                mode, cdr_cutoff, max_hits_per_query, max_cdr_length_shift,
-                distance_type, filter_by_vgene, filter_by_species,
-                verbose)
+                mode, cdr_cutoff, blosum_cutoff, max_hits_per_query,
+                max_cdr_length_shift, distance_type, filter_by_vgene,
+                filter_by_species, verbose)
 
 
 
