@@ -8,11 +8,14 @@ from scipy.sparse import csr_matrix
 from antpack import (build_database_from_fasta,
         SingleChainAnnotator, LocalDBTool, VJGeneTool)
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
-        return_imgt_canonical_numbering_cpp)
+        return_imgt_canonical_numbering_cpp,
+        get_blosum_mismatch_matrix_cpp)
 from antpack.utilities import read_fasta
 
 
 AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
+BLOSUM = get_blosum_mismatch_matrix_cpp()
+
 
 
 class TestLocalDBManagement(unittest.TestCase):
@@ -200,7 +203,7 @@ class TestLocalDBManagement(unittest.TestCase):
         random.seed(123)
         output_search_res = {}
 
-        for ctr in range(250):
+        for ctr in range(400):
             idx = random.randint(0, len(msa) - 1)
             query_seq = list(msa[idx][0])
             if msa[idx][3] == "H":
@@ -226,6 +229,11 @@ class TestLocalDBManagement(unittest.TestCase):
                 cutoff = 0.25
 
             if random.randint(0,1) == 1:
+                blosum_cutoff = -1
+            else:
+                blosum_cutoff = 0.5
+
+            if random.randint(0,1) == 1:
                 mode = "123"
             else:
                 mode = "3"
@@ -248,15 +256,17 @@ class TestLocalDBManagement(unittest.TestCase):
 
             hits = db_tool.search(query_seq,
                     (codes[0], 1, msa[idx][3], ""),
-                    mode, cutoff, max_cdr_length_shift,
-                    1000, vgene, species)
+                    mode, cutoff, blosum_cutoff,
+                    max_cdr_length_shift, 1000,
+                    vgene, species)
             hits = sorted(hits, key=lambda x: (x[1], x[0]))
 
             gt_hit_idx = perform_exact_search(query_seq, msa, msa[idx][3],
-                    codes, mode, cutoff, max_cdr_length_shift,
-                    1000, vgene, species)
+                    codes, mode, cutoff, blosum_cutoff,
+                    max_cdr_length_shift, 1000,
+                    vgene, species)
 
-            criteria = (mode, cutoff, max_cdr_length_shift)
+            criteria = (mode, cutoff, max_cdr_length_shift, blosum_cutoff)
             if criteria not in output_search_res:
                 output_search_res[criteria] = []
             output_search_res[ criteria ].append(
@@ -264,13 +274,21 @@ class TestLocalDBManagement(unittest.TestCase):
                         msa[idx][3], codes[0])
                 )
 
-            if hits != gt_hit_idx:
-                import pdb
-                pdb.set_trace()
-                print(f"Error! {ctr}, {mut_percentage} mut percentage, cutoff {cutoff}, "
+            # If using a BLOSUM cutoff, distance will be floating
+            # point, check result is close. Otherwise check for
+            # exact match.
+            if blosum_cutoff > 0:
+                self.assertTrue([h[0] for h in hits]==
+                                [h[0]for h in gt_hit_idx])
+                self.assertTrue(np.allclose([h[1] for h in hits],
+                                [h[1] for h in gt_hit_idx]))
+
+            else:
+                if hits != gt_hit_idx:
+                    print(f"Error! {ctr}, {mut_percentage} mut percentage, cutoff {cutoff}, "
                             f"max hits 100, vgene_filter {vgene}, "
                             f"num gt hits was {len(gt_hit_idx[0])}", flush=True)
-            self.assertTrue(hits==gt_hit_idx)
+                self.assertTrue(hits==gt_hit_idx)
 
             # Randomly check some of the sequences to make sure the
             # metadata and sequence retrieved from the database for a given
@@ -291,13 +309,21 @@ class TestLocalDBManagement(unittest.TestCase):
 
             for i, hit_idx in enumerate(db_tool.search_batch(
                     query_seqs, annotations, criteria[0],
-                    criteria[1], criteria[2],
+                    criteria[1], criteria[3], criteria[2],
                     1000, vgene_list, species_list)):
                 hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
-                if hit_idx != seq_data[i][3]:
-                    print(f"Batch error! {criteria}, {hit_idx}, {seq_data[i]}",
+                # If using BLOSUM which is floating point, check
+                # allclose. Hamming distance is integer so ground truth
+                # should match test exactly.
+                if criteria[3] < 0:
+                    if hit_idx != seq_data[i][3]:
+                        print(f"Batch error! {criteria}, {hit_idx}, {seq_data[i]}",
                             flush=True)
-                self.assertTrue(hit_idx==seq_data[i][3])
+                    self.assertTrue(hit_idx==seq_data[i][3])
+                else:
+                    hit_idx = [h[1] for h in hit_idx]
+                    gt_hits = [s[1] for s in seq_data[i][3]]
+                    self.assertTrue(np.allclose(hit_idx, gt_hits))
 
 
 
@@ -321,14 +347,14 @@ class TestLocalDBManagement(unittest.TestCase):
                 if seq_data[3] not in chain_type:
                     continue
                 hits = perform_exact_search(seq_data[0], msa, seq_data[3],
-                        codes, "3", 0.25, 1, 1000, seq_data[1], seq_data[2])
+                        codes, "3", 0.25, -1, 1, 1000, seq_data[1], seq_data[2])
                 for hit in hits:
                     distances.append(hit[1])
                     row_idx.append(i)
                     col_idx.append(hit[0])
 
             ldb_distances, ldb_rows, ldb_cols = local_db.build_sparse_distance_matrix(
-                    ldb_chain_type, "3", 0.25, 10000, 1, "hamming", True, True)
+                    ldb_chain_type, "3", 0.25, -1, 10000, 1, "hamming", True, True)
 
             csr_test = csr_matrix((ldb_distances, (ldb_rows, ldb_cols)),
                     [(len(msa), len(msa))])
@@ -338,10 +364,12 @@ class TestLocalDBManagement(unittest.TestCase):
 
 
 def perform_exact_search(query, msa, chain_code, msa_codes,
-        mode, cdr_cutoff, max_cdr_length_shift, max_hits,
+        mode, cdr_cutoff, blosum_cutoff,
+        max_cdr_length_shift, max_hits,
         vgene_filter="", species_filter=""):
     """Performs an exact search on an input msa, finding
-    all sequences that have hamming distance <= specified."""
+    all sequences that have hamming distance <= specified.
+    Additionally filter for BLOSUM distance (if requested)."""
     retained_dists, hit_idx, cdrlen = [], [], []
     max_hamming = 0
 
@@ -387,15 +415,37 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                         region_len < cdrlen[j] - max_cdr_length_shift:
                     cdr_dists[int(j/2)] += 200
 
+        # If we meet Hamming distance criteria, store sequence
+        # as a hit UNLESS BLOSUM cutoff was also specified, in
+        # which case calculate BLOSUM distance and see if we
+        # also meet THAT cutoff.
         if cdr_dists[0] <= max_hamming[0] and \
                 cdr_dists[1] <= max_hamming[1]:
-            hit_idx.append(i)
-            retained_dists.append(cdr_dists[0] + cdr_dists[1])
+            if blosum_cutoff < 0:
+                hit_idx.append(i)
+                retained_dists.append(cdr_dists[0] + cdr_dists[1])
+            else:
+                blosum_dist, nresidues = 0, 0
+                allowed_regions = {f"cdr{k}" for k in mode}
+                for l1, l2, code in zip(seq_data[0], query,
+                                            msa_codes[1]):
+                    if code not in allowed_regions:
+                        continue
+                    l1num = AAMAP[l1] * 22
+                    l2num = AAMAP[l2]
+                    blosum_dist += BLOSUM[l1num + l2num]
+                    if l2 != '-':
+                        nresidues += 1
+                blosum_dist = float(blosum_dist) / float(nresidues)
+                if blosum_dist <= blosum_cutoff:
+                    hit_idx.append(i)
+                    retained_dists.append(blosum_dist)
+
 
     if len(hit_idx) == 0:
         return []
 
-    hit_idx = [(h, d) for h,d in zip(hit_idx, retained_dists)]
+    hit_idx = list(zip(hit_idx, retained_dists))
     hit_idx = sorted(hit_idx, key=lambda x: (x[1], x[0]))
 
     return hit_idx[:max_hits]

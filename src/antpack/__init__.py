@@ -7,7 +7,8 @@ from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator
 from .numbering_tools.dna_sequence_translation import DNASeqTranslator
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool
-from antpack.antpack_cpp_ext import LiabilitySearchTool, SequenceTemplateAligner
+from antpack.antpack_cpp_ext import (LiabilitySearchTool,
+                SequenceTemplateAligner)
 from .clustering_tools import EMCategoricalMixture
 from .antpack_cli import run_cli_interface
 from .antpack_license import run_license_key_setter
