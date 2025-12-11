@@ -92,8 +92,11 @@ class TestLocalDBManagement(unittest.TestCase):
             self.random_search_function_test(msa, heavy_codes,
                         light_codes, local_db, seqinfos,
                         seqs)
+            #self.distmat_construction_test(msa, heavy_codes,
+            #            light_codes, local_db, -1)
+            #if thread_scheme == "single":
             self.distmat_construction_test(msa, heavy_codes,
-                        light_codes, local_db)
+                        light_codes, local_db, 0.5)
 
             del local_db
         shutil.rmtree("TEMP_DB.db")
@@ -328,7 +331,7 @@ class TestLocalDBManagement(unittest.TestCase):
 
 
     def distmat_construction_test(self, msa, heavy_codes,
-            light_codes, local_db):
+            light_codes, local_db, blosum_cutoff):
         """Compare the results of exact distance matrix construction
         using a simple if brutally inefficient procedure
         with those provided by the much more efficient
@@ -347,14 +350,20 @@ class TestLocalDBManagement(unittest.TestCase):
                 if seq_data[3] not in chain_type:
                     continue
                 hits = perform_exact_search(seq_data[0], msa, seq_data[3],
-                        codes, "3", 0.25, -1, 1, 1000, seq_data[1], seq_data[2])
+                        codes, "3", 0.25, blosum_cutoff,
+                        1, 1000, seq_data[1], seq_data[2])
                 for hit in hits:
                     distances.append(hit[1])
                     row_idx.append(i)
                     col_idx.append(hit[0])
 
+            mode = "hamming"
+            if blosum_cutoff >= 0:
+                mode = "blosum"
+
             ldb_distances, ldb_rows, ldb_cols = local_db.build_sparse_distance_matrix(
-                    ldb_chain_type, "3", 0.25, -1, 10000, 1, "hamming", True, True)
+                    ldb_chain_type, "3", 0.25, blosum_cutoff, 10000, 1,
+                    mode, True, True)
 
             csr_test = csr_matrix((ldb_distances, (ldb_rows, ldb_cols)),
                     [(len(msa), len(msa))])

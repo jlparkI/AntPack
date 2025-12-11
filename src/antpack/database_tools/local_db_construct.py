@@ -122,6 +122,7 @@ def build_database_from_fasta(fasta_filepaths:list,
                     rcode = db_construct_tool.add_sequence(seq, seqinfo)
                     if rcode > 0:
                         reject_handle.write(f">{seqinfo}\n{seq}\n")
+                    seqcount += 1
                     if seqcount % 10000 == 0:
                         db_construct_tool.close_transaction()
                         db_construct_tool.open_transaction()
@@ -319,9 +320,168 @@ def build_database_from_csv(csv_filepaths:list,
                     if len(row) == 0:
                         continue
                     rcode = db_construct_tool.add_csv_sequence(row, settings_list)
-                    seqcount += 1
                     if rcode > 0:
                         reject_handle.write(f"{','.join(row)}\n")
+                    seqcount += 1
+                    if seqcount % 10000 == 0:
+                        db_construct_tool.close_transaction()
+                        db_construct_tool.open_transaction()
+                        if verbose:
+                            print(f"{seqcount} complete.")
+
+    if verbose:
+        print("Now constructing database indices...")
+
+    db_construct_tool.finalize_db_construction(verbose)
+    os.remove(temp_file)
+    gc.collect()
+
+
+
+def build_tcr_database_from_csv(csv_filepaths:list,
+        database_filepath:str, temp_file:str,
+        column_selections:dict,
+        header_rows:int=1, user_memo:str="",
+        reject_file:str = None, verbose:bool=True):
+    """TCR data is often stored with cdr3 sequences specified for alpha
+    and beta chains and the V and J genes specified but without any other
+    information. This function builds a database specifically using this
+    type of input format.
+
+    Args:
+        csv_filepaths (list): A list of csv filepaths, which may or
+            may not be gzipped.
+        database_filepath (str): The desired location and filename
+            for the database.
+        temp_file (str): A path to a temporary file where the application
+            can temporarily store data needed while initializing the
+            database.
+        column_selections (dict): A dictionary which should contain at least
+            some of the following keys:
+
+            * ``"alpha_cdr3"``: The number (from 0) of the column in each
+              csv file containing alpha cdr3. Do not include this if there
+              is no alpha cdr3 information.
+            * ``"beta_cdr3"``: The number (from 0) of the column in each
+              csv file containing beta cdr3. This is required, it is
+              assumed that beta cdr3 will always be present.
+            * ``"alpha_vgene"``: The number (from 0) of the column (if any)
+              containing vgene assignments for the alpha chains.
+            * ``"beta_vgene"``: The number (from 0) of the column
+              containing vgene assignments for the beta chains. This
+              is required.
+            * ``"alpha_jgene"``: The number (from 0) of the column (if any)
+              containing jgene assignments for the alpha chains.
+            * ``"beta_jgene"``: The number (from 0) of the column
+              containing jgene assignments for the beta chains. This
+              is required.
+            * ``"species"``: The number (from 0) of the column
+              containing species assignments. This is required.
+            * ``"metadata"``: The number (from 0) of the column (if any)
+              containing metadata.
+
+        header_rows (int): The number of header rows. Header rows are
+            skipped.
+        user_memo (str): A string describing the purpose of the database / anything
+            important you want your future self or other users to know about the
+            contents. Will be saved as part of the database metadata.
+        reject_file (str): Either None or a filepath. If None, any sequences that
+            are rejected are silently ignored. If a filepath, rejected sequences
+            are written to that filepath which is saved as a csv file.
+        verbose (bool): If True, print regular updates while running.
+
+    Raises:
+        RuntimeError: A RuntimeError is raised if invalid arguments are
+            supplied.
+    """
+    if not isinstance(csv_filepaths, list):
+        raise RuntimeError("The csv filepaths should be a list of filepaths. "
+                "If you have only one filepath, you can enclose it in brackets "
+                "to make a list.")
+    if os.path.exists(database_filepath):
+        raise RuntimeError("The database already exists.")
+    if os.path.exists(temp_file):
+        raise RuntimeError("The temporary filepath you supplied "
+                           "is a file that already exists.")
+
+    os.makedirs(database_filepath)
+
+    license_key, user_email = get_license_key_info()
+    project_path = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), "..")
+    consensus_path = os.path.join(project_path,
+            "numbering_tools", "consensus_data")
+    nterm_kmer_dict = _load_nterm_kmers()
+
+    vj_db_path = os.path.join(project_path, "vj_tools", "consensus_data")
+    vj_names, vj_seqs, _ = load_vj_gene_consensus_db(os.getcwd(),
+            vj_db_path, "imgt")
+
+    print("Estimating number of sequences.")
+    nseqs = 0
+
+    for csv_filepath in csv_filepaths:
+        for i, _ in enumerate(read_csv(csv_filepath)):
+            if i >= header_rows:
+                break
+        for i, row in enumerate(read_csv(csv_filepath)):
+            nseqs += 1
+
+    if nseqs == 0:
+        print("No sequences found.")
+        return
+
+    db_construct_tool = DatabaseConstructionTool(database_filepath,
+            "imgt", temp_file, "imgt", "single", "tcr_simple", 0.7,
+            license_key, user_email, consensus_path,
+            nterm_kmer_dict, vj_names, vj_seqs, user_memo, nseqs)
+            
+
+    settings_list = []
+    for expected_key in ["alpha_cdr3", "beta_cdr3",
+            "alpha_vgene", "beta_vgene", "alpha_jgene",
+            "beta_jgene", "species", "metadata"]:
+        if expected_key in column_selections:
+            settings_list.append(column_selections[expected_key])
+        else:
+            settings_list.append(-1)
+
+    if max(settings_list) < 0:
+        raise RuntimeError("There must be at least some column "
+                "selections supplied. Please refer to the docs "
+                "for the build_database_from_csv function.")
+    if settings_list[1] < 0 or settings_list[3] < 0 or \
+            settings_list[5] < 0 or settings_list[6] < 0:
+        raise RuntimeError("beta_cdr3, species, beta_vgene, beta_jgene "
+                "are required columns.")
+
+    print("Starting db construction.")
+    db_construct_tool.open_transaction()
+
+    seqcount = 0
+
+    if reject_file is None:
+        for csv_filepath in csv_filepaths:
+            for row in read_csv(csv_filepath, skiprows=header_rows):
+                if len(row) == 0:
+                    continue
+                _ = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
+                seqcount += 1
+                if seqcount % 10000 == 0:
+                    db_construct_tool.close_transaction()
+                    db_construct_tool.open_transaction()
+                    if verbose:
+                        print(f"{seqcount} complete.")
+    else:
+        with open(reject_file, "w+", encoding="utf-8") as reject_handle:
+            for csv_filepath in csv_filepaths:
+                for row in read_csv(csv_filepath, skiprows=header_rows):
+                    if len(row) == 0:
+                        continue
+                    rcode = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
+                    if rcode > 0:
+                        reject_handle.write(f"{','.join(row)}\n")
+                    seqcount += 1
                     if seqcount % 10000 == 0:
                         db_construct_tool.close_transaction()
                         db_construct_tool.open_transaction()

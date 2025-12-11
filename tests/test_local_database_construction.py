@@ -10,6 +10,7 @@ import lmdb
 import numpy as np
 from antpack import (build_database_from_fasta,
         build_database_from_csv,
+        build_tcr_database_from_csv,
         SingleChainAnnotator, VJGeneTool)
 from antpack.utilities import read_fasta
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
@@ -250,6 +251,54 @@ class TestLocalDBConstruction(unittest.TestCase):
         os.remove("REJECTS")
 
 
+    def test_tcr_fmt_loading(self):
+        """Check that tcr standard format data is loaded
+        as expected."""
+        current_dir = os.path.abspath(os.path.dirname(
+            __file__))
+        csv_filepath = os.path.join(current_dir,
+                "test_data", "non_antibody_test_data",
+                "tcr_simpletest.csv.gz")
+
+        try:
+            shutil.rmtree("TEMP_DB")
+        except:
+            pass
+
+        expected_cdrs, expected_mainseq = [], []
+        build_tcr_database_from_csv(
+                [csv_filepath], "TEMP_DB", "TEMP_FILE",
+                {"beta_cdr3":0, "beta_vgene":1,
+                 "beta_jgene":2, "species":4},
+                user_memo="", reject_file=None)
+        with gzip.open(csv_filepath, "rt") as fhandle:
+            _ = fhandle.readline()
+            for line in fhandle:
+                elements = line.split(",")
+                expected_mainseq.append(elements[0] +
+                    "," + elements[1] + "," +
+                    elements[2])
+                expected_cdrs.append(elements[3])
+
+        env = lmdb.Environment("TEMP_DB", readonly=True,
+                        max_dbs=10)
+        with env.begin() as txn:
+            subdb = env.open_db(b"heavy_cdrs", txn, create=False)
+            cursor = lmdb.Cursor(subdb, txn)
+            for i, expected_cdr in enumerate(expected_cdrs):
+                key = struct.pack('@I', i)
+                test_seq = cursor.get(key).decode()
+                self.assertTrue(expected_cdr==test_seq[:-4])
+
+        with env.begin() as txn:
+            subdb = env.open_db(b"main_seq_table", txn, create=False)
+            cursor = lmdb.Cursor(subdb, txn)
+            for i, expected_info in enumerate(expected_mainseq):
+                key = struct.pack('@I', i)
+                test_seq = cursor.get(key).decode()
+                self.assertTrue(expected_info==test_seq)
+
+        shutil.rmtree("TEMP_DB")
 
 
     def eval_nmbr_table_row_contents(self, kmer_to_child,
