@@ -203,7 +203,10 @@ class TestVJGeneTool(unittest.TestCase):
                         if qletter == "-":
                             continue
 
-                        score += blosum_matrix[qletter][tletter]
+                        if qletter == tletter:
+                            score += 4
+                        else:
+                            score += blosum_matrix[qletter][tletter]
 
 
                     if score > best_pid:
