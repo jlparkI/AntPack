@@ -4,7 +4,6 @@ __version__ = "0.4"
 import importlib.util
 
 from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator
-from .numbering_tools.dna_sequence_translation import DNASeqTranslator
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool
 from antpack.antpack_cpp_ext import (LiabilitySearchTool,

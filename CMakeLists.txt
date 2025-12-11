@@ -101,8 +101,6 @@ nanobind_add_module(
 
     extern/antpack_private/src/developability_calcs/liability_search_tool.cpp
 
-    extern/antpack_private/src/dna_read_handling/dna_sequence_handling.cpp
-
     extern/antpack_private/src/utilities/utilities.cpp
     extern/antpack_private/src/utilities/cdr_assignment_utilities.cpp
     extern/antpack_private/src/utilities/consensus_file_utilities.cpp

@@ -1,8 +1,8 @@
 AntPack NonCommercial Use (v0.3.9 onwards)
 =====================================================
 Tools for numbering, sequence analysis and statistical
-modeling / ML for antibodies and TCRs, using amino acid
-sequences, with some limited support for DNA sequences.
+modeling / ML for antibodies and TCRs using amino acid
+sequences.
 
 .. toctree::
   :maxdepth: 1
@@ -29,8 +29,6 @@ Antibody Numbering
    How antibody numbering in AntPack works <numbering_background>
 
    Antibody numbering <numbering_tutorial>
-
-   Using DNA sequences <dna_sequence_tutorial>
 
    Numbering example <numbering_example>
 
