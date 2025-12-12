@@ -451,7 +451,7 @@ def build_tcr_database_from_csv(csv_filepaths:list,
                 "selections supplied. Please refer to the docs "
                 "for the build_database_from_csv function.")
     if settings_list[1] < 0 or settings_list[3] < 0 or \
-            settings_list[5] < 0 or settings_list[6] < 0:
+            settings_list[5] < 0:
         raise RuntimeError("beta_cdr3, species, beta_vgene, beta_jgene "
                 "are required columns.")
 
