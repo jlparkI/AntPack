@@ -376,7 +376,8 @@ def build_tcr_database_from_csv(csv_filepaths:list,
               containing jgene assignments for the beta chains. This
               is required.
             * ``"species"``: The number (from 0) of the column
-              containing species assignments. This is required.
+              containing species assignments. If not supplied,
+              the reader will assume species is always human.
             * ``"metadata"``: The number (from 0) of the column (if any)
               containing metadata.
 
