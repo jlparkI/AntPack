@@ -45,20 +45,20 @@ def read_fasta(filepath):
 
 
 
-def read_csv(filepath, skiprows=0):
+def read_csv(filepath, skiprows=0, delimiter=','):
     """Generator for reading csv files. By default, reads
     one sequence at a time. Can take either gzipped or non-
     gzipped files as input. Assumes utf-8 encoding."""
     if filepath.endswith(".gz"):
         with gzip.open(filepath, "rt", encoding="utf-8") as fhandle:
-            reader = csv.reader(fhandle)
+            reader = csv.reader(fhandle, delimiter=delimiter)
             for i in range(skiprows):
                 _ = next(reader)
             for row in reader:
                 yield row
     else:
         with open(filepath, "rt", encoding="utf-8") as fhandle:
-            reader = csv.reader(fhandle)
+            reader = csv.reader(fhandle, delimiter=delimiter)
             for i in range(skiprows):
                 _ = next(reader)
             for row in reader:

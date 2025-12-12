@@ -340,7 +340,7 @@ def build_database_from_csv(csv_filepaths:list,
 
 def build_tcr_database_from_csv(csv_filepaths:list,
         database_filepath:str, temp_file:str,
-        column_selections:dict,
+        column_selections:dict, delimiter=',',
         header_rows:int=1, user_memo:str="",
         reject_file:str = None, verbose:bool=True):
     """TCR data is often stored with cdr3 sequences specified for alpha
@@ -380,6 +380,7 @@ def build_tcr_database_from_csv(csv_filepaths:list,
             * ``"metadata"``: The number (from 0) of the column (if any)
               containing metadata.
 
+        delimiter (str): The delimiter for the csv files.
         header_rows (int): The number of header rows. Header rows are
             skipped.
         user_memo (str): A string describing the purpose of the database / anything
@@ -462,7 +463,8 @@ def build_tcr_database_from_csv(csv_filepaths:list,
 
     if reject_file is None:
         for csv_filepath in csv_filepaths:
-            for row in read_csv(csv_filepath, skiprows=header_rows):
+            for row in read_csv(csv_filepath, skiprows=header_rows,
+                                delimiter=delimiter):
                 if len(row) == 0:
                     continue
                 _ = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
@@ -475,7 +477,8 @@ def build_tcr_database_from_csv(csv_filepaths:list,
     else:
         with open(reject_file, "w+", encoding="utf-8") as reject_handle:
             for csv_filepath in csv_filepaths:
-                for row in read_csv(csv_filepath, skiprows=header_rows):
+                for row in read_csv(csv_filepath, skiprows=header_rows,
+                                    delimiter=delimiter):
                     if len(row) == 0:
                         continue
                     rcode = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
