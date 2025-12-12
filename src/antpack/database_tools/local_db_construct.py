@@ -18,7 +18,8 @@ def build_database_from_fasta(fasta_filepaths:list,
         sequence_type:str="single", receptor_type:str="mab",
         pid_threshold:float=0.7, user_memo:str="",
         reject_file:str = None,
-        verbose:bool=True):
+        verbose:bool=True,
+        perseq_mapsize=2500):
     """Builds a database from a list of fasta files which may or may
     not be gzipped. The database is constructed so it can be
     searched quickly and the sequence descriptions for each sequence
@@ -54,6 +55,14 @@ def build_database_from_fasta(fasta_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a fasta file.
         verbose (bool): If True, print regular updates while running.
+        perseq_mapsize (int): When constructing the database, this function sets
+            an initial mapsize that is an upper bound on how big the database
+            can be. It does NOT allocate this amount of diskspace -- rather
+            it just sets an upper bound on how much diskspace it can use.
+            This number is the number of bytes per sequence for the upper bound
+            and is fairly generous so you should not need to increase it. If
+            the mapsize IS exceeded (unlikely), an exception will be thrown; if this
+            occurs try rebuilding the database with a larger mapsize.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -93,41 +102,38 @@ def build_database_from_fasta(fasta_filepaths:list,
         print("No sequences found.")
         return
 
+    mapsize = nseqs * perseq_mapsize
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             numbering_scheme, temp_file, cdr_definition_scheme,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, user_memo, nseqs)
+            vj_names, vj_seqs, user_memo, mapsize)
 
     print("Starting db construction.")
     db_construct_tool.open_transaction()
 
     seqcount = 0
-
-    if reject_file is None:
-        for fasta_filepath in fasta_filepaths:
-            for (seqinfo, seq) in read_fasta(fasta_filepath):
-                db_construct_tool.add_sequence(seq, seqinfo)
-                seqcount += 1
-                if seqcount % 10000 == 0:
-                    db_construct_tool.close_transaction()
-                    db_construct_tool.open_transaction()
-                    if verbose:
-                        print(f"{seqcount} complete.")
+    if reject_file is not None:
+        reject_handle = open(reject_file, "w+", encoding="utf-8")
     else:
-        with open(reject_file, "w+", encoding="utf-8") as reject_handle:
-            for fasta_filepath in fasta_filepaths:
-                for (seqinfo, seq) in read_fasta(fasta_filepath):
-                    rcode = db_construct_tool.add_sequence(seq, seqinfo)
-                    if rcode > 0:
-                        reject_handle.write(f">{seqinfo}\n{seq}\n")
-                    seqcount += 1
-                    if seqcount % 10000 == 0:
-                        db_construct_tool.close_transaction()
-                        db_construct_tool.open_transaction()
-                        if verbose:
-                            print(f"{seqcount} complete.")
+        reject_handle = None
+
+    for fasta_filepath in fasta_filepaths:
+        for (seqinfo, seq) in read_fasta(fasta_filepath):
+            rcode = db_construct_tool.add_sequence(seq, seqinfo)
+            if rcode > 0:
+                if reject_handle is not None:
+                    reject_handle.write(f">{seqinfo}\n{seq}\n")
+            seqcount += 1
+            if seqcount % 10000 == 0:
+                db_construct_tool.close_transaction()
+                db_construct_tool.open_transaction()
+                if verbose:
+                    print(f"{seqcount} complete.")
+
+    if reject_handle is not None:
+        reject_handle.close()
 
     if verbose:
         print("Now constructing database indices...")
@@ -146,7 +152,8 @@ def build_database_from_csv(csv_filepaths:list,
         cdr_definition_scheme:str="imgt",
         receptor_type:str="mab", pid_threshold:float=0.7,
         user_memo:str="", reject_file:str = None,
-        verbose:bool=True):
+        verbose:bool=True,
+        perseq_mapsize=2500):
     """Builds a database from a list of csv files which may or may
     not be gzipped. The database is constructed so it can be
     searched quickly. The csv files should already contain heavy
@@ -224,6 +231,14 @@ def build_database_from_csv(csv_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
         verbose (bool): If True, print regular updates while running.
+        perseq_mapsize (int): When constructing the database, this function sets
+            an initial mapsize that is an upper bound on how big the database
+            can be. It does NOT allocate this amount of diskspace -- rather
+            it just sets an upper bound on how much diskspace it can use.
+            This number is the number of bytes per sequence for the upper bound
+            and is fairly generous so you should not need to increase it. If
+            the mapsize IS exceeded (unlikely), an exception will be thrown; if this
+            occurs try rebuilding the database with a larger mapsize.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -266,12 +281,13 @@ def build_database_from_csv(csv_filepaths:list,
         print("No sequences found.")
         return
 
+    mapsize = nseqs * perseq_mapsize
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             numbering_scheme, temp_file, cdr_definition_scheme,
             "single", receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, user_memo, nseqs)
+            vj_names, vj_seqs, user_memo, mapsize)
 
     settings_list = []
     for expected_key in ["heavy_chain", "light_chain",
@@ -300,34 +316,28 @@ def build_database_from_csv(csv_filepaths:list,
     db_construct_tool.open_transaction()
 
     seqcount = 0
-
-    if reject_file is None:
-        for csv_filepath in csv_filepaths:
-            for row in read_csv(csv_filepath, skiprows=header_rows):
-                if len(row) == 0:
-                    continue
-                db_construct_tool.add_csv_sequence(row, settings_list)
-                seqcount += 1
-                if seqcount % 10000 == 0:
-                    db_construct_tool.close_transaction()
-                    db_construct_tool.open_transaction()
-                    if verbose:
-                        print(f"{seqcount} complete.")
+    if reject_file is not None:
+        reject_handle = open(reject_file, "w+", encoding="utf-8")
     else:
-        with open(reject_file, "w+", encoding="utf-8") as reject_handle:
-            for csv_filepath in csv_filepaths:
-                for row in read_csv(csv_filepath, skiprows=header_rows):
-                    if len(row) == 0:
-                        continue
-                    rcode = db_construct_tool.add_csv_sequence(row, settings_list)
-                    if rcode > 0:
-                        reject_handle.write(f"{','.join(row)}\n")
-                    seqcount += 1
-                    if seqcount % 10000 == 0:
-                        db_construct_tool.close_transaction()
-                        db_construct_tool.open_transaction()
-                        if verbose:
-                            print(f"{seqcount} complete.")
+        reject_handle = None
+
+    for csv_filepath in csv_filepaths:
+        for row in read_csv(csv_filepath, skiprows=header_rows):
+            if len(row) == 0:
+                continue
+            rcode = db_construct_tool.add_csv_sequence(row, settings_list)
+            if rcode > 0:
+                if reject_handle is not None:
+                    reject_handle.write(f"{','.join(row)}\n")
+            seqcount += 1
+            if seqcount % 10000 == 0:
+                db_construct_tool.close_transaction()
+                db_construct_tool.open_transaction()
+                if verbose:
+                    print(f"{seqcount} complete.")
+
+    if reject_handle is not None:
+        reject_handle.close()
 
     if verbose:
         print("Now constructing database indices...")
@@ -342,7 +352,8 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         database_filepath:str, temp_file:str,
         column_selections:dict, delimiter=',',
         header_rows:int=1, user_memo:str="",
-        reject_file:str = None, verbose:bool=True):
+        reject_file:str = None, verbose:bool=True,
+        perseq_mapsize=2500):
     """TCR data is often stored with cdr3 sequences specified for alpha
     and beta chains and the V and J genes specified but without any other
     information. This function builds a database specifically using this
@@ -391,6 +402,14 @@ def build_tcr_database_from_csv(csv_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
         verbose (bool): If True, print regular updates while running.
+        perseq_mapsize (int): When constructing the database, this function sets
+            an initial mapsize that is an upper bound on how big the database
+            can be. It does NOT allocate this amount of diskspace -- rather
+            it just sets an upper bound on how much diskspace it can use.
+            This number is the number of bytes per sequence for the upper bound
+            and is fairly generous so you should not need to increase it. If
+            the mapsize IS exceeded (unlikely), an exception will be thrown; if this
+            occurs try rebuilding the database with a larger mapsize.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -433,11 +452,11 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         print("No sequences found.")
         return
 
+    mapsize = nseqs * perseq_mapsize
     db_construct_tool = DatabaseConstructionTool(database_filepath,
             "imgt", temp_file, "imgt", "single", "tcr_simple", 0.7,
             license_key, user_email, consensus_path,
-            nterm_kmer_dict, vj_names, vj_seqs, user_memo, nseqs)
-            
+            nterm_kmer_dict, vj_names, vj_seqs, user_memo, mapsize)
 
     settings_list = []
     for expected_key in ["alpha_cdr3", "beta_cdr3",
@@ -462,35 +481,29 @@ def build_tcr_database_from_csv(csv_filepaths:list,
 
     seqcount = 0
 
-    if reject_file is None:
-        for csv_filepath in csv_filepaths:
-            for row in read_csv(csv_filepath, skiprows=header_rows,
-                                delimiter=delimiter):
-                if len(row) == 0:
-                    continue
-                _ = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
-                seqcount += 1
-                if seqcount % 10000 == 0:
-                    db_construct_tool.close_transaction()
-                    db_construct_tool.open_transaction()
-                    if verbose:
-                        print(f"{seqcount} complete.")
+    if reject_file is not None:
+        reject_handle = open(reject_file, "w+", encoding="utf-8")
     else:
-        with open(reject_file, "w+", encoding="utf-8") as reject_handle:
-            for csv_filepath in csv_filepaths:
-                for row in read_csv(csv_filepath, skiprows=header_rows,
-                                    delimiter=delimiter):
-                    if len(row) == 0:
-                        continue
-                    rcode = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
-                    if rcode > 0:
-                        reject_handle.write(f"{','.join(row)}\n")
-                    seqcount += 1
-                    if seqcount % 10000 == 0:
-                        db_construct_tool.close_transaction()
-                        db_construct_tool.open_transaction()
-                        if verbose:
-                            print(f"{seqcount} complete.")
+        reject_handle = None
+
+    for csv_filepath in csv_filepaths:
+        for row in read_csv(csv_filepath, skiprows=header_rows,
+                            delimiter=delimiter):
+            if len(row) == 0:
+                continue
+            rcode = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
+            if rcode > 0:
+                if reject_handle is not None:
+                    reject_handle.write(f"{','.join(row)}\n")
+            seqcount += 1
+            if seqcount % 10000 == 0:
+                db_construct_tool.close_transaction()
+                db_construct_tool.open_transaction()
+                if verbose:
+                    print(f"{seqcount} complete.")
+
+    if reject_handle is not None:
+        reject_handle.close()
 
     if verbose:
         print("Now constructing database indices...")
