@@ -214,7 +214,7 @@ class TestLocalDBConstruction(unittest.TestCase):
             with open("temp_data_file.fa", "r", encoding="utf-8") as \
                     fhandle:
                 for line1, line2 in zip(reject_handle, fhandle):
-                    self.assertTrue(line1==line2)
+                    self.assertTrue(line1.strip().split('\t')[0]==line2.strip())
 
         shutil.rmtree("TEMP_DB")
         os.remove("temp_data_file.fa")

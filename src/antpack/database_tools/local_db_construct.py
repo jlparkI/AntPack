@@ -122,9 +122,9 @@ def build_database_from_fasta(fasta_filepaths:list,
     for fasta_filepath in fasta_filepaths:
         for (seqinfo, seq) in read_fasta(fasta_filepath):
             rcode = db_construct_tool.add_sequence(seq, seqinfo)
-            if rcode > 0:
+            if len(rcode) > 0:
                 if reject_handle is not None:
-                    reject_handle.write(f">{seqinfo}\n{seq}\n")
+                    reject_handle.write(f">{seqinfo}\t{rcode}\n{seq}\n")
             seqcount += 1
             if seqcount % 10000 == 0:
                 db_construct_tool.close_transaction()
@@ -326,9 +326,9 @@ def build_database_from_csv(csv_filepaths:list,
             if len(row) == 0:
                 continue
             rcode = db_construct_tool.add_csv_sequence(row, settings_list)
-            if rcode > 0:
+            if len(rcode) > 0:
                 if reject_handle is not None:
-                    reject_handle.write(f"{','.join(row)}\n")
+                    reject_handle.write(f"{','.join(row)}\t{rcode}\n")
             seqcount += 1
             if seqcount % 10000 == 0:
                 db_construct_tool.close_transaction()
@@ -492,9 +492,9 @@ def build_tcr_database_from_csv(csv_filepaths:list,
             if len(row) == 0:
                 continue
             rcode = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
-            if rcode > 0:
+            if len(rcode) > 0:
                 if reject_handle is not None:
-                    reject_handle.write(f"{','.join(row)}\n")
+                    reject_handle.write(f"{','.join(row)}\t{rcode}\n")
             seqcount += 1
             if seqcount % 10000 == 0:
                 db_construct_tool.close_transaction()
