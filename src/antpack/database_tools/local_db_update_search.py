@@ -271,13 +271,15 @@ class LocalDBTool:
             verbose (bool): If True, print out updates every 10,000 sequences.
 
         Returns:
-            data (list): A list of length S for S distances in the dataset
+            distances (list): A list of length S for S distances in the dataset
                 that are inside the cdr cutoff.
-            indices (list): A length S list of lists of length 2. Each
-                length-2 list at position k is the [first,second] seq ids
-                for each distance measurement in data. indices can be passed
-                to the csr_matrix constructor in scipy together with data
-                to build a sparse matrix.
+            row_idx (list): The row id (to use in the resulting sparse
+                distance matrix) for each distance in distances.
+            col_idx (list): The col idx (to use in the resulting sparse
+                distance matrix) for each distance in distances. To build
+                a sparse distance matrix using scipy's csr_matrix,
+                call `csr_matrix((distances, (row_idx, col_idx)),
+                    [shape=(num_seqs, num_seqs)])`.
         """
         return self.local_db_manager.build_sparse_dmat_lists(chain_type,
                 mode, cdr_cutoff, blosum_cutoff, max_hits_per_query,
