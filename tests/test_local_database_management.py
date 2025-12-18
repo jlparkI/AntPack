@@ -92,9 +92,6 @@ class TestLocalDBManagement(unittest.TestCase):
             self.random_search_function_test(msa, heavy_codes,
                         light_codes, local_db, seqinfos,
                         seqs)
-            #self.distmat_construction_test(msa, heavy_codes,
-            #            light_codes, local_db, -1)
-            #if thread_scheme == "single":
             self.distmat_construction_test(msa, heavy_codes,
                         light_codes, local_db, 0.5)
 
@@ -234,7 +231,7 @@ class TestLocalDBManagement(unittest.TestCase):
             if random.randint(0,1) == 1:
                 blosum_cutoff = -1
             else:
-                blosum_cutoff = 0.5
+                blosum_cutoff = 3.5
 
             if random.randint(0,1) == 1:
                 mode = "123"
@@ -434,7 +431,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                 hit_idx.append(i)
                 retained_dists.append(cdr_dists[0] + cdr_dists[1])
             else:
-                blosum_dist, nresidues = 0, 0
+                blosum_dist, nresidues, max_blosum_dist = 0, 0, 0
                 allowed_regions = {f"cdr{k}" for k in mode}
                 for l1, l2, code in zip(seq_data[0], query,
                                             msa_codes[1]):
@@ -442,11 +439,13 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                         continue
                     l1num = AAMAP[l1] * 22
                     l2num = AAMAP[l2]
+                    max_blosum_dist = max(BLOSUM[l1num + l2num],
+                                          max_blosum_dist)
                     blosum_dist += BLOSUM[l1num + l2num]
                     if l2 != '-':
                         nresidues += 1
                 blosum_dist = float(blosum_dist) / float(nresidues)
-                if blosum_dist <= blosum_cutoff:
+                if max_blosum_dist <= blosum_cutoff:
                     hit_idx.append(i)
                     retained_dists.append(blosum_dist)
 
