@@ -90,7 +90,7 @@ class TestLocalDBConstruction(unittest.TestCase):
 
 
                 env = lmdb.Environment("TEMP_DB", readonly=True,
-                        max_dbs=10)
+                        max_dbs=9)
                 with env.begin() as txn:
                     subdb = env.open_db(b"metadata", txn, create=False)
                     cursor = lmdb.Cursor(subdb, txn)
@@ -133,10 +133,14 @@ class TestLocalDBConstruction(unittest.TestCase):
                 # Check each set of chain tables for expected info.
                 for chain, chain_coding in zip(["heavy", "light"],
                         [("H",), ("L", "K")]):
-                    aligned_seqs, cdrs, _, _, vgenes, _, vspecies, child_ids = \
+                    aligned_seqs, cdrs, _, cdr3_region_len, vgenes, vspecies, child_ids = \
                             prep_seqs_for_comparison(nmbr_scheme,
                             cdr_scheme, chain_coding, seqs,
                             annotations, sca, vj_tool)
+
+                    env = lmdb.Environment("TEMP_DB", readonly=True,
+                        max_dbs=9+cdr3_region_len)
+                    txn = env.begin()
                     subdb = env.open_db(f"{chain}_cdrs".encode(),
                         txn, create=False)
                     cursor = lmdb.Cursor(subdb, txn)
@@ -144,26 +148,42 @@ class TestLocalDBConstruction(unittest.TestCase):
                             zip(child_ids, aligned_seqs)):
                         key = struct.pack('@I', child_id)
                         value = cursor.get(key)
-                        self.assertTrue(value[:-4].decode()==cdr_grp[0])
-                        for j, vcode in enumerate(
-                            get_vgene_code(vgenes[i], vspecies[i])[1]):
-                            self.assertTrue(int(value[-4:][j])==int(vcode))
+                        self.assertTrue(value[:-1].decode()==cdr_grp[0])
 
-                    subdb = env.open_db(f"{chain}_dimers".encode(),
-                            txn, create=False, dupsort=True)
+                    subdb = env.open_db(f"{chain}_vgenes".encode(),
+                        txn, create=False)
                     cursor = lmdb.Cursor(subdb, txn)
-                    kmer_key_list = list(cursor.iternext(values=False))
-                    kmer_to_child = {int.from_bytes(kmer[:4], sys.byteorder,
-                        signed=False):set() for kmer in kmer_key_list}
-                    for key in kmer_to_child.keys():
-                        value = cursor.get(struct.pack('@i', key))
-                        kmer_to_child[key].add(convert_value_to_bin(value))
-                        for value in cursor.iternext_dup(keys=False):
-                            kmer_to_child[key].add(convert_value_to_bin(value))
+                    for i, (child_id, cdr_grp) in enumerate(
+                            zip(child_ids, aligned_seqs)):
+                        key = struct.pack('@I', child_id)
+                        value = tuple(cursor.get(key))
+                        vgene_code = get_vgene_code(vgenes[i], vspecies[i])
+                        self.assertTrue(value==vgene_code)
 
-                    kmer_profile = \
-                        self.eval_nmbr_table_row_contents(kmer_to_child,
-                            cdrs, child_ids)
+                    if chain == "heavy":
+                        table_code = 0
+                    else:
+                        table_code = 1
+
+                    kmer_profile = {}
+
+                    for j in range(cdr3_region_len - 1):
+                        subdb = env.open_db(f"{j}_{table_code}_dimers".encode(),
+                            txn, create=False, dupsort=True)
+                        cursor = lmdb.Cursor(subdb, txn)
+                        kmer_key_list = list(cursor.iternext(values=False))
+                        kmer_to_child = {int.from_bytes(kmer[:4], sys.byteorder,
+                        signed=False):set() for kmer in kmer_key_list}
+                        for key in kmer_to_child.keys():
+                            value = cursor.get(struct.pack('@i', key))
+                            kmer_to_child[key].add(convert_value_to_bin(value))
+                            for value in cursor.iternext_dup(keys=False):
+                                kmer_to_child[key].add(convert_value_to_bin(value))
+
+                        kmer_profile = \
+                            self.eval_nmbr_table_row_contents(
+                                kmer_to_child, cdrs, child_ids,
+                                kmer_profile, j)
 
                     subdb = env.open_db(f"{chain}_diversity".encode(),
                             txn, create=False)
@@ -288,7 +308,7 @@ class TestLocalDBConstruction(unittest.TestCase):
             for i, expected_cdr in enumerate(expected_cdrs):
                 key = struct.pack('@I', i)
                 test_seq = cursor.get(key).decode()
-                self.assertTrue(expected_cdr==test_seq[:-4])
+                self.assertTrue(expected_cdr==test_seq[:-1])
 
         with env.begin() as txn:
             subdb = env.open_db(b"main_seq_table", txn, create=False)
@@ -302,11 +322,10 @@ class TestLocalDBConstruction(unittest.TestCase):
 
 
     def eval_nmbr_table_row_contents(self, kmer_to_child,
-            cdrs, child_ids, numbering_scheme="imgt"):
+            cdrs, child_ids, profile_counts, position,
+            numbering_scheme="imgt"):
         """Tests the contents of the rows from the numbering
         table."""
-        profile_counts = {}
-
         AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
         for i, cdr_group in enumerate(cdrs):
@@ -336,19 +355,18 @@ class TestLocalDBConstruction(unittest.TestCase):
 
             bytestring = (child_ids[i], int(''.join(bytestring)[::-1], 2))
 
-            for j in range(0, len(cdr) - 1):
-                kmer = cdr[j:j+2]
-                codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
-                profile_counts[cdr3len][j, codeval] += 1
-                if kmer == "--":
-                    continue
-                codeval = j * 441 * 441 + cdr3len * 441 + \
-                        codeval
+            kmer = cdr[position:position+2]
+            codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
+            profile_counts[cdr3len][position, codeval] += 1
+            if kmer == "--":
+                continue
+            codeval = position * 441 * 441 + cdr3len * 441 + \
+                    codeval
 
-                self.assertTrue(codeval in kmer_to_child)
+            self.assertTrue(codeval in kmer_to_child)
 
-                self.assertTrue(bytestring in kmer_to_child[codeval])
-                kmer_to_child[codeval].remove(bytestring)
+            self.assertTrue(bytestring in kmer_to_child[codeval])
+            kmer_to_child[codeval].remove(bytestring)
 
         return profile_counts
 
@@ -423,6 +441,7 @@ def prep_seqs_for_comparison(numbering_scheme,
             if c == "cdr2"]
     cdr3_codes = [a for (a,c) in zip(canon_nmbr, cdr_labels)
             if c == "cdr3"]
+    cdr3_region_len = len(cdr3_codes)
 
     aligned_seqs, cdrs, unusual_positions = \
             [], [], []
@@ -442,8 +461,7 @@ def prep_seqs_for_comparison(numbering_scheme,
         aligned_seqs.append((cdr1 + cdr2 + cdr3, cdr3))
 
     return aligned_seqs, cdrs, unusual_positions, \
-            [cdr1_codes, cdr2_codes, cdr3_codes], \
-            vgenes, jgenes, vjspecies, child_ids
+        cdr3_region_len, vgenes, vjspecies, child_ids
 
 
 def get_vgene_code(vgene, species_code):
@@ -464,22 +482,33 @@ def get_vgene_code(vgene, species_code):
     elif vgene[2] == "D":
         chain_code = 6
     else:
-        return -1
+        raise RuntimeError("Incorrect chain code found in test data.")
 
-    family_number = 255
+    extracted_nums = []
+    read_now = False
+    current_num = ""
+
     for i in range(4, len(vgene)):
-        if not vgene[i].isnumeric():
+        if vgene[i] == "*":
             break
-    try:
-        family_number = int(vgene[4:i])
-    except:
-        return -1
+        if vgene[i].isnumeric():
+            if not read_now:
+                read_now = True
+                current_num = ""
+            current_num += vgene[i]
+        elif read_now:
+            read_now = False
+            if len(current_num) > 0:
+                extracted_nums.append(int(current_num))
+            current_num = ""
 
-    if species_code == 255:
-        return -1
+    if len(current_num) > 0:
+        extracted_nums.append(int(current_num))
+    if len(extracted_nums) < 2:
+        raise RuntimeError("Invalid vgene found in test data.")
 
-    return family_number * 500 * 500 + chain_code * 500 + species_code,\
-            (chain_code, species_code, family_number)
+    return (chain_code, species_code, extracted_nums[0],
+            extracted_nums[1])
 
 
 if __name__ == "__main__":
