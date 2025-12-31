@@ -53,7 +53,9 @@ find_package(nanobind CONFIG REQUIRED)
 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
+#########
+#Generate a compile commands file for use by linters.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ##########
 #Add abseil.
