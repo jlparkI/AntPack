@@ -75,11 +75,11 @@ def test_local_db_construct(build_local_mab_lmdb):
                 key = struct.pack('@I', child_id)
                 value = cursor.get(key)
                 vgene_code = get_vgene_code(vgenes[i], vspecies[i])
-                assert value[:-7].decode()==cdr_grp[0]
-                assert vgene_code[0] == value[-7]
-                assert vgene_code[1] == value[-6]
-                assert vgene_code[2] == value[-5]
-                assert vgene_code[3] == value[-4]
+                assert value[:-8].decode()==cdr_grp[0]
+                assert vgene_code[0] == value[-8]
+                assert vgene_code[1] == value[-7]
+                assert vgene_code[2] == value[-6]
+                assert vgene_code[3] == value[-5]
                 assert value[-1] == unusual_positions[i]
 
             if chain == "heavy":

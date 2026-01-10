@@ -1,5 +1,6 @@
 """Test database management & search."""
 import os
+from copy import deepcopy
 import random
 from math import floor
 import pytest
@@ -186,6 +187,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
             continue
 
         cdr_dists = [0,0]
+        region_lengths = [0,0]
         if not search_params["use_vgene_family_only"]:
             if vgene_filter[3] < 255 and seq_data[3][3] != \
                 vgene_filter[3]:
@@ -206,13 +208,15 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
             region_dist = len([a for (a,b,l) in zip(seq_data[0], query,
                 msa_codes[1]) if l==region and a != b])
             cdr_dists[int(j/2)] += region_dist
+            region_len = len([s for (s,l) in
+                    zip(seq_data[0], msa_codes[1])
+                    if l==region and s != '-'])
+            region_lengths[int(j/2)] += region_len
 
             # Add an arbitrary large number if the cdr length is
             # unacceptable or if an individual distance is
             # unacceptable so that the sequence is not saved.
             if region == "cdr3":
-                region_len = len([s for (s,l) in zip(seq_data[0], msa_codes[1])
-                    if l==region and s != '-'])
                 if region_len > cdrlen[j] + \
                         search_params["cdr_length_shift"]:
                     cdr_dists[int(j/2)] += 200
@@ -220,12 +224,21 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                         search_params["cdr_length_shift"]:
                     cdr_dists[int(j/2)] += 200
 
+        # If symmetric search was specified, adjust the cutoff.
+        hamming_cutoffs = deepcopy(max_hamming)
+        if search_params["symmetric_search"]:
+            if region_lengths[0] > 0:
+                hamming_cutoffs[0] = min(max_hamming[0],
+                        floor(search_params["cdr_cutoff"] * region_lengths[0]))
+            hamming_cutoffs[1] = min(max_hamming[1],
+                        floor(search_params["cdr_cutoff"] * region_lengths[1]))
+
         # If we meet Hamming distance criteria, store sequence
         # as a hit UNLESS BLOSUM cutoff was also specified, in
         # which case calculate BLOSUM distance and see if we
         # also meet THAT cutoff.
-        if cdr_dists[0] <= max_hamming[0] and \
-                cdr_dists[1] <= max_hamming[1]:
+        if cdr_dists[0] <= hamming_cutoffs[0] and \
+                cdr_dists[1] <= hamming_cutoffs[1]:
             if search_params["blosum_cutoff"] < 0:
                 hit_idx.append(i)
                 retained_dists.append(cdr_dists[0] + cdr_dists[1])

@@ -1,9 +1,5 @@
 """Contains tools for searching and updating a local database."""
-import os
-import numpy as np
-from ..numbering_tools.cterm_finder import _load_nterm_kmers
 from ..antpack_license import get_license_key_info
-from ..utilities.vj_utilities import load_vj_gene_consensus_db
 from antpack.antpack_cpp_ext import LocalDatabaseToolCpp
 
 
