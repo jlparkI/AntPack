@@ -115,6 +115,9 @@ def test_local_db_search(build_local_mab_lmdb,
                             [h[1] for h in gt_hit_idx])
 
         else:
+            if hits != gt_hit_idx:
+                import pdb
+                pdb.set_trace()
             assert hits==gt_hit_idx
 
         # Make sure the metadata and sequence retrieved
