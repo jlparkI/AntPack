@@ -220,7 +220,7 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
         for i, expected_cdr in enumerate(expected_cdrs):
             key = struct.pack('@I', i)
             test_seq = cursor.get(key)
-            assert expected_cdr==test_seq[:-7].decode()
+            assert expected_cdr==test_seq[:-8].decode()
 
     with env.begin() as txn:
         subdb = env.open_db(b"main_seq_table", txn, create=False)

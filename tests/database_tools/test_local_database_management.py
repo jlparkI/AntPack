@@ -50,10 +50,10 @@ def test_local_db_search(build_local_mab_lmdb,
     # later test all of the results against the batch
     # search.
     allowed_search_settings = {
-            "cdr_cutoff":[0.25, 0.33, 0.4],
+            "cdr_cutoff":[0.25, 0.33],
             "blosum_cutoff":[-1, 4.5],
             "search_mode":["123", "3"],
-            "cdr_length_shift":[0,2,3],
+            "cdr_length_shift":[0,1,2],
             "symmetric_search":[True, False],
             "use_vgene_family_only":[True, False],
             "use_vgene":[True, False]

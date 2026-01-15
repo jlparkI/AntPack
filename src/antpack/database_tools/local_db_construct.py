@@ -2,7 +2,6 @@
 various input types."""
 import os
 import gc
-import numpy as np
 from ..utilities import read_fasta, read_csv
 from ..numbering_tools.cterm_finder import _load_nterm_kmers
 from ..antpack_license import get_license_key_info
@@ -12,14 +11,12 @@ from antpack.antpack_cpp_ext import DatabaseConstructionTool
 
 
 def build_database_from_fasta(fasta_filepaths:list,
-        database_filepath:str, temp_file:str,
-        numbering_scheme:str="imgt",
+        database_filepath:str, numbering_scheme:str="imgt",
         cdr_definition_scheme:str="imgt",
         sequence_type:str="single", receptor_type:str="mab",
         pid_threshold:float=0.7, user_memo:str="",
         reject_file:str = None,
-        verbose:bool=True,
-        perseq_mapsize=2500):
+        verbose:bool=True):
     """Builds a database from a list of fasta files which may or may
     not be gzipped. The database is constructed so it can be
     searched quickly and the sequence descriptions for each sequence
@@ -30,9 +27,6 @@ def build_database_from_fasta(fasta_filepaths:list,
             may or may not be gzipped.
         database_filepath (str): The desired location and filename
             for the database.
-        temp_file (str): A path to a temporary file where the application
-            can temporarily store data needed while initializing the
-            database.
         numbering_scheme (str): One of 'imgt', 'kabat', 'martin' or
             'aho'. If receptor_type is 'tcr', 'imgt' is the only
             allowed option.
@@ -55,14 +49,6 @@ def build_database_from_fasta(fasta_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a fasta file.
         verbose (bool): If True, print regular updates while running.
-        perseq_mapsize (int): When constructing the database, this function sets
-            an initial mapsize that is an upper bound on how big the database
-            can be. It does NOT allocate this amount of diskspace -- rather
-            it just sets an upper bound on how much diskspace it can use.
-            This number is the number of bytes per sequence for the upper bound
-            and is fairly generous so you should not need to increase it. If
-            the mapsize IS exceeded (unlikely), an exception will be thrown; if this
-            occurs try rebuilding the database with a larger mapsize.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -74,9 +60,6 @@ def build_database_from_fasta(fasta_filepaths:list,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
-    if os.path.exists(temp_file):
-        raise RuntimeError("The temporary filepath you supplied "
-                           "is a file that already exists.")
 
     os.makedirs(database_filepath)
 
@@ -95,22 +78,28 @@ def build_database_from_fasta(fasta_filepaths:list,
     nseqs = 0
 
     for fasta_filepath in fasta_filepaths:
-        for i, (seqinfo, seq) in enumerate(read_fasta(fasta_filepath)):
+        for (seqinfo, seq) in read_fasta(fasta_filepath):
             nseqs += 1
 
     if nseqs == 0:
         print("No sequences found.")
         return
 
-    mapsize = nseqs * perseq_mapsize
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            numbering_scheme, temp_file, cdr_definition_scheme,
+            numbering_scheme, cdr_definition_scheme,
             sequence_type, receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, user_memo, mapsize)
+            vj_names, vj_seqs, user_memo)
 
-    print("Starting db construction.")
+    if nseqs > 4200000000:
+        raise RuntimeError("Current cap on number of sequences "
+                           "per database file is 4.2 billion. "
+                           f"You have {nseqs}. Consider splitting "
+                           "this up into multiple database files, "
+                           "e.g. splitting by species or vgene family.")
+
+    print(f"Found {nseqs} sequences. Starting db construction.")
     db_construct_tool.open_transaction()
 
     seqcount = 0
@@ -139,21 +128,18 @@ def build_database_from_fasta(fasta_filepaths:list,
         print("Now constructing database indices...")
 
     db_construct_tool.finalize_db_construction(verbose)
-    os.remove(temp_file)
     gc.collect()
 
 
 
 def build_database_from_csv(csv_filepaths:list,
-        database_filepath:str, temp_file:str,
-        column_selections:dict,
+        database_filepath:str, column_selections:dict,
         header_rows:int=1,
         numbering_scheme:str="imgt",
         cdr_definition_scheme:str="imgt",
         receptor_type:str="mab", pid_threshold:float=0.7,
         user_memo:str="", reject_file:str = None,
-        verbose:bool=True,
-        perseq_mapsize=2500):
+        verbose:bool=True):
     """Builds a database from a list of csv files which may or may
     not be gzipped. The database is constructed so it can be
     searched quickly. The csv files should already contain heavy
@@ -167,9 +153,6 @@ def build_database_from_csv(csv_filepaths:list,
             may not be gzipped.
         database_filepath (str): The desired location and filename
             for the database.
-        temp_file (str): A path to a temporary file where the application
-            can temporarily store data needed while initializing the
-            database.
         column_selections (dict): A dictionary which should contain at least
             some of the following keys:
 
@@ -231,14 +214,6 @@ def build_database_from_csv(csv_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
         verbose (bool): If True, print regular updates while running.
-        perseq_mapsize (int): When constructing the database, this function sets
-            an initial mapsize that is an upper bound on how big the database
-            can be. It does NOT allocate this amount of diskspace -- rather
-            it just sets an upper bound on how much diskspace it can use.
-            This number is the number of bytes per sequence for the upper bound
-            and is fairly generous so you should not need to increase it. If
-            the mapsize IS exceeded (unlikely), an exception will be thrown; if this
-            occurs try rebuilding the database with a larger mapsize.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -250,9 +225,6 @@ def build_database_from_csv(csv_filepaths:list,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
-    if os.path.exists(temp_file):
-        raise RuntimeError("The temporary filepath you supplied "
-                           "is a file that already exists.")
 
     os.makedirs(database_filepath)
 
@@ -281,13 +253,12 @@ def build_database_from_csv(csv_filepaths:list,
         print("No sequences found.")
         return
 
-    mapsize = nseqs * perseq_mapsize
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            numbering_scheme, temp_file, cdr_definition_scheme,
+            numbering_scheme, cdr_definition_scheme,
             "single", receptor_type,
             pid_threshold, license_key, user_email,
             consensus_path, nterm_kmer_dict,
-            vj_names, vj_seqs, user_memo, mapsize)
+            vj_names, vj_seqs, user_memo)
 
     settings_list = []
     for expected_key in ["heavy_chain", "light_chain",
@@ -312,7 +283,14 @@ def build_database_from_csv(csv_filepaths:list,
                     "heavy or light vgene, they should contain "
                     "a species as well.")
 
-    print("Starting db construction.")
+    if nseqs > 4200000000:
+        raise RuntimeError("Current cap on number of sequences "
+                           "per database file is 4.2 billion. "
+                           f"You have {nseqs}. Consider splitting "
+                           "this up into multiple database files, "
+                           "e.g. splitting by species or vgene family.")
+
+    print(f"Found {nseqs} sequences. Starting db construction.")
     db_construct_tool.open_transaction()
 
     seqcount = 0
@@ -343,17 +321,14 @@ def build_database_from_csv(csv_filepaths:list,
         print("Now constructing database indices...")
 
     db_construct_tool.finalize_db_construction(verbose)
-    os.remove(temp_file)
     gc.collect()
 
 
 
 def build_tcr_database_from_csv(csv_filepaths:list,
-        database_filepath:str, temp_file:str,
-        column_selections:dict, delimiter=',',
+        database_filepath:str, column_selections:dict, delimiter=',',
         header_rows:int=1, user_memo:str="",
-        reject_file:str = None, verbose:bool=True,
-        perseq_mapsize=2500):
+        reject_file:str = None, verbose:bool=True):
     """TCR data is often stored with cdr3 sequences specified for alpha
     and beta chains and the V and J genes specified but without any other
     information. This function builds a database specifically using this
@@ -364,9 +339,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
             may not be gzipped.
         database_filepath (str): The desired location and filename
             for the database.
-        temp_file (str): A path to a temporary file where the application
-            can temporarily store data needed while initializing the
-            database.
         column_selections (dict): A dictionary which should contain at least
             some of the following keys:
 
@@ -402,14 +374,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
         verbose (bool): If True, print regular updates while running.
-        perseq_mapsize (int): When constructing the database, this function sets
-            an initial mapsize that is an upper bound on how big the database
-            can be. It does NOT allocate this amount of diskspace -- rather
-            it just sets an upper bound on how much diskspace it can use.
-            This number is the number of bytes per sequence for the upper bound
-            and is fairly generous so you should not need to increase it. If
-            the mapsize IS exceeded (unlikely), an exception will be thrown; if this
-            occurs try rebuilding the database with a larger mapsize.
 
     Raises:
         RuntimeError: A RuntimeError is raised if invalid arguments are
@@ -421,9 +385,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
-    if os.path.exists(temp_file):
-        raise RuntimeError("The temporary filepath you supplied "
-                           "is a file that already exists.")
 
     os.makedirs(database_filepath)
 
@@ -452,11 +413,10 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         print("No sequences found.")
         return
 
-    mapsize = nseqs * perseq_mapsize
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            "imgt", temp_file, "imgt", "single", "tcr_simple", 0.7,
+            "imgt", "imgt", "single", "tcr_simple", 0.7,
             license_key, user_email, consensus_path,
-            nterm_kmer_dict, vj_names, vj_seqs, user_memo, mapsize)
+            nterm_kmer_dict, vj_names, vj_seqs, user_memo)
 
     settings_list = []
     for expected_key in ["alpha_cdr3", "beta_cdr3",
@@ -476,7 +436,14 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         raise RuntimeError("beta_cdr3, species, beta_vgene, beta_jgene "
                 "are required columns.")
 
-    print("Starting db construction.")
+    if nseqs > 4200000000:
+        raise RuntimeError("Current cap on number of sequences "
+                           "per database file is 4.2 billion. "
+                           f"You have {nseqs}. Consider splitting "
+                           "this up into multiple database files, "
+                           "e.g. splitting by species or vgene family.")
+
+    print(f"Found {nseqs} sequences. Starting db construction.")
     db_construct_tool.open_transaction()
 
     seqcount = 0
@@ -509,5 +476,4 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         print("Now constructing database indices...")
 
     db_construct_tool.finalize_db_construction(verbose)
-    os.remove(temp_file)
     gc.collect()
