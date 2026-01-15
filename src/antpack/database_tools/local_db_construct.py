@@ -61,8 +61,6 @@ def build_database_from_fasta(fasta_filepaths:list,
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
 
-    os.makedirs(database_filepath)
-
     license_key, user_email = get_license_key_info()
     project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
             "..")
@@ -226,8 +224,6 @@ def build_database_from_csv(csv_filepaths:list,
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
 
-    os.makedirs(database_filepath)
-
     license_key, user_email = get_license_key_info()
     project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
             "..")
@@ -385,8 +381,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
                 "to make a list.")
     if os.path.exists(database_filepath):
         raise RuntimeError("The database already exists.")
-
-    os.makedirs(database_filepath)
 
     license_key, user_email = get_license_key_info()
     project_path = os.path.join(

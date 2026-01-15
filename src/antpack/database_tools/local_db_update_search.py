@@ -1,6 +1,6 @@
 """Contains tools for searching and updating a local database."""
 from ..antpack_license import get_license_key_info
-from antpack.antpack_cpp_ext import LocalDatabaseToolCpp
+#from antpack.antpack_cpp_ext import LocalDatabaseToolCpp
 
 
 

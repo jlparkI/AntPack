@@ -5,7 +5,7 @@ import gzip
 import sys
 import struct
 import pytest
-import lmdb
+import sqlite3
 import numpy as np
 from antpack import (build_database_from_fasta,
         build_database_from_csv,
@@ -21,112 +21,69 @@ def test_local_db_construct(build_local_mab_lmdb):
     """Check that local database construction yields a
     database containing the information we expect."""
     seqs, seqinfos, db_filepath, params = build_local_mab_lmdb
-    env = lmdb.Environment(db_filepath, readonly=True, max_dbs=9)
-    with env.begin() as txn:
-        subdb = env.open_db(b"metadata", txn, create=False)
-        cursor = lmdb.Cursor(subdb, txn)
-        assert (cursor.get(b"numbering_scheme").decode()==
-            params["nmbr_scheme"])
-        assert cursor.get(b"receptor_type").decode()=="mab"
-        assert (cursor.get(b"sequence_type").decode()==
-                params["sequence_type"])
-        assert (cursor.get(b"cdr_definition_scheme").decode()==
-                params["cdr_scheme"])
-        assert (cursor.get(b"user_memo").decode()==
-                params["memo"])
-        pid = struct.unpack('@d', cursor.get(b"pid_threshold"))[0]
-        assert pid==0.7
+    con = sqlite3.connect(db_filepath)
+    cur = con.cursor()
 
-        # Next, check that the sequences and seqinfo in
-        # the db match what we loaded.
-        subdb = env.open_db(b"main_seq_table", txn, create=False)
-        cursor = lmdb.Cursor(subdb, txn)
-        for i, seq in enumerate(seqs):
-            key = struct.pack('@I', i)
-            test_seq = cursor.get(key).decode()
-            assert seq==test_seq
+    cur.execute("SELECT * FROM database_info;")
+    metadata = cur.fetchone()
+    assert metadata[0]==params["nmbr_scheme"]
+    assert metadata[1]=="mab"
+    assert metadata[2]==params["sequence_type"]
+    assert metadata[3]==params["cdr_scheme"]
+    assert metadata[4]==params["memo"]
+    assert metadata[5]==0.7
 
-        subdb = env.open_db(b"seq_metadata_table", txn, create=False)
-        cursor = lmdb.Cursor(subdb, txn)
-        for i, seqinfo in enumerate(seqinfos):
-            key = struct.pack('@I', i)
-            assert seqinfo==cursor.get(key).decode()
+    for i, row in enumerate(cur.execute("SELECT * FROM sequences;")):
+        assert row[0]==seqs[i]
+        assert row[1]==seqinfos[i]
 
-        sca = SingleChainAnnotator(scheme=params["nmbr_scheme"])
-        annotations = sca.analyze_seqs(seqs)
-        vj_tool = VJGeneTool(scheme=params["nmbr_scheme"])
+    sca = SingleChainAnnotator(scheme=params["nmbr_scheme"])
+    annotations = sca.analyze_seqs(seqs)
+    vj_tool = VJGeneTool(scheme=params["nmbr_scheme"])
 
         # Check each set of chain tables for expected info.
-        for chain, chain_coding in zip(["heavy", "light"],
-                [("H",), ("L", "K")]):
-            aligned_seqs, cdrs, unusual_positions, cdr3_region_len, vgenes, vspecies, child_ids = \
-                    prep_seqs_for_comparison(params["nmbr_scheme"],
-                        params["cdr_scheme"], chain_coding, seqs,
-                        annotations, sca, vj_tool)
+    for table_code, chain_coding in enumerate([("H",),
+                                    ("L", "K")]):
+        aligned_seqs, cdrs, unusual_positions, cdr3_region_len, vgenes, vspecies, child_ids = \
+                prep_seqs_for_comparison(params["nmbr_scheme"],
+                    params["cdr_scheme"], chain_coding, seqs,
+                    annotations, sca, vj_tool)
 
-            env = lmdb.Environment(db_filepath, readonly=True,
-                max_dbs=9+cdr3_region_len)
-            txn = env.begin()
-            subdb = env.open_db(f"{chain}_cdrs".encode(),
-                txn, create=False)
-            cursor = lmdb.Cursor(subdb, txn)
-            for i, (child_id, cdr_grp) in enumerate(
-                    zip(child_ids, aligned_seqs)):
-                key = struct.pack('@I', child_id)
-                value = cursor.get(key)
-                vgene_code = get_vgene_code(vgenes[i], vspecies[i])
-                assert value[:-8].decode()==cdr_grp[0]
-                assert vgene_code[0] == value[-8]
-                assert vgene_code[1] == value[-7]
-                assert vgene_code[2] == value[-6]
-                assert vgene_code[3] == value[-5]
-                assert value[-1] == unusual_positions[i]
+        for i, (child_id, cdr_grp) in enumerate(
+                zip(child_ids, aligned_seqs)):
+            cur.execute(f"SELECT * FROM _{table_code}_cdrs "
+                        f"WHERE rowid = {child_id+1};")
+            value = cur.fetchone()
+            vgene_code = get_vgene_code(vgenes[i], vspecies[i])
+            assert value[0]==cdr_grp[0]
+            assert vgene_code[0]==value[1]
+            assert vgene_code[1]==value[2]
+            assert vgene_code[2]==value[3]
+            assert vgene_code[3]==value[4]
+            assert unusual_positions[i]==value[5]
+            assert value[9]==child_id+1
 
-            if chain == "heavy":
-                table_code = 0
-            else:
-                table_code = 1
+        kmer_profile = {}
 
-            kmer_profile = {}
+        for j in range(cdr3_region_len - 1):
+            kmer_to_child = {}
 
-            for j in range(cdr3_region_len - 1):
-                subdb = env.open_db(f"{j}_{table_code}_dimers".encode(),
-                    txn, create=False, dupsort=True)
-                cursor = lmdb.Cursor(subdb, txn)
-                kmer_key_list = list(cursor.iternext(values=False))
-                kmer_to_child = {int.from_bytes(kmer[:4], sys.byteorder,
-                signed=False):set() for kmer in kmer_key_list}
-                for key in kmer_to_child.keys():
-                    value = cursor.get(struct.pack('@i', key))
-                    kmer_to_child[key].add(convert_value_to_bin(value))
-                    for value in cursor.iternext_dup(keys=False):
-                        kmer_to_child[key].add(convert_value_to_bin(value))
+            for row in cur.execute("SELECT * FROM "
+                                   f"_{table_code}_{j};"):
+                if row[0] not in kmer_to_child:
+                    kmer_to_child[row[0]] = set()
+                kmer_to_child[row[0]].add( (row[1], row[2]) )
 
-                kmer_profile = eval_nmbr_table_row_contents(
-                        kmer_to_child, cdrs, child_ids,
-                        kmer_profile, j)
+            kmer_profile = eval_nmbr_table_row_contents(
+                    kmer_to_child, cdrs, child_ids,
+                    kmer_profile, j)
 
-            subdb = env.open_db(f"{chain}_diversity".encode(),
-                    txn, create=False)
-            cursor = lmdb.Cursor(subdb, txn)
-
-            cursor = lmdb.Cursor(subdb, txn)
-            for key, value in cursor.iternext():
-                int_key = struct.unpack('@i', key)[0]
-                assert int_key in kmer_profile
-
-                assert len(value) % 8 == 0
-                assert (len(value) / 8 ==
-                        kmer_profile[int_key].flatten().shape[0])
-
-                loaded_kmer_table = \
-                        np.frombuffer(value, dtype=np.int64)
-                assert np.allclose(loaded_kmer_table,
-                    kmer_profile[int_key].flatten())
-                kmer_profile[int_key] = None
-
-            for _, value in kmer_profile.items():
-                assert value is None
+        for row in cur.execute("SELECT * FROM "
+                f"_{table_code}_column_diversity;"):
+            assert row[1] in kmer_profile
+            test_arr = np.frombuffer(row[-1], dtype=np.int64)
+            test_arr = test_arr.reshape((row[2], row[3]))
+            assert np.allclose(test_arr, kmer_profile[row[1]])
 
 
 
@@ -135,7 +92,6 @@ def test_low_quality_seqs(tmp_path):
     sequences to the database."""
     input_file = os.path.join(tmp_path, "temp_data_file.fa")
     db_path = os.path.join(tmp_path, "TEMP_DB")
-    temp_file = os.path.join(tmp_path, "TEMP_FILE")
     reject_file = os.path.join(tmp_path, "REJECTS")
 
     with open(input_file, "w+", encoding="utf-8") as fhandle:
@@ -144,7 +100,7 @@ def test_low_quality_seqs(tmp_path):
         fhandle.write(">NAME\nEVQLEVQLEVQL\n")
 
     build_database_from_fasta([input_file], db_path,
-        temp_file, numbering_scheme="imgt",
+        numbering_scheme="imgt",
         cdr_definition_scheme="imgt",
         sequence_type="paired", receptor_type="mab",
         pid_threshold=0.7, user_memo="test",
@@ -162,7 +118,6 @@ def test_low_quality_seqs(tmp_path):
 
     input_file = os.path.join(tmp_path, "temp_data_file.csv")
     db_path = os.path.join(tmp_path, "TEMP_DB2")
-    temp_file = os.path.join(tmp_path, "TEMP_FILE2")
     reject_file = os.path.join(tmp_path, "REJECTS2")
 
     with open(input_file, "w+") as fhandle:
@@ -171,7 +126,7 @@ def test_low_quality_seqs(tmp_path):
         fhandle.write("$$ALT,H,,unknown\n")
 
     build_database_from_csv([input_file], db_path,
-            temp_file, {"heavy_chain":0, "heavy_chaintype":1,
+            {"heavy_chain":0, "heavy_chaintype":1,
                 "heavy_vgene":2, "species":3},
             numbering_scheme='imgt',
             cdr_definition_scheme='imgt',
@@ -196,11 +151,10 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
     csv_filepath = os.path.join(get_test_data_filepath,
             "non_antibody_test_data", "tcr_simpletest.csv.gz")
     db_filepath = os.path.join(tmp_path, "TEMP_DB")
-    temp_filepath = os.path.join(tmp_path, "TEMP_FILE")
 
     expected_cdrs, expected_mainseq = [], []
     build_tcr_database_from_csv(
-            [csv_filepath], db_filepath, temp_filepath,
+            [csv_filepath], db_filepath,
             {"beta_cdr3":0, "beta_vgene":1,
              "beta_jgene":2, "species":4},
             user_memo="", reject_file=None)
@@ -213,22 +167,18 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
                 elements[2])
             expected_cdrs.append(elements[3])
 
-    env = lmdb.Environment(db_filepath, readonly=True, max_dbs=10)
-    with env.begin() as txn:
-        subdb = env.open_db(b"heavy_cdrs", txn, create=False)
-        cursor = lmdb.Cursor(subdb, txn)
-        for i, expected_cdr in enumerate(expected_cdrs):
-            key = struct.pack('@I', i)
-            test_seq = cursor.get(key)
-            assert expected_cdr==test_seq[:-8].decode()
+    con = sqlite3.connect(db_filepath)
+    cur = con.cursor()
 
-    with env.begin() as txn:
-        subdb = env.open_db(b"main_seq_table", txn, create=False)
-        cursor = lmdb.Cursor(subdb, txn)
-        for i, expected_info in enumerate(expected_mainseq):
-            key = struct.pack('@I', i)
-            test_seq = cursor.get(key).decode()
-            assert expected_info==test_seq
+    for i, row in enumerate(cur.execute(
+        "SELECT * FROM _0_cdrs;")):
+        assert expected_cdrs[i]==row[0]
+
+    for i, row in enumerate(cur.execute(
+        "SELECT * FROM sequences;")):
+        assert expected_mainseq[i]==row[0]
+
+
 
 
 def eval_nmbr_table_row_contents(kmer_to_child,
@@ -239,7 +189,6 @@ def eval_nmbr_table_row_contents(kmer_to_child,
     AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
     for i, cdr_group in enumerate(cdrs):
-        # TODO: For now only considering cdr3 for indexing.
         cdr = cdr_group[2]
         cdr3len = len(cdr.replace('-', ''))
 
@@ -263,15 +212,15 @@ def eval_nmbr_table_row_contents(kmer_to_child,
                 bytestring[j] = '1'
                 bytestring[j+16] = '1'
 
-        bytestring = (child_ids[i], int(''.join(bytestring)[::-1], 2))
+        bytestring = (int(''.join(bytestring)[::-1], 2),
+                      child_ids[i]+1)
 
         kmer = cdr[position:position+2]
         codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
         profile_counts[cdr3len][position, codeval] += 1
         if kmer == "--":
             continue
-        codeval = position * 441 * 441 + cdr3len * 441 + \
-                codeval
+        codeval += cdr3len * 441
 
         assert codeval in kmer_to_child
 
@@ -282,15 +231,6 @@ def eval_nmbr_table_row_contents(kmer_to_child,
 
 
 
-
-
-def convert_value_to_bin(value):
-    """Converts an input value to an
-    integer and a binary string."""
-    output_int = int.from_bytes(value[4:], sys.byteorder,
-            signed=False)
-    binstring = int.from_bytes(value[:4], sys.byteorder, signed=False)
-    return (output_int, binstring)
 
 
 
@@ -374,7 +314,6 @@ def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
         # Using hardcoded column selections here (since the
         # test data is always the same)
         build_database_from_csv([csv_filepath], db_filepath,
-                os.path.join(tmp_path, "TEMP_FILE"),
                 {"heavy_chain":0, "light_chain":3,
                     "heavy_chaintype":2, "light_chaintype":5,
                     "heavy_numbering":6, "light_numbering":7},
@@ -395,8 +334,7 @@ def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
     else:
         fasta_filepath = os.path.join(get_test_data_filepath,
                     request.param["filepath"])
-        build_database_from_fasta([fasta_filepath],
-            db_filepath, os.path.join(tmp_path, "TEMP_FILE"),
+        build_database_from_fasta([fasta_filepath], db_filepath,
             numbering_scheme=request.param["nmbr_scheme"],
             cdr_definition_scheme=request.param["cdr_scheme"],
             sequence_type=request.param["sequence_type"],
