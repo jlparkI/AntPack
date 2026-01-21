@@ -30,7 +30,7 @@ project(${SKBUILD_PROJECT_NAME} LANGUAGES C CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_C_STANDARD 99)
 
@@ -58,8 +58,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ##########
-#Add abseil.
+#Add abseil and rocksdb.
 add_subdirectory(extern/abseil-cpp)
+add_subdirectory(extern/rocksdb)
 
 
 
@@ -123,9 +124,10 @@ nanobind_add_module(
     extern/antpack_private/src/license_key_handling/pub_private_utilities.cpp
 
     extern/antpack_private/src/database_tools/local_database_construction_tool.cpp
+    extern/antpack_private/src/database_tools/local_database_management_tool.cpp
     extern/antpack_private/src/database_tools/core_search_utilities.cpp
+    extern/antpack_private/src/database_tools/core_rocksdb_search_functions.cpp
     extern/antpack_private/src/database_tools/database_utilities.cpp
-    extern/antpack_private/src/database_tools/sqlite3.c
 
     extern/antpack_private/src/license_key_handling/crypto_support/add_scalar.c
     extern/antpack_private/src/license_key_handling/crypto_support/fe.c
@@ -160,8 +162,8 @@ else()
 endif()
 
 
-# Add abseil
-target_link_libraries(antpack_cpp_ext PRIVATE absl::base absl::flat_hash_set)
+# Add abseil and rocksdb
+target_link_libraries(antpack_cpp_ext PRIVATE absl::base absl::flat_hash_set rocksdb)
 
 
 install(TARGETS antpack_cpp_ext

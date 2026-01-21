@@ -186,6 +186,10 @@ def build_database_from_csv(csv_filepaths:list,
               containing vgene assignments for the heavy chains.
             * ``"light_vgene"``: The number (from 0) of the column (if any)
               containing vgene assignments for the light chains.
+            * ``"heavy_jgene"``: The number (from 0) of the column (if any)
+              containing jgene assignments for the heavy chains.
+            * ``"light_jgene"``: The number (from 0) of the column (if any)
+              containing jgene assignments for the light chains.
             * ``"species"``: The number (from 0) of the column (if any)
               containing species assignments (which are assumed to be the
               same for both chains in a row if heavy and light chains are
@@ -245,6 +249,13 @@ def build_database_from_csv(csv_filepaths:list,
         for i, row in enumerate(read_csv(csv_filepath)):
             nseqs += 1
 
+    if nseqs > 4200000000:
+        raise RuntimeError("Current cap on number of sequences "
+                           "per database file is 4.2 billion. "
+                           f"You have {nseqs}. Consider splitting "
+                           "this up into multiple database files, "
+                           "e.g. splitting by species or vgene family.")
+
     if nseqs == 0:
         print("No sequences found.")
         return
@@ -260,7 +271,8 @@ def build_database_from_csv(csv_filepaths:list,
     for expected_key in ["heavy_chain", "light_chain",
             "heavy_numbering", "light_numbering",
             "heavy_vgene", "light_vgene", "species",
-            "metadata", "heavy_chaintype", "light_chaintype"]:
+            "metadata", "heavy_chaintype", "light_chaintype",
+            "heavy_jgene", "light_jgene"]:
         if expected_key in column_selections:
             settings_list.append(column_selections[expected_key])
         else:
@@ -279,12 +291,17 @@ def build_database_from_csv(csv_filepaths:list,
                     "heavy or light vgene, they should contain "
                     "a species as well.")
 
-    if nseqs > 4200000000:
-        raise RuntimeError("Current cap on number of sequences "
-                           "per database file is 4.2 billion. "
-                           f"You have {nseqs}. Consider splitting "
-                           "this up into multiple database files, "
-                           "e.g. splitting by species or vgene family.")
+    if settings_list[10] >= 0:
+        if settings_list[6] < 0 or settings_list[4] < 0:
+            raise RuntimeError("If csv files contain either a "
+                    "heavy or light jgene, they should contain "
+                    "a species and corresponding vgene as well.")
+
+    if settings_list[11] >= 0:
+        if settings_list[6] < 0 or settings_list[5] < 0:
+            raise RuntimeError("If csv files contain either a "
+                    "heavy or light jgene, they should contain "
+                    "a species and corresponding vgene as well.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
     db_construct_tool.open_transaction()
@@ -321,6 +338,8 @@ def build_database_from_csv(csv_filepaths:list,
 
 
 
+
+
 def build_tcr_database_from_csv(csv_filepaths:list,
         database_filepath:str, column_selections:dict, delimiter=',',
         header_rows:int=1, user_memo:str="",
@@ -350,7 +369,8 @@ def build_tcr_database_from_csv(csv_filepaths:list,
               containing vgene assignments for the beta chains. This
               is required.
             * ``"alpha_jgene"``: The number (from 0) of the column (if any)
-              containing jgene assignments for the alpha chains.
+              containing jgene assignments for the alpha chains. If this is
+              supplied, an alpha_vgene column must be supplied as well.
             * ``"beta_jgene"``: The number (from 0) of the column
               containing jgene assignments for the beta chains. This
               is required.
@@ -403,6 +423,13 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         for i, row in enumerate(read_csv(csv_filepath)):
             nseqs += 1
 
+    if nseqs > 4200000000:
+        raise RuntimeError("Current cap on number of sequences "
+                           "per database file is 4.2 billion. "
+                           f"You have {nseqs}. Consider splitting "
+                           "this up into multiple database files, "
+                           "e.g. splitting by species or vgene family.")
+
     if nseqs == 0:
         print("No sequences found.")
         return
@@ -429,13 +456,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
             settings_list[5] < 0:
         raise RuntimeError("beta_cdr3, species, beta_vgene, beta_jgene "
                 "are required columns.")
-
-    if nseqs > 4200000000:
-        raise RuntimeError("Current cap on number of sequences "
-                           "per database file is 4.2 billion. "
-                           f"You have {nseqs}. Consider splitting "
-                           "this up into multiple database files, "
-                           "e.g. splitting by species or vgene family.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
     db_construct_tool.open_transaction()

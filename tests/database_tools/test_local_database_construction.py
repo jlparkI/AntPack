@@ -1,19 +1,22 @@
 """Test database construction for errors.
-Use sqlite for testing and prototyping."""
+This test currently depends on one method for the
+LocalDBTool which is tested separately --
+this is unfortunate but was adopted
+because existing wrappers for RocksDB were hard
+to use for what we are doing here, so it's easier
+to use LocalDatabaseTool. TODO: Create a separate
+lightweight wrapper for RocksDB for testing."""
 import os
 import gzip
-import sys
-import struct
 import pytest
-import sqlite3
 import numpy as np
 from antpack import (build_database_from_fasta,
         build_database_from_csv,
         build_tcr_database_from_csv,
-        SingleChainAnnotator, VJGeneTool)
+        SingleChainAnnotator, VJGeneTool,
+        LocalDBTool)
 from antpack.utilities import read_fasta
 from .database_utilities import get_vgene_code, setup_canonical_numbering
-from ..conftest import (get_test_data_filepath, get_test_base_filepath)
 
 
 
@@ -21,69 +24,66 @@ def test_local_db_construct(build_local_mab_lmdb):
     """Check that local database construction yields a
     database containing the information we expect."""
     seqs, seqinfos, db_filepath, params = build_local_mab_lmdb
-    con = sqlite3.connect(db_filepath)
-    cur = con.cursor()
+    ldb = LocalDBTool(db_filepath, 'single')
 
-    cur.execute("SELECT * FROM database_info;")
-    metadata = cur.fetchone()
-    assert metadata[0]==params["nmbr_scheme"]
-    assert metadata[1]=="mab"
-    assert metadata[2]==params["sequence_type"]
-    assert metadata[3]==params["cdr_scheme"]
-    assert metadata[4]==params["memo"]
-    assert metadata[5]==0.7
+    assert (ldb.local_db_manager.retrieve_raw_kv_test("database_info",
+                b"numbering_scheme").decode())==params["nmbr_scheme"]
+    assert (ldb.local_db_manager.retrieve_raw_kv_test("database_info",
+                b"sequence_type").decode())==params["sequence_type"]
+    assert (ldb.local_db_manager.retrieve_raw_kv_test("database_info",
+            b"cdr_definition_scheme").decode())==params["cdr_scheme"]
+    assert (ldb.local_db_manager.retrieve_raw_kv_test("database_info",
+                b"receptor_type").decode())=="mab"
+    assert (ldb.local_db_manager.retrieve_raw_kv_test("database_info",
+                b"user_memo").decode())==params["memo"]
 
-    for i, row in enumerate(cur.execute("SELECT * FROM sequences;")):
-        assert row[0]==seqs[i]
-        assert row[1]==seqinfos[i]
+    for i, (seq, seqinfo) in enumerate(zip(seqs, seqinfos)):
+        ck_key = i.to_bytes(4, byteorder='big')
+        assert seq==ldb.local_db_manager.retrieve_raw_kv_test(
+                "sequences", ck_key).decode()
+        assert seqinfo==ldb.local_db_manager.retrieve_raw_kv_test(
+                "metadata", ck_key).decode()
 
     sca = SingleChainAnnotator(scheme=params["nmbr_scheme"])
     annotations = sca.analyze_seqs(seqs)
     vj_tool = VJGeneTool(scheme=params["nmbr_scheme"])
 
         # Check each set of chain tables for expected info.
-    for table_code, chain_coding in enumerate([("H",),
-                                    ("L", "K")]):
+    for chain_code, chain_symbol in enumerate([("H",), ("L", "K")]):
         aligned_seqs, cdrs, unusual_positions, cdr3_region_len, vgenes, vspecies, child_ids = \
                 prep_seqs_for_comparison(params["nmbr_scheme"],
-                    params["cdr_scheme"], chain_coding, seqs,
+                    params["cdr_scheme"], chain_symbol, seqs,
                     annotations, sca, vj_tool)
 
         for i, (child_id, cdr_grp) in enumerate(
                 zip(child_ids, aligned_seqs)):
-            cur.execute(f"SELECT * FROM _{table_code}_cdrs "
-                        f"WHERE rowid = {child_id+1};")
-            value = cur.fetchone()
+            ck_key = child_id.to_bytes(4, byteorder='big')
+            value = ldb.local_db_manager.retrieve_raw_kv_test(
+                f"_{chain_code}_cdrs", ck_key)
             vgene_code = get_vgene_code(vgenes[i], vspecies[i])
-            assert value[0]==cdr_grp[0]
-            assert vgene_code[0]==value[1]
-            assert vgene_code[1]==value[2]
-            assert vgene_code[2]==value[3]
-            assert vgene_code[3]==value[4]
-            assert unusual_positions[i]==value[5]
-            assert value[9]==child_id+1
+            assert vgene_code[0]==int(value[4])
+            assert vgene_code[1]==int(value[5])
+            assert vgene_code[2]==int(value[6])
+            assert vgene_code[3]==int(value[7])
+            assert unusual_positions[i]==int(value[3])
+            assert cdr_grp[0]==value[12:].decode()
 
-        kmer_profile = {}
+        kmer_profile = eval_nmbr_table_row_contents(ldb,
+                    cdrs, child_ids, vgenes, vspecies,
+                    chain_code)
 
-        for j in range(cdr3_region_len - 1):
-            kmer_to_child = {}
-
-            for row in cur.execute("SELECT * FROM "
-                                   f"_{table_code}_{j};"):
-                if row[0] not in kmer_to_child:
-                    kmer_to_child[row[0]] = set()
-                kmer_to_child[row[0]].add( (row[1], row[2]) )
-
-            kmer_profile = eval_nmbr_table_row_contents(
-                    kmer_to_child, cdrs, child_ids,
-                    kmer_profile, j)
-
-        for row in cur.execute("SELECT * FROM "
-                f"_{table_code}_column_diversity;"):
-            assert row[1] in kmer_profile
-            test_arr = np.frombuffer(row[-1], dtype=np.int64)
-            test_arr = test_arr.reshape((row[2], row[3]))
-            assert np.allclose(test_arr, kmer_profile[row[1]])
+        for chain_code, code_table in kmer_profile.items():
+            for cdrlen, array in code_table.items():
+                table = f"_{chain_code}_diversity"
+                key = cdrlen.to_bytes(4, byteorder="big")
+                raw_buff = ldb.local_db_manager.retrieve_raw_kv_test(
+                        table, key)
+                raw_buff = [int.from_bytes(raw_buff[k:k+4], byteorder="big")
+                            for k in range(0, len(raw_buff), 4)]
+                test_arr = np.array(raw_buff, dtype=np.uint32)
+                test_arr = test_arr.reshape((array.shape[0],
+                                             array.shape[1]))
+                assert np.allclose(test_arr, array)
 
 
 
@@ -142,7 +142,7 @@ def test_low_quality_seqs(tmp_path):
         with open(input_file, "r", encoding="utf-8") as \
                 fhandle:
             for line1, line2 in zip(reject_handle, fhandle):
-                assert line1==line2
+                assert line1.strip().split('\t')[0]==line2.strip() 
 
 
 def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
@@ -167,33 +167,52 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
                 elements[2])
             expected_cdrs.append(elements[3])
 
-    con = sqlite3.connect(db_filepath)
-    cur = con.cursor()
+    ldb = LocalDBTool(db_filepath, "single")
 
-    for i, row in enumerate(cur.execute(
-        "SELECT * FROM _0_cdrs;")):
-        assert expected_cdrs[i]==row[0]
+    for i, expected_cdr in enumerate(expected_cdrs):
+        ck_key = i.to_bytes(4, byteorder='big')
+        value = ldb.local_db_manager.retrieve_raw_kv_test(
+            "_0_cdrs", ck_key)
+        assert expected_cdr==value[12:].decode()
 
-    for i, row in enumerate(cur.execute(
-        "SELECT * FROM sequences;")):
-        assert expected_mainseq[i]==row[0]
+    for i, expected_seq in enumerate(expected_mainseq):
+        ck_key = i.to_bytes(4, byteorder='big')
+        value = ldb.local_db_manager.retrieve_raw_kv_test(
+            "sequences", ck_key)
+        assert expected_seq==value.decode()
 
 
 
 
-def eval_nmbr_table_row_contents(kmer_to_child,
-        cdrs, child_ids, profile_counts, position,
-        numbering_scheme="imgt"):
+def eval_nmbr_table_row_contents(local_db_tool, cdrs, child_ids,
+        vgenes, vspecies, chain_code, numbering_scheme="imgt"):
     """Tests the contents of the rows from the numbering
     table."""
     AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
+    letter_position_map = {"A":[48], "C":[32],
+                           "D":[16], "E":[16],
+                           "F":[0], "G":[48,32],
+                           "H":[48,16], "I":[48,0],
+                           "K":[32,16], "L":[32,0],
+                           "M":[32], "N":[16,0],
+                           "P":[32], "Q":[16,0],
+                           "R":[32,16], "S":[48,32,16],
+                           "T":[48,32,0], "V":[48,16,0],
+                           "W":[32,16,0], "Y":[48,32,16,0],
+                           "-":[], "X":[32]
+                           }
+    profile_counts = {}
 
-    for i, cdr_group in enumerate(cdrs):
+    for i, (child_id, cdr_group) in enumerate(zip(child_ids, cdrs)):
         cdr = cdr_group[2]
         cdr3len = len(cdr.replace('-', ''))
+        vgene_code = get_vgene_code(vgenes[i], vspecies[i])
 
-        if cdr3len not in profile_counts:
-            profile_counts[cdr3len] = \
+        if chain_code not in profile_counts:
+            profile_counts[chain_code] = {}
+
+        if cdr3len not in profile_counts[chain_code]:
+            profile_counts[chain_code][cdr3len] = \
                     np.zeros(( len(cdr) - 1, 21*21))
 
         # Construct the augmented child id.
@@ -202,30 +221,33 @@ def eval_nmbr_table_row_contents(kmer_to_child,
         else:
             cdr_extract = cdr[:16]
 
-        bytestring = ['0' for j in range(32)]
+        bytestring = ['0' for j in range(64)]
         for j, letter in enumerate(cdr_extract):
-            if letter in ('C', 'G', 'P', 'H', 'M', 'X'):
-                bytestring[j] = '1'
-            elif letter in ('S', 'T', 'N', 'Q', 'Y'):
-                bytestring[j+16] = '1'
-            elif letter in ('R', 'K', 'D', 'E'):
-                bytestring[j] = '1'
-                bytestring[j+16] = '1'
+            for offset_pos in letter_position_map[letter]:
+                bytestring[j+offset_pos] = '1'
 
-        bytestring = (int(''.join(bytestring)[::-1], 2),
-                      child_ids[i]+1)
+        # The database is designed to work regardless of endianness,
+        # but it seems like overkill to take the same precautions
+        # in the unit test.
+        # These unit tests are always run on little-endian machines.
+        unsigned_tag_filter = int(''.join(bytestring)[::-1], 2).to_bytes(
+                8, byteorder='big')
 
-        kmer = cdr[position:position+2]
-        codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
-        profile_counts[cdr3len][position, codeval] += 1
-        if kmer == "--":
-            continue
-        codeval += cdr3len * 441
+        for position in range(0, len(cdr) - 1):
+            kmer = cdr[position:position+2]
+            codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
+            profile_counts[chain_code][cdr3len][position, codeval] += 1
+            if kmer == "--":
+                continue
 
-        assert codeval in kmer_to_child
-
-        assert bytestring in kmer_to_child[codeval]
-        kmer_to_child[codeval].remove(bytestring)
+            tag = AAMAP[kmer[0]].to_bytes() + AAMAP[kmer[1]].to_bytes() + \
+                cdr3len.to_bytes() + vgene_code[0].to_bytes() + \
+                vgene_code[1].to_bytes() + vgene_code[2].to_bytes() + \
+                vgene_code[3].to_bytes() + child_id.to_bytes(4, byteorder='big')
+            table = f"_{chain_code}_{position}_len_dimer_vgene_key"
+            alt_filter = local_db_tool.local_db_manager.retrieve_raw_kv_test(
+                    table, tag)
+            assert alt_filter==unsigned_tag_filter
 
     return profile_counts
 

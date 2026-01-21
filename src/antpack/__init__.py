@@ -11,7 +11,7 @@ from antpack.antpack_cpp_ext import (LiabilitySearchTool,
 from .clustering_tools import EMCategoricalMixture
 from .antpack_license import run_license_key_setter
 from .database_tools import (build_database_from_fasta,
-        #LocalDBTool,
+        LocalDBTool,
         build_database_from_csv,
         build_tcr_database_from_csv)
 

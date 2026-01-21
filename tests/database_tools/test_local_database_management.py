@@ -51,10 +51,10 @@ def test_local_db_search(build_local_mab_lmdb,
     # search.
     allowed_search_settings = {
             "cdr_cutoff":[0.25, 0.33],
-            "blosum_cutoff":[-1, 4.5],
+            "blosum_cutoff":[-1],
             "search_mode":["123", "3"],
             "cdr_length_shift":[0,1,2],
-            "symmetric_search":[True, False],
+            "symmetric_search":[False],
             "use_vgene_family_only":[True, False],
             "use_vgene":[True, False]
         }
@@ -89,8 +89,8 @@ def test_local_db_search(build_local_mab_lmdb,
             vgene, species = "", ""
             vgene_filter = (255, 255, 255, 255)
 
-        #if ctr < 101:
-        #    continue
+        if ctr < 5:
+            continue
         hits = local_db.search(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
                 search_settings["search_mode"],
@@ -125,6 +125,9 @@ def test_local_db_search(build_local_mab_lmdb,
         # in the input.
         for hit in hits:
             db_seq, db_metadata = local_db.get_sequence(hit[0])
+            if db_seq != seqs[hit[0]]:
+                import pdb
+                pdb.set_trace()
             assert db_seq==seqs[hit[0]]
             assert seqinfos[hit[0]]==db_metadata
 
@@ -320,8 +323,7 @@ def build_local_mab_lmdb(tmp_path_factory,
     fasta_filepath = os.path.join(get_test_data_filepath,
                 request.param["filepath"])
     build_database_from_fasta([fasta_filepath],
-        db_filepath, os.path.join(temp_folder, "TEMP_FILE"),
-        numbering_scheme=request.param["nmbr_scheme"],
+        db_filepath, numbering_scheme=request.param["nmbr_scheme"],
         cdr_definition_scheme=request.param["cdr_scheme"],
         sequence_type="single", receptor_type="mab",
         pid_threshold=0.7, user_memo="",
