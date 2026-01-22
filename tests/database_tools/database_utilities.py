@@ -50,8 +50,18 @@ def get_vgene_code(vgene, species):
 
     if len(current_num) > 0:
         extracted_nums.append(int(current_num))
-    if len(extracted_nums) < 2:
+    if len(extracted_nums)==1:
+        extracted_nums.append(255)
+    elif len(extracted_nums) < 1:
         raise RuntimeError("Invalid vgene found in test data.")
 
     return (chain_code, species_code, extracted_nums[0],
             extracted_nums[1])
+
+
+
+def int_to_bin(int_val, num_bytes):
+    """Converts an integer value to a binary
+    string of length num bytes."""
+    binstring = format(int_val, 'b')
+    return '0'*(num_bytes*8 - len(binstring)) + binstring

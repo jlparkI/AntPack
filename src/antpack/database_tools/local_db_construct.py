@@ -130,7 +130,6 @@ def build_database_from_fasta(fasta_filepaths:list,
     db_construct_tool.open_transaction()
 
     db_construct_tool.finalize_db_construction(verbose)
-    db_construct_tool.close_transaction()
     gc.collect()
 
 
@@ -343,7 +342,6 @@ def build_database_from_csv(csv_filepaths:list,
     db_construct_tool.open_transaction()
 
     db_construct_tool.finalize_db_construction(verbose)
-    db_construct_tool.close_transaction()
     gc.collect()
 
 
@@ -504,5 +502,4 @@ def build_tcr_database_from_csv(csv_filepaths:list,
     db_construct_tool.open_transaction()
 
     db_construct_tool.finalize_db_construction(verbose)
-    db_construct_tool.close_transaction()
     gc.collect()

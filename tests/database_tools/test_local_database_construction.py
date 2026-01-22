@@ -1,6 +1,7 @@
 """Test database construction for errors.
 Use sqlite for testing and prototyping."""
 import os
+import sys
 import gzip
 import struct
 import sqlite3
@@ -11,7 +12,8 @@ from antpack import (build_database_from_fasta,
         build_tcr_database_from_csv,
         SingleChainAnnotator, VJGeneTool)
 from antpack.utilities import read_fasta
-from .database_utilities import get_vgene_code, setup_canonical_numbering
+from .database_utilities import (get_vgene_code,
+                setup_canonical_numbering, int_to_bin)
 from ..conftest import (get_test_data_filepath, get_test_base_filepath)
 
 
@@ -43,7 +45,7 @@ def test_local_db_construct(build_local_mab_lmdb):
     # Check each set of chain tables for expected info.
     for table_code, chain_coding in enumerate([("H",),
                                     ("L", "K")]):
-        aligned_seqs, cdrs, unusual_positions, cdr3_region_len, vgenes, vspecies, child_ids = \
+        aligned_seqs, cdrs, unusual_positions, cdr3_region_len, vgenes, jgenes, vspecies, child_ids = \
                 prep_seqs_for_comparison(params["nmbr_scheme"],
                     params["cdr_scheme"], chain_coding, seqs,
                     annotations, sca, vj_tool)
@@ -52,17 +54,22 @@ def test_local_db_construct(build_local_mab_lmdb):
                 zip(child_ids, aligned_seqs)):
             cur.execute(f"SELECT * FROM _{table_code}_cdrs "
                         f"WHERE rowid = {child_id+1};")
-            value = cur.fetchone()
-            import pdb
-            pdb.set_trace()
+            value = cur.fetchone()[0]
             vgene_code = get_vgene_code(vgenes[i], vspecies[i])
-            assert value[0]==cdr_grp[0]
-            assert vgene_code[0]==value[1]
-            assert vgene_code[1]==value[2]
-            assert vgene_code[2]==value[3]
-            assert vgene_code[3]==value[4]
-            assert unusual_positions[i]==value[5]
-            assert value[10]==child_id+1
+            jgene_code = get_vgene_code(jgenes[i], vspecies[i])
+            assert len(cdrs[i][0].replace('-', ''))==int(value[0])
+            assert len(cdrs[i][1].replace('-', ''))==int(value[1])
+            assert len(cdrs[i][2].replace('-', ''))==int(value[2])
+            assert value[12:].decode()==cdr_grp[0]
+            assert vgene_code[0]==int(value[4])
+            assert vgene_code[1]==int(value[5])
+            assert vgene_code[2]==int(value[6])
+            assert vgene_code[3]==int(value[7])
+            assert jgene_code[0]==int(value[8])
+            assert jgene_code[1]==int(value[9])
+            assert jgene_code[2]==int(value[10])
+            assert jgene_code[3]==int(value[11])
+            assert unusual_positions[i]==int(value[3])
 
         kmer_profile = {}
 
@@ -71,18 +78,17 @@ def test_local_db_construct(build_local_mab_lmdb):
 
             for row in cur.execute("SELECT * FROM "
                                    f"_{table_code}_{j};"):
-                if row[0] not in kmer_to_child:
-                    kmer_to_child[row[0]] = set()
-                kmer_to_child[row[0]].add( row[1] )
+                assert row[0] not in kmer_to_child
+                kmer_to_child[row[0]] = row[1]
 
             kmer_profile = eval_nmbr_table_row_contents(
-                    kmer_to_child, cdrs, child_ids,
-                    kmer_profile, j)
+                    kmer_to_child, cdrs, child_ids, vgenes,
+                    vspecies, kmer_profile, j)
 
         for row in cur.execute("SELECT * FROM "
                 f"_{table_code}_column_diversity;"):
             assert row[1] in kmer_profile
-            test_arr = np.frombuffer(row[-1], dtype=np.int64)
+            test_arr = np.frombuffer(row[-1], dtype=np.uint32)
             test_arr = test_arr.reshape((row[2], row[3]))
             assert np.allclose(test_arr, kmer_profile[row[1]])
 
@@ -91,7 +97,6 @@ def test_local_db_construct(build_local_mab_lmdb):
 def test_low_quality_seqs(tmp_path):
     """Test what happens if we try to write low-quality
     sequences to the database."""
-    return
     input_file = os.path.join(tmp_path, "temp_data_file.fa")
     db_path = os.path.join(tmp_path, "TEMP_DB")
     reject_file = os.path.join(tmp_path, "REJECTS")
@@ -144,18 +149,18 @@ def test_low_quality_seqs(tmp_path):
         with open(input_file, "r", encoding="utf-8") as \
                 fhandle:
             for line1, line2 in zip(reject_handle, fhandle):
-                assert line1==line2
+                assert line1.strip().split('\t')[0]==line2.strip()
 
 
 def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
     """Check that tcr standard format data is loaded
     as expected."""
-    return
     csv_filepath = os.path.join(get_test_data_filepath,
             "non_antibody_test_data", "tcr_simpletest.csv.gz")
     db_filepath = os.path.join(tmp_path, "TEMP_DB")
 
     expected_cdrs, expected_mainseq = [], []
+    expected_vgenes, expected_jgenes, expected_species = [], [], []
     build_tcr_database_from_csv(
             [csv_filepath], db_filepath,
             {"beta_cdr3":0, "beta_vgene":1,
@@ -169,13 +174,29 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
                 "," + elements[1] + "," +
                 elements[2])
             expected_cdrs.append(elements[3])
+            expected_vgenes.append(elements[1])
+            expected_jgenes.append(elements[2])
+            expected_species.append(elements[4].strip())
 
     con = sqlite3.connect(db_filepath)
     cur = con.cursor()
 
     for i, row in enumerate(cur.execute(
         "SELECT * FROM _0_cdrs;")):
-        assert expected_cdrs[i]==row[0]
+        assert expected_cdrs[i]==row[0][12:].decode()
+        vgene_code = get_vgene_code(expected_vgenes[i],
+                        expected_species[i])
+        jgene_code = get_vgene_code(expected_jgenes[i],
+                        expected_species[i])
+        assert int(row[0][4])==vgene_code[0]
+        assert int(row[0][5])==vgene_code[1]
+        assert int(row[0][6])==vgene_code[2]
+        assert int(row[0][7])==vgene_code[3]
+        assert int(row[0][8])==jgene_code[0]
+        assert int(row[0][9])==jgene_code[1]
+        assert int(row[0][10])==jgene_code[2]
+        assert int(row[0][11])==jgene_code[3]
+        assert int(row[0][3])==0
 
     for i, row in enumerate(cur.execute(
         "SELECT * FROM sequences;")):
@@ -185,8 +206,8 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
 
 
 def eval_nmbr_table_row_contents(kmer_to_child,
-        cdrs, child_ids, profile_counts, position,
-        numbering_scheme="imgt"):
+        cdrs, child_ids, vgenes, vjspecies, profile_counts,
+        position, numbering_scheme="imgt"):
     """Tests the contents of the rows from the numbering
     table."""
     AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
@@ -209,7 +230,7 @@ def eval_nmbr_table_row_contents(kmer_to_child,
 
         if cdr3len not in profile_counts:
             profile_counts[cdr3len] = \
-                    np.zeros(( len(cdr) - 1, 21*21))
+                    np.zeros(( len(cdr) - 1, 21*21), dtype=np.uint32)
 
         # Construct the augmented child id.
         if numbering_scheme in ("imgt", "aho"):
@@ -223,9 +244,13 @@ def eval_nmbr_table_row_contents(kmer_to_child,
                 bytestring[j+offset_pos] = '1'
 
         unsigned_tag_filter = int(''.join(bytestring)[::-1], 2)
+        # Although AntPack will work correctly and interchangeably
+        # on bigendian and littleendian systems, testing is always
+        # conducted on littlendian platforms, and there is no
+        # reason to support bigendian here.
         tag_filter = int.from_bytes(
-            unsigned_tag_filter.to_bytes(8, byteorder='little'),
-            byteorder='little', signed=True)
+            unsigned_tag_filter.to_bytes(8, byteorder=sys.byteorder),
+            byteorder=sys.byteorder, signed=True)
 
         kmer = cdr[position:position+2]
         codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
@@ -235,12 +260,15 @@ def eval_nmbr_table_row_contents(kmer_to_child,
         codeval = AAMAP[kmer[0]] * 21 * 50 + AAMAP[kmer[1]] * 50
         codeval += cdr3len
 
-        assert codeval in kmer_to_child
+        vgene_code = get_vgene_code(vgenes[i], vjspecies[i])
+        packed_codeval = int_to_bin(codeval, 2)
+        packed_codeval += int_to_bin(vgene_code[2], 1)
+        packed_codeval += int_to_bin(vgene_code[3], 1)
+        packed_codeval += int_to_bin(child_ids[i] + 1, 4)
+        packed_codeval = int(packed_codeval, 2)
 
-        if tag_filter not in kmer_to_child[codeval]:
-            import pdb
-            pdb.set_trace()
-        assert tag_filter in kmer_to_child[codeval]
+        assert packed_codeval in kmer_to_child
+        assert tag_filter == kmer_to_child[packed_codeval]
 
     return profile_counts
 
@@ -260,13 +288,14 @@ def prep_seqs_for_comparison(numbering_scheme,
         sequences, annotations) if a[2] in chain_type]
     child_ids = [i for i,a in enumerate(annotations)
             if a[2] in chain_type]
-    vgenes, vjspecies = [], []
+    vgenes, jgenes, vjspecies = [], [], []
 
     for selected_seq in selected_seqs:
-        vgene, _, _, _, species = vj_tool.assign_vj_genes(
+        vgene, jgene, _, _, species = vj_tool.assign_vj_genes(
                 selected_seq[1], selected_seq[0], "unknown",
                 "identity")
         vgenes.append(vgene)
+        jgenes.append(jgene)
         vjspecies.append(species)
 
     template_aligner, canon_nmbr = setup_canonical_numbering(
@@ -298,7 +327,7 @@ def prep_seqs_for_comparison(numbering_scheme,
         aligned_seqs.append((cdr1 + cdr2 + cdr3, cdr3))
 
     return aligned_seqs, cdrs, unusual_positions, \
-        cdr3_region_len, vgenes, vjspecies, child_ids
+        cdr3_region_len, vgenes, jgenes, vjspecies, child_ids
 
 
 
