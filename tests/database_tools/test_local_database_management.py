@@ -89,8 +89,8 @@ def test_local_db_search(build_local_mab_lmdb,
             vgene, species = "", ""
             vgene_filter = (255, 255, 255, 255)
 
-        if ctr < 5:
-            continue
+        #if ctr < 8:
+        #    continue
         hits = local_db.search(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
                 search_settings["search_mode"],
@@ -125,11 +125,11 @@ def test_local_db_search(build_local_mab_lmdb,
         # in the input.
         for hit in hits:
             db_seq, db_metadata = local_db.get_sequence(hit[0])
-            if db_seq != seqs[hit[0]]:
+            if db_seq != seqs[hit[0]-1]:
                 import pdb
                 pdb.set_trace()
-            assert db_seq==seqs[hit[0]]
-            assert seqinfos[hit[0]]==db_metadata
+            assert db_seq==seqs[hit[0]-1]
+            assert seqinfos[hit[0]-1]==db_metadata
 
 
 
@@ -246,7 +246,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
         if cdr_dists[0] <= hamming_cutoffs[0] and \
                 cdr_dists[1] <= hamming_cutoffs[1]:
             if search_params["blosum_cutoff"] < 0:
-                hit_idx.append(i)
+                hit_idx.append(i+1)
                 retained_dists.append(cdr_dists[0] + cdr_dists[1])
             else:
                 blosum_dist, nresidues, max_blosum_dist = 0, 0, 0
@@ -265,7 +265,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                         nresidues += 1
                 blosum_dist = float(blosum_dist) / float(nresidues)
                 if max_blosum_dist <= search_params["blosum_cutoff"]:
-                    hit_idx.append(i)
+                    hit_idx.append(i+1)
                     retained_dists.append(blosum_dist)
 
 

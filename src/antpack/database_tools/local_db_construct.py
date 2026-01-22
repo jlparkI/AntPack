@@ -98,13 +98,14 @@ def build_database_from_fasta(fasta_filepaths:list,
                            "e.g. splitting by species or vgene family.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
-    db_construct_tool.open_transaction()
 
     seqcount = 0
     if reject_file is not None:
         reject_handle = open(reject_file, "w+", encoding="utf-8")
     else:
         reject_handle = None
+
+    db_construct_tool.open_transaction()
 
     for fasta_filepath in fasta_filepaths:
         for (seqinfo, seq) in read_fasta(fasta_filepath):
@@ -125,7 +126,11 @@ def build_database_from_fasta(fasta_filepaths:list,
     if verbose:
         print("Now constructing database indices...")
 
+    db_construct_tool.close_transaction()
+    db_construct_tool.open_transaction()
+
     db_construct_tool.finalize_db_construction(verbose)
+    db_construct_tool.close_transaction()
     gc.collect()
 
 
@@ -304,13 +309,14 @@ def build_database_from_csv(csv_filepaths:list,
                     "a species and corresponding vgene as well.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
-    db_construct_tool.open_transaction()
 
     seqcount = 0
     if reject_file is not None:
         reject_handle = open(reject_file, "w+", encoding="utf-8")
     else:
         reject_handle = None
+
+    db_construct_tool.open_transaction()
 
     for csv_filepath in csv_filepaths:
         for row in read_csv(csv_filepath, skiprows=header_rows):
@@ -333,7 +339,11 @@ def build_database_from_csv(csv_filepaths:list,
     if verbose:
         print("Now constructing database indices...")
 
+    db_construct_tool.close_transaction()
+    db_construct_tool.open_transaction()
+
     db_construct_tool.finalize_db_construction(verbose)
+    db_construct_tool.close_transaction()
     gc.collect()
 
 
@@ -458,7 +468,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
                 "are required columns.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
-    db_construct_tool.open_transaction()
 
     seqcount = 0
 
@@ -466,6 +475,8 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         reject_handle = open(reject_file, "w+", encoding="utf-8")
     else:
         reject_handle = None
+
+    db_construct_tool.open_transaction()
 
     for csv_filepath in csv_filepaths:
         for row in read_csv(csv_filepath, skiprows=header_rows,
@@ -489,5 +500,9 @@ def build_tcr_database_from_csv(csv_filepaths:list,
     if verbose:
         print("Now constructing database indices...")
 
+    db_construct_tool.close_transaction()
+    db_construct_tool.open_transaction()
+
     db_construct_tool.finalize_db_construction(verbose)
+    db_construct_tool.close_transaction()
     gc.collect()

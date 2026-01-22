@@ -58,10 +58,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ##########
-#Add abseil and rocksdb.
+#Add non-nanobind submodules.
 add_subdirectory(extern/abseil-cpp)
-add_subdirectory(extern/rocksdb)
-
 
 
 ############################################
@@ -126,8 +124,9 @@ nanobind_add_module(
     extern/antpack_private/src/database_tools/local_database_construction_tool.cpp
     extern/antpack_private/src/database_tools/local_database_management_tool.cpp
     extern/antpack_private/src/database_tools/core_search_utilities.cpp
-    extern/antpack_private/src/database_tools/core_rocksdb_search_functions.cpp
+    extern/antpack_private/src/database_tools/core_sqlite_search_functions.cpp
     extern/antpack_private/src/database_tools/database_utilities.cpp
+    extern/antpack_private/src/database_tools/sqlite3.c
 
     extern/antpack_private/src/license_key_handling/crypto_support/add_scalar.c
     extern/antpack_private/src/license_key_handling/crypto_support/fe.c
@@ -162,8 +161,16 @@ else()
 endif()
 
 
-# Add abseil and rocksdb
-target_link_libraries(antpack_cpp_ext PRIVATE absl::base absl::flat_hash_set rocksdb)
+# Add non-nanobind submodules
+target_link_libraries(antpack_cpp_ext PRIVATE absl::base absl::flat_hash_set)
+
+# Target compile flags specific for sqlite.
+target_compile_definitions(antpack_cpp_ext PRIVATE
+    "SQLITE_DEFAULT_MEMSTATUS=0"
+    "SQLITE_OMIT_DECLTYPE"
+    "SQLITE_OMIT_PROGRESS_CALLBACK"
+    "SQLITE_OMIT_SHARED_CACHE"
+)
 
 
 install(TARGETS antpack_cpp_ext

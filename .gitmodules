@@ -7,6 +7,3 @@
 [submodule "extern/abseil-cpp"]
 	path = extern/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp
-[submodule "extern/rocksdb"]
-	path = extern/rocksdb
-	url = https://github.com/facebook/rocksdb/
