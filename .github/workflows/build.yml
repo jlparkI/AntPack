@@ -17,10 +17,10 @@ jobs:
           token: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
           submodules: true
           
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python }}
       
       - name: Install dependencies
         run: |
@@ -34,5 +34,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-packages-${{ matrix.os }}-${{ matrix.python-version }}
+          name: python-packages-${{ matrix.os }}-${{ matrix.python }}
           path: dist/
