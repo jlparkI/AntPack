@@ -10,7 +10,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v5
@@ -27,6 +26,8 @@ jobs:
           python -m pip install cibuildwheel nanobind scikit-build-core
 
       - name: Build wheels
+        env:
+          CIBW_SKIP: "cp38-* cp37-* cp36-* *-musllinux* *android* *iphoneos* *i686* *aarch64*"
         run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
