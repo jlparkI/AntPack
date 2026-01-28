@@ -58,7 +58,7 @@ should be preferred to v0.3.8.5.
 
 Starting with v0.3.9, AntPack is only available for noncommercial
 academic use. To use AntPack versions
-v0.3.9 or later, you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/).
+v0.3.9 or later, you must first obtain a [free license key](https://www.antpacklicensemanagement.com/).
 To install AntPack, run:
 ```
 pip install antpack
