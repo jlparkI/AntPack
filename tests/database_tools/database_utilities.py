@@ -19,13 +19,13 @@ def setup_canonical_numbering(numbering_scheme,
 
 def get_vgene_code(vgene, species):
     """Converts the input vgene and species to a code."""
-    species_map = {"human":0, "mouse":1, "alpaca":2, "rabbit":3}
+    species_map = {"human":1, "mouse":2, "alpaca":3, "rabbit":4}
     if species not in species_map:
-        species_code = 255
+        species_code = 0
     else:
         species_code = species_map[species]
-    
-    codemap = {"A":0, "G":1, "H":2, "L":3, "K":4, "B":5, "D":6}
+
+    codemap = {"A":1, "G":2, "H":3, "L":4, "K":5, "B":6, "D":7}
     if vgene[2] not in codemap:
         raise RuntimeError("Incorrect chain code found in test data.")
     chain_code = codemap[vgene[2]]
@@ -51,7 +51,7 @@ def get_vgene_code(vgene, species):
     if len(current_num) > 0:
         extracted_nums.append(int(current_num))
     if len(extracted_nums)==1:
-        extracted_nums.append(255)
+        extracted_nums.append(0)
     elif len(extracted_nums) < 1:
         raise RuntimeError("Invalid vgene found in test data.")
 

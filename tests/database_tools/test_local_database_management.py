@@ -6,7 +6,7 @@ from math import floor
 import pytest
 import numpy as np
 from antpack import (build_database_from_fasta,
-        SingleChainAnnotator, LocalDBTool, VJGeneTool)
+        SingleChainAnnotator, LocalDBSearchTool, VJGeneTool)
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
         return_imgt_canonical_numbering_cpp,
         get_blosum_mismatch_matrix_cpp)
@@ -18,7 +18,7 @@ from ..conftest import (get_test_data_filepath,
 
 
 
-@pytest.mark.parametrize("thread_scheme", ["single", "multi"])
+@pytest.mark.parametrize("thread_scheme", [False, True])
 def test_local_db_search(build_local_mab_lmdb,
         standard_aa_list, std_blosum_matrix, thread_scheme):
     """Check that searches retrieve the sequences that
@@ -26,7 +26,7 @@ def test_local_db_search(build_local_mab_lmdb,
     seqs, seqinfos, db_filepath, msa, msa_codes, _ = \
             build_local_mab_lmdb
     print(f"Testing {thread_scheme} scheme...")
-    local_db = LocalDBTool(db_filepath, thread_scheme)
+    local_db = LocalDBSearchTool(db_filepath, thread_scheme)
 
     # First annotate the chains and build a heavy and light
     # MSA, then interleave them.
@@ -50,20 +50,21 @@ def test_local_db_search(build_local_mab_lmdb,
     # later test all of the results against the batch
     # search.
     allowed_search_settings = {
-            "cdr_cutoff":[0.25, 0.33],
-            "blosum_cutoff":[-1],
+            "cdr_cutoff":[0.2, 0.25, 0.3],
+            "blosum_cutoff":[-1,4],
             "search_mode":["123", "3"],
             "cdr_length_shift":[0,1,2],
-            "symmetric_search":[False],
+            "symmetric_search":[False,True],
             "use_vgene_family_only":[True, False],
-            "use_vgene":[True, False]
+            "use_vgene":[True, False],
+            "use_jgene":[True, False]
         }
 
     random.seed(123)
 
-    for ctr in range(400):
+    for ctr in range(2000):
         idx = random.randint(0, len(msa) - 1)
-        query_seq = list(msa[idx][0])
+        query_seq = list(msa[idx][0][0])
         if msa[idx][4] == "H":
             codes = msa_codes[0]
         else:
@@ -83,13 +84,20 @@ def test_local_db_search(build_local_mab_lmdb,
 
         if search_settings["use_vgene"]:
             vgene = msa[idx][1]
-            species = msa[idx][2]
+            species = msa[idx][3]
             vgene_filter = get_vgene_code(vgene, species)
         else:
             vgene, species = "", ""
-            vgene_filter = (255, 255, 255, 255)
+            vgene_filter = (0, 0, 0, 0)
+        if search_settings["use_jgene"]:
+            jgene = msa[idx][2]
+            species = msa[idx][3]
+            jgene_filter = get_vgene_code(jgene, species)
+        else:
+            jgene = ""
+            jgene_filter = (0,0,0,0)
 
-        #if ctr < 8:
+        #if ctr < 131:
         #    continue
         hits = local_db.search(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
@@ -99,12 +107,12 @@ def test_local_db_search(build_local_mab_lmdb,
                 search_settings["cdr_length_shift"],
                 search_settings["use_vgene_family_only"],
                 search_settings["symmetric_search"],
-                1000, vgene, species)
-        hits = sorted(hits, key=lambda x: (x[1], x[0]))
+                vgene, species, jgene)
+        hits = sorted(hits, key=lambda x: (x[1], x[0], x[2]))
 
         gt_hit_idx = perform_exact_search(query_seq, msa, msa[idx][4],
                 codes, search_settings, vgene_filter,
-                aamap, std_blosum_matrix)
+                jgene_filter, aamap, std_blosum_matrix)
         # If using a BLOSUM cutoff, distance will be floating
         # point, check result is close. Otherwise check for
         # exact match.
@@ -139,7 +147,7 @@ def test_local_db_search_setup(build_local_mab_lmdb,
     up correctly."""
     _, _, db_filepath, msa, msa_codes, params = \
         build_local_mab_lmdb
-    local_db = LocalDBTool(db_filepath)
+    local_db = LocalDBSearchTool(db_filepath)
 
     # Check that the search tool retrieves the correct metadata.
     metadata = local_db.get_database_metadata()
@@ -155,14 +163,14 @@ def test_local_db_search_setup(build_local_mab_lmdb,
     # test code will check them separately.
     dtables = local_db.get_database_counts()
 
-    sub_msa = [m[0] for m in msa if m[4] == "H"]
+    sub_msa = [m[0][0] for m in msa if m[4] == "H"]
     gt_dtable = get_kmer_counts(sub_msa, msa_codes[0][1],
                                 standard_aa_list)
 
     for key, value in gt_dtable.items():
         assert dtables[0][key]==value
 
-    sub_msa = [m[0] for m in msa if m[4] != "H"]
+    sub_msa = [m[0][0] for m in msa if m[4] != "H"]
     gt_dtable = get_kmer_counts(sub_msa, msa_codes[1][1],
                                 standard_aa_list)
 
@@ -173,11 +181,12 @@ def test_local_db_search_setup(build_local_mab_lmdb,
 
 
 def perform_exact_search(query, msa, chain_code, msa_codes,
-        search_params, vgene_filter, aamap, blosum_matrix):
+        search_params, vgene_filter, jgene_filter, aamap,
+        blosum_matrix):
     """Performs an exact search on an input msa, finding
     all sequences that have hamming distance <= specified.
     Additionally filter for BLOSUM distance (if requested)."""
-    retained_dists, hit_idx, cdrlen = [], [], []
+    retained_dists, hit_idx, noncanon_pos, cdrlen = [], [], [], []
     max_hamming = 0
 
     for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
@@ -195,27 +204,41 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
         cdr_dists = [0,0]
         region_lengths = [0,0]
         if not search_params["use_vgene_family_only"]:
-            if vgene_filter[3] < 255 and seq_data[3][3] != \
+            if vgene_filter[3] > 0 and seq_data[5][3] != \
                 vgene_filter[3]:
                 continue
-        if vgene_filter[2] < 255 and seq_data[3][2] != \
+        if vgene_filter[2] > 0 and seq_data[5][2] != \
             vgene_filter[2]:
             continue
-        if vgene_filter[0] < 255 and seq_data[3][0] != \
+        if vgene_filter[0] > 0 and seq_data[5][0] != \
             vgene_filter[0]:
             continue
-        if vgene_filter[1] < 255 and seq_data[3][1] != \
+        if vgene_filter[1] > 0 and seq_data[5][1] != \
                 vgene_filter[1]:
+            continue
+
+        if not search_params["use_vgene_family_only"]:
+            if jgene_filter[3] > 0 and seq_data[6][3] != \
+                jgene_filter[3]:
+                continue
+        if jgene_filter[2] > 0 and seq_data[6][2] != \
+            jgene_filter[2]:
+            continue
+        if jgene_filter[0] > 0 and seq_data[6][0] != \
+            jgene_filter[0]:
+            continue
+        if jgene_filter[1] > 0 and seq_data[6][1] != \
+                jgene_filter[1]:
             continue
 
         for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
             if str(j+1) not in search_params["search_mode"]:
                 continue
-            region_dist = len([a for (a,b,l) in zip(seq_data[0], query,
+            region_dist = len([a for (a,b,l) in zip(seq_data[0][0], query,
                 msa_codes[1]) if l==region and a != b])
             cdr_dists[int(j/2)] += region_dist
             region_len = len([s for (s,l) in
-                    zip(seq_data[0], msa_codes[1])
+                    zip(seq_data[0][0], msa_codes[1])
                     if l==region and s != '-'])
             region_lengths[int(j/2)] += region_len
 
@@ -248,11 +271,12 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
             if search_params["blosum_cutoff"] < 0:
                 hit_idx.append(i+1)
                 retained_dists.append(cdr_dists[0] + cdr_dists[1])
+                noncanon_pos.append(seq_data[0][1])
             else:
-                blosum_dist, nresidues, max_blosum_dist = 0, 0, 0
+                blosum_dist, max_blosum_dist = 0, 0
                 allowed_regions = {f"cdr{k}" for k in
                                    search_params["search_mode"]}
-                for l1, l2, code in zip(seq_data[0], query,
+                for l1, l2, code in zip(seq_data[0][0], query,
                                             msa_codes[1]):
                     if code not in allowed_regions:
                         continue
@@ -261,19 +285,18 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                     max_blosum_dist = max(blosum_matrix[l1num + l2num],
                                           max_blosum_dist)
                     blosum_dist += blosum_matrix[l1num + l2num]
-                    if l2 != '-':
-                        nresidues += 1
-                blosum_dist = float(blosum_dist) / float(nresidues)
+                blosum_dist = float(blosum_dist)
                 if max_blosum_dist <= search_params["blosum_cutoff"]:
                     hit_idx.append(i+1)
                     retained_dists.append(blosum_dist)
+                    noncanon_pos.append(seq_data[0][1])
 
 
     if len(hit_idx) == 0:
         return []
 
-    hit_idx = list(zip(hit_idx, retained_dists))
-    return sorted(hit_idx, key=lambda x: (x[1], x[0]))
+    hit_idx = list(zip(hit_idx, retained_dists, noncanon_pos))
+    return sorted(hit_idx, key=lambda x: (x[1], x[0], x[2]))
 
 
 def get_kmer_counts(msa, cdr_labels, aalist):
@@ -344,16 +367,21 @@ def build_local_mab_lmdb(tmp_path_factory,
     annotations = sca.analyze_seqs(seqs)
     heavy_msa, light_msa = [], []
 
-    # For purposes of this test, we ignore unusual positions.
+    # Note that we must also track the number of
+    # unusual (i.e. noncanonical) positions. This
+    # info is included in the msa which is therefore
+    # stored as a tuple for each sequence.
     for annotation, seq in zip(annotations, seqs):
         if annotation[2] == "H":
-            aligned_seq = heavy_aligner.align_sequence(
-                seq, annotation[0], False)
-            heavy_msa.append(aligned_seq)
+            aligned_seq, noncanon = \
+                heavy_aligner.align_sequence_save_unusual_positions(
+                seq, annotation[0])
+            heavy_msa.append( (aligned_seq, len(noncanon)) )
         else:
-            aligned_seq = light_aligner.align_sequence(
-                seq, annotation[0], False)
-            light_msa.append(aligned_seq)
+            aligned_seq, noncanon = \
+                light_aligner.align_sequence_save_unusual_positions(
+                seq, annotation[0])
+            light_msa.append( (aligned_seq, len(noncanon)) )
 
     heavy_codes = (heavy_codes, sca.assign_cdr_labels(heavy_codes,
         "H", request.param["cdr_scheme"]))
@@ -362,17 +390,19 @@ def build_local_mab_lmdb(tmp_path_factory,
 
     msa, hctr, lctr = [], 0, 0
     for seq, annotation in zip(seqs, annotations):
-        vgene, _, _, _, species = vj.assign_vj_genes(annotation, seq,
+        vgene, jgene, _, _, species = vj.assign_vj_genes(annotation, seq,
                 "unknown", "identity")
         if annotation[2] == "H":
-            msa.append( (heavy_msa[hctr], vgene, species,
+            msa.append( (heavy_msa[hctr], vgene, jgene,
+                         species, annotation[2],
                          get_vgene_code(vgene, species),
-                         annotation[2]) )
+                         get_vgene_code(jgene, species)) )
             hctr += 1
         else:
-            msa.append( (light_msa[lctr], vgene, species,
+            msa.append( (light_msa[lctr], vgene, jgene,
+                         species, annotation[2],
                          get_vgene_code(vgene, species),
-                         annotation[2]) )
+                         get_vgene_code(jgene, species)) )
             lctr += 1
 
     return seqs, seqinfos, db_filepath, msa, \

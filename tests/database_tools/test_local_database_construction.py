@@ -60,15 +60,19 @@ def test_local_db_construct(build_local_mab_lmdb):
             assert len(cdrs[i][0].replace('-', ''))==int(value[0])
             assert len(cdrs[i][1].replace('-', ''))==int(value[1])
             assert len(cdrs[i][2].replace('-', ''))==int(value[2])
-            assert value[12:].decode()==cdr_grp[0]
+            assert value[16:].decode()==cdr_grp[0]
             assert vgene_code[0]==int(value[4])
             assert vgene_code[1]==int(value[5])
-            assert vgene_code[2]==int(value[6])
-            assert vgene_code[3]==int(value[7])
-            assert jgene_code[0]==int(value[8])
-            assert jgene_code[1]==int(value[9])
-            assert jgene_code[2]==int(value[10])
-            assert jgene_code[3]==int(value[11])
+            assert vgene_code[2]==int.from_bytes(value[6:8],
+                                    byteorder='big')
+            assert vgene_code[3]==int.from_bytes(value[8:10],
+                                    byteorder='big')
+            assert jgene_code[0]==int(value[10])
+            assert jgene_code[1]==int(value[11])
+            assert jgene_code[2]==int.from_bytes(value[12:14],
+                                    byteorder='big')
+            assert jgene_code[3]==int.from_bytes(value[14:16],
+                                    byteorder='big')
             assert unusual_positions[i]==int(value[3])
 
         kmer_profile = {}
@@ -183,20 +187,25 @@ def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
 
     for i, row in enumerate(cur.execute(
         "SELECT * FROM _0_cdrs;")):
-        assert expected_cdrs[i]==row[0][12:].decode()
+        assert expected_cdrs[i]==row[0][16:].decode()
         vgene_code = get_vgene_code(expected_vgenes[i],
                         expected_species[i])
         jgene_code = get_vgene_code(expected_jgenes[i],
                         expected_species[i])
-        assert int(row[0][4])==vgene_code[0]
-        assert int(row[0][5])==vgene_code[1]
-        assert int(row[0][6])==vgene_code[2]
-        assert int(row[0][7])==vgene_code[3]
-        assert int(row[0][8])==jgene_code[0]
-        assert int(row[0][9])==jgene_code[1]
-        assert int(row[0][10])==jgene_code[2]
-        assert int(row[0][11])==jgene_code[3]
-        assert int(row[0][3])==0
+        value = row[0]
+        assert vgene_code[0]==int(value[4])
+        assert vgene_code[1]==int(value[5])
+        assert vgene_code[2]==int.from_bytes(value[6:8],
+                                byteorder='big')
+        assert vgene_code[3]==int.from_bytes(value[8:10],
+                                byteorder='big')
+        assert jgene_code[0]==int(value[10])
+        assert jgene_code[1]==int(value[11])
+        assert jgene_code[2]==int.from_bytes(value[12:14],
+                                byteorder='big')
+        assert jgene_code[3]==int.from_bytes(value[14:16],
+                                byteorder='big')
+        assert int(value[3])==0
 
     for i, row in enumerate(cur.execute(
         "SELECT * FROM sequences;")):

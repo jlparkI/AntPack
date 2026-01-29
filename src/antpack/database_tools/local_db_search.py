@@ -1,16 +1,15 @@
-"""Contains tools for searching and updating a local database."""
+"""Contains tools for searching a local database."""
 from ..antpack_license import get_license_key_info
 from antpack.antpack_cpp_ext import LocalDatabaseToolCpp
 
 
 
-class LocalDBTool:
-    """Contains tools for searching a local database,
-    exporting or clustering its contents and adding
-    or deleting records."""
+class LocalDBSearchTool:
+    """Contains tools for searching a local database and
+    clustering its contents."""
 
     def __init__(self, database_path:str,
-            thread_mode:str="single"):
+                 multithread:bool=False):
         """Class constructor.
 
         Args:
@@ -18,12 +17,8 @@ class LocalDBTool:
                 database. All other necessary info about
                 the database will be retrieved from the
                 database.
-            thread_mode (str): One of 'single', 'multi',
-                'multi' uses multithreading and works well on
-                solid-state drives; it should not be used on hard
-                drives where it may be slightly slower than single
-                threading due to seek cost. 'single' uses
-                only a single thread.
+            multithread (bool): If True, use multithreading,
+                otherwise do not.
 
         Raises:
             RuntimeError: A runtime error is raised if the
@@ -32,15 +27,15 @@ class LocalDBTool:
         """
         license_key, user_email = get_license_key_info()
         self.local_db_manager = LocalDatabaseToolCpp(database_path,
-                license_key, user_email, thread_mode)
+                license_key, user_email, multithread)
 
 
 
     def search(self, seq:str, annotation:tuple,
             mode:str="3", cdr_cutoff:float=0.25,
             blosum_cutoff:float=-1, max_cdr_length_shift:int=2,
-            use_vgene_family_only=True, symmetric_search=False,
-            max_hits:int=1000, vgene:str="", species:str=""):
+            use_vjgene_family_only=True, symmetric_search=False,
+            vgene:str="", species:str="", jgene:str=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
         be conducted using the full sequence or a sub-region
@@ -94,27 +89,31 @@ class LocalDBTool:
                  This ensures that distance matrices constructed using search
                  are symmetric, which is useful for clustering. If not planning
                  to cluster or build a distance matrix, this is unnecessary.
-            max_hits (int): The maximum number of hits to return.
             vgene (str): One of "" or a valid vgene. If a valid vgene,
                 hits are required to match either the vgene family or
-                the specific vgene (depending on the use_vgene_family_only
-                argument).
+                the specific vgene (depending on the use_vjgene_family_only
+                argument). Ignored if no species is supplied.
             species (str): One of "" or a valid species (human, mouse,
                 alpaca, rabbit). If "", hits are required to belong to
                 the same assigned species.
+            jgene (str): One of "" or a valid jgene. If a valid jgene,
+                hits are required to match either the jgene family or
+                the specific jgene (depending on the use_vjgene_family_only
+                argument). Ignored if no species or vgene is supplied.
 
         Returns:
-            hits (list): A list of the sequence id numbers for the hits.
-                These can be used to retrieve the sequences and their
-                metadata using the get_sequence call.
-            distances (list): A list of the hamming distances of each
-                hit to the query, unless a blosum cutoff >= 0 was supplied,
-                in which case BLOSUM mismatch distance is calculated.
+            hits (list): A list of tuples containing (sequence_id, distance,
+                num_non_canonical_positions). The sequence ids can be used to
+                retrieve the sequences and their metadata using the get_sequence
+                call. Non-canonical positions are rare unusual insertions that
+                are not included in the distance calculation; this value will
+                normally be zero. If it is not, it indicates the hit contains
+                unusual non-canonical positions.
         """
         return self.local_db_manager.search(seq, annotation,
                 mode, cdr_cutoff, blosum_cutoff,
-                max_cdr_length_shift, use_vgene_family_only,
-                symmetric_search, max_hits, vgene, species)
+                max_cdr_length_shift, use_vjgene_family_only,
+                symmetric_search, vgene, species, jgene)
 
 
     def get_sequence(self, seq_id:int):

@@ -37,7 +37,7 @@ set(CMAKE_C_STANDARD 99)
 
 # Extremely annoying but MSVC requires an additional flag to be set.
 if (MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "/O3")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
     add_compile_options("/Zc:__cplusplus" "/permissive-")
 endif()
 
@@ -60,25 +60,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ##########
 #Add non-nanobind submodules.
 add_subdirectory(extern/abseil-cpp)
-
-
-############################################
-# The following flags are lmdb-specific.
-set(MDB_DEVEL "" CACHE STRING "Enable functions under development")
-set(MDB_DEBUG "0" CACHE STRING "Enable debug output.  Needs variable argument macros (a C99 feature).
-Set this to 1 for copious tracing. Set to 2 to add dumps of all IDLs
-read from and written to the database (used for free space management).")
-
-set(MDB_USE_POSIX_SEM "" CACHE STRING "Use posix semiphores (instead of mutexes) from <semiphore.h>")
-set(MDB_DSYNC "" CACHE STRING "Use O_DSYNC on write to avoid extra syscall to flush.")
-set(MDB_FDATASYNC "fsync" CACHE STRING "Function to use for syncing, define to `fsync` if `fdatasync` doesn exist")
-set(MDB_FDATASYNC_WORKS "1" CACHE STRING "Use if fdatasync is guarenteed to work. May not be the case for old kernels and ext3/4.")
-set(MDB_USE_PWRITEV "" CACHE STRING "If the `pwritev` function is available.")
-set(MDB_USE_ROBUST "" CACHE STRING "Some platforms define the EOWNERDEAD error code
- even though they don't support Robust Mutexes.
- Unset or use MDB_USE_POSIX_SEM on such platforms.")
-
-
 
 
 nanobind_add_module(
