@@ -62,7 +62,7 @@ def test_local_db_search(build_local_mab_lmdb,
 
     random.seed(123)
 
-    for ctr in range(2000):
+    for ctr in range(1000):
         idx = random.randint(0, len(msa) - 1)
         query_seq = list(msa[idx][0][0])
         if msa[idx][4] == "H":

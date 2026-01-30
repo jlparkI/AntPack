@@ -34,7 +34,7 @@ class LocalDBSearchTool:
     def search(self, seq:str, annotation:tuple,
             mode:str="3", cdr_cutoff:float=0.25,
             blosum_cutoff:float=-1, max_cdr_length_shift:int=2,
-            use_vjgene_family_only=True, symmetric_search=False,
+            use_family_only=True, symmetric_search=False,
             vgene:str="", species:str="", jgene:str=""):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
@@ -77,7 +77,7 @@ class LocalDBSearchTool:
                 which the length of cdr3 for a match can differ from
                 the query. If 0, the results are required to have cdr3
                 be the same length as the query.
-            use_vgene_family_only (bool): If True, when filtering by
+            use_family_only (bool): If True, when filtering by
                 vgene, hits are required to have the same vgene *family*,
                 but can have a different vgene within that family. If
                 False, hits are required to have the same vgene AND
@@ -112,7 +112,7 @@ class LocalDBSearchTool:
         """
         return self.local_db_manager.search(seq, annotation,
                 mode, cdr_cutoff, blosum_cutoff,
-                max_cdr_length_shift, use_vjgene_family_only,
+                max_cdr_length_shift, use_family_only,
                 symmetric_search, vgene, species, jgene)
 
 

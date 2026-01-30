@@ -3,5 +3,4 @@ pandas
 Biopython
 scipy
 blosum
-lmdb
 pytest
