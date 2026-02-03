@@ -7,7 +7,8 @@ from .numbering_tools import SingleChainAnnotator, PairedChainAnnotator
 from .vj_tools.vj_gene_assignment import VJGeneTool
 from .scoring_tools import SequenceScoringTool
 from antpack.antpack_cpp_ext import (LiabilitySearchTool,
-                SequenceTemplateAligner)
+                SequenceTemplateAligner,
+                number_imgt_imgt_cdr)
 from .clustering_tools import EMCategoricalMixture
 from .antpack_license import run_license_key_setter
 from .database_tools import (build_database_from_fasta,
