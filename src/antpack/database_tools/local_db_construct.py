@@ -139,6 +139,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
         header_rows:int=1,
         numbering_scheme:str="imgt",
         cdr_definition_scheme:str="imgt",
+        delimiter:str=',',
         receptor_type:str="mab", pid_threshold:float=0.7,
         user_memo:str="", reject_file:str = None,
         verbose:bool=True):
@@ -149,9 +150,15 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
     can optionally contain additional columns with numbering or Vgenes
     -- if present these will save time for database construction since
     AntPack will not need to perform numbering or vgene identification.
+    It is ok for some rows to contain both a heavy and light chain and
+    others to contain only one or the other with "" for the missing chain.
+    You can also load files that contain a heavy or light chain only.
 
     Use this option if you have the full chains. If you only have pre-
     extracted cdrs, use build_database_from_cdr_only_csv.
+
+    Note that the beta chain for TCRs is assumed to be "heavy" and alpha
+    is light.
 
     Args:
         csv_filepaths (list): A list of csv filepaths, which may or
@@ -163,18 +170,12 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
 
             * ``"heavy_chain"``: The number (from 0) of the column in each
               csv file containing the heavy chains. Do not include this
-              if there are no heavy chains.
+              if there are no heavy chains. If heavy chains are supplied,
+              heavy vgenes and jgenes must be supplied also.
             * ``"light_chain"``: The number (from 0) of the column in each
               csv file containing the light chains. Do not include this
-              if there are no light chains.
-            * ``"heavy_chaintype"``: Required if there are heavy chains. The
-              number (from 0) of the column in each csv file containing the
-              heavy chain type. This will be H for antibodies and generally
-              B for TCRs.
-            * ``"light_chaintype"``: Required if there are light chains. The
-              number (from 0) of the column in each csv file containing the
-              light chain type. This could be L or K for antibodies and generally
-              A for TCRs.
+              if there are no light chains. If light chains are supplied,
+              light vgenes and jgenes must be supplied also.
             * ``"heavy_numbering"``: The number (from 0) of the column (if any)
               containing numbering for the heavy chains. The numbering
               should be delimited using the '_' character. If you number
@@ -198,9 +199,8 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
             * ``"light_jgene"``: The number (from 0) of the column (if any)
               containing jgene assignments for the light chains.
             * ``"species"``: The number (from 0) of the column (if any)
-              containing species assignments (which are assumed to be the
-              same for both chains in a row if heavy and light chains are
-              present).
+              containing species assignments. If this is not supplied, it
+              will be assumed that all are human.
             * ``"metadata"``: The number (from 0) of the column (if any)
               containing metadata for each heavy / light chain or chain pair.
 
@@ -211,6 +211,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
             allowed option.
         cdr_definition_scheme (str): One of 'imgt', 'kabat', 'martin',
             'aho' or 'north'. If receptor_type is 'tcr', 'imgt' only is allowed.
+        delimiter (str): The delimiter for the csv files.
         receptor_type (str): One of 'mab', 'tcr'.
         pid_threshold (float): A value between 0 and 1 for percent identity
             threshold. If you have not supplied pre-written numbering,
@@ -278,8 +279,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
     for expected_key in ["heavy_chain", "light_chain",
             "heavy_numbering", "light_numbering",
             "heavy_vgene", "light_vgene", "species",
-            "metadata", "heavy_chaintype", "light_chaintype",
-            "heavy_jgene", "light_jgene"]:
+            "metadata", "heavy_jgene", "light_jgene"]:
         if expected_key in column_selections:
             settings_list.append(column_selections[expected_key])
         else:
@@ -292,36 +292,31 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
     if max(settings_list[:2]) < 0:
         raise RuntimeError("Either a heavy column, a light column "
                 "or both should be supplied under column_selections.")
-    if settings_list[4] >= 0 or settings_list[5] >= 0:
-        if settings_list[6] < 0:
-            raise RuntimeError("If csv files contain either a "
-                    "heavy or light vgene, they should contain "
-                    "a species as well.")
-
-    if settings_list[10] >= 0:
-        if settings_list[6] < 0 or settings_list[4] < 0:
-            raise RuntimeError("If csv files contain either a "
-                    "heavy or light jgene, they should contain "
-                    "a species and corresponding vgene as well.")
-
-    if settings_list[11] >= 0:
-        if settings_list[6] < 0 or settings_list[5] < 0:
-            raise RuntimeError("If csv files contain either a "
-                    "heavy or light jgene, they should contain "
-                    "a species and corresponding vgene as well.")
+    if settings_list[0] >= 0:
+        if settings_list[4] < 0 or settings_list[8] < 0:
+            raise RuntimeError("If supplying a heavy chain, "
+                               "heavy vgenes and jgenes must be "
+                               "supplied also.")
+    if settings_list[1] >= 0:
+        if settings_list[5] < 0 or settings_list[9] < 0:
+            raise RuntimeError("If supplying a light chain, "
+                               "light vgenes and jgenes must be "
+                               "supplied also.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
 
     seqcount = 0
     if reject_file is not None:
-        reject_handle = open(reject_file, "w+", encoding="utf-8")
+        reject_handle = open(reject_file,
+                "w+", encoding="utf-8")
     else:
         reject_handle = None
 
     db_construct_tool.open_transaction()
 
     for csv_filepath in csv_filepaths:
-        for row in read_csv(csv_filepath, skiprows=header_rows):
+        for row in read_csv(csv_filepath, skiprows=header_rows,
+                            delimiter=delimiter):
             if len(row) == 0:
                 continue
             rcode = db_construct_tool.add_csv_sequence(row, settings_list)
@@ -359,6 +354,8 @@ def build_database_from_cdr_only_csv(csv_filepaths:list,
     cdrs pre-extracted. This function builds a database specifically using
     this type of input format where you have already extracted the cdrs. If
     using this function, you MUST use IMGT numbering and cdr definitions.
+    Note that the beta chain for TCRs is assumed to be "heavy" and alpha
+    is light.
 
     Args:
         csv_filepaths (list): A list of csv filepaths, which may or
