@@ -134,7 +134,7 @@ def build_database_from_fasta(fasta_filepaths:list,
 
 
 
-def build_database_from_csv(csv_filepaths:list,
+def build_database_from_full_chain_csv(csv_filepaths:list,
         database_filepath:str, column_selections:dict,
         header_rows:int=1,
         numbering_scheme:str="imgt",
@@ -149,6 +149,9 @@ def build_database_from_csv(csv_filepaths:list,
     can optionally contain additional columns with numbering or Vgenes
     -- if present these will save time for database construction since
     AntPack will not need to perform numbering or vgene identification.
+
+    Use this option if you have the full chains. If you only have pre-
+    extracted cdrs, use build_database_from_cdr_only_csv.
 
     Args:
         csv_filepaths (list): A list of csv filepaths, which may or
@@ -166,12 +169,12 @@ def build_database_from_csv(csv_filepaths:list,
               if there are no light chains.
             * ``"heavy_chaintype"``: Required if there are heavy chains. The
               number (from 0) of the column in each csv file containing the
-              heavy chain type. This will be H for antibodies but may be e.g.
-              A for TCRs.
+              heavy chain type. This will be H for antibodies and generally
+              B for TCRs.
             * ``"light_chaintype"``: Required if there are light chains. The
               number (from 0) of the column in each csv file containing the
-              light chain type. This could be L or K for antibodies or
-              e.g. B for TCRs.
+              light chain type. This could be L or K for antibodies and generally
+              A for TCRs.
             * ``"heavy_numbering"``: The number (from 0) of the column (if any)
               containing numbering for the heavy chains. The numbering
               should be delimited using the '_' character. If you number
@@ -348,14 +351,14 @@ def build_database_from_csv(csv_filepaths:list,
 
 
 
-def build_tcr_database_from_csv(csv_filepaths:list,
+def build_database_from_cdr_only_csv(csv_filepaths:list,
         database_filepath:str, column_selections:dict, delimiter=',',
-        header_rows:int=1, user_memo:str="",
+        receptor_type = "mab", header_rows:int=1, user_memo:str="",
         reject_file:str = None, verbose:bool=True):
-    """TCR data is often stored with cdr3 sequences specified for alpha
-    and beta chains and the V and J genes specified but without any other
-    information. This function builds a database specifically using this
-    type of input format.
+    """TCR data and some antibody data is often stored with cdr3 and/or other
+    cdrs pre-extracted. This function builds a database specifically using
+    this type of input format where you have already extracted the cdrs. If
+    using this function, you MUST use IMGT numbering and cdr definitions.
 
     Args:
         csv_filepaths (list): A list of csv filepaths, which may or
@@ -363,32 +366,40 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         database_filepath (str): The desired location and filename
             for the database.
         column_selections (dict): A dictionary which should contain at least
-            some of the following keys:
+            some of the following keys. Do not include any key for which
+            information is not present. Note that if you supply some light
+            or heavy chain cdr columns, you MUST supply the cdr3 and vgene
+            for that chain type.
 
-            * ``"alpha_cdr3"``: The number (from 0) of the column in each
-              csv file containing alpha cdr3. Do not include this if there
-              is no alpha cdr3 information.
-            * ``"beta_cdr3"``: The number (from 0) of the column in each
-              csv file containing beta cdr3. This is required, it is
-              assumed that beta cdr3 will always be present.
-            * ``"alpha_vgene"``: The number (from 0) of the column (if any)
-              containing vgene assignments for the alpha chains.
-            * ``"beta_vgene"``: The number (from 0) of the column
-              containing vgene assignments for the beta chains. This
-              is required.
-            * ``"alpha_jgene"``: The number (from 0) of the column (if any)
-              containing jgene assignments for the alpha chains. If this is
-              supplied, an alpha_vgene column must be supplied as well.
-            * ``"beta_jgene"``: The number (from 0) of the column
-              containing jgene assignments for the beta chains. This
-              is required.
+            * ``"light_cdr3"``: The number (from 0) of the column in each
+              csv file containing light cdr3 (alpha for TCRs).
+            * ``"heavy_cdr3"``: The number (from 0) of the column in each
+              csv file containing heavy cdr3 (beta for TCRs).
+            * ``"light_cdr2"``: The number (from 0) of the column in each
+              csv file containing light cdr2 (alpha for TCRs).
+            * ``"heavy_cdr2"``: The number (from 0) of the column in each
+              csv file containing heavy cdr2 (beta for TCRs).
+            * ``"light_cdr1"``: The number (from 0) of the column in each
+              csv file containing light cdr1 (alpha for TCRs).
+            * ``"heavy_cdr1"``: The number (from 0) of the column in each
+              csv file containing heavy cdr1 (beta for TCRs).
+            * ``"light_vgene"``: The number (from 0) of the column
+              containing vgene assignments for the light chains.
+            * ``"heavy_vgene"``: The number (from 0) of the column
+              containing vgene assignments for the heavy chains.
+            * ``"light_jgene"``: The number (from 0) of the column (if any)
+              containing jgene assignments for the light chains. If this is
+              supplied, a light_vgene column must be supplied as well.
+            * ``"heavy_jgene"``: The number (from 0) of the column
+              containing jgene assignments for the heavy chains.
             * ``"species"``: The number (from 0) of the column
               containing species assignments. If not supplied,
               the reader will assume species is always human.
             * ``"metadata"``: The number (from 0) of the column (if any)
-              containing metadata.
+              containing metadata for each sequence.
 
         delimiter (str): The delimiter for the csv files.
+        receptor_type (str): One of 'mab', 'tcr'.
         header_rows (int): The number of header rows. Header rows are
             skipped.
         user_memo (str): A string describing the purpose of the database / anything
@@ -442,15 +453,22 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         print("No sequences found.")
         return
 
+    pairing_type = "single"
+
+    if column_selections["light_cdr3"] >= 0 and \
+            column_selections["heavy_cdr3"] >= 0:
+        pairing_type = "paired"
+
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            "imgt", "imgt", "single", "tcr_simple", 0.7,
+            "imgt", "imgt", pairing_type, receptor_type, 0.7,
             license_key, user_email, consensus_path,
             nterm_kmer_dict, vj_names, vj_seqs, user_memo)
 
     settings_list = []
-    for expected_key in ["alpha_cdr3", "beta_cdr3",
-            "alpha_vgene", "beta_vgene", "alpha_jgene",
-            "beta_jgene", "species", "metadata"]:
+    for expected_key in ["heavy_cdr3", "heavy_cdr2", "heavy_cdr1",
+            "light_cdr3", "light_cdr2", "light_cdr1",
+            "heavy_vgene", "light_vgene", "heavy_jgene",
+            "light_jgene", "species", "metadata"]:
         if expected_key in column_selections:
             settings_list.append(column_selections[expected_key])
         else:
@@ -460,10 +478,6 @@ def build_tcr_database_from_csv(csv_filepaths:list,
         raise RuntimeError("There must be at least some column "
                 "selections supplied. Please refer to the docs "
                 "for the build_database_from_csv function.")
-    if settings_list[1] < 0 or settings_list[3] < 0 or \
-            settings_list[5] < 0:
-        raise RuntimeError("beta_cdr3, species, beta_vgene, beta_jgene "
-                "are required columns.")
 
     print(f"Found {nseqs} sequences. Starting db construction.")
 
