@@ -319,7 +319,8 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
                             delimiter=delimiter):
             if len(row) == 0:
                 continue
-            rcode = db_construct_tool.add_csv_sequence(row, settings_list)
+            rcode = db_construct_tool.add_full_chain_csv_sequence(
+                    row, settings_list)
             if len(rcode) > 0:
                 if reject_handle is not None:
                     reject_handle.write(f"{','.join(row)}\t{rcode}\n")
@@ -492,7 +493,8 @@ def build_database_from_cdr_only_csv(csv_filepaths:list,
                             delimiter=delimiter):
             if len(row) == 0:
                 continue
-            rcode = db_construct_tool.add_tcr_fmt_sequence(row, settings_list)
+            rcode = db_construct_tool.add_extracted_cdr_csv_sequence(
+                    row, settings_list)
             if len(rcode) > 0:
                 if reject_handle is not None:
                     reject_handle.write(f"{','.join(row)}\t{rcode}\n")

@@ -13,8 +13,8 @@ from .clustering_tools import EMCategoricalMixture
 from .antpack_license import run_license_key_setter
 from .database_tools import (build_database_from_fasta,
         LocalDBSearchTool,
-        build_database_from_csv,
-        build_tcr_database_from_csv)
+        build_database_from_full_chain_csv,
+        build_database_from_cdr_only_csv)
 
 pyside = importlib.util.find_spec("PySide6")
 if pyside is not None:

@@ -3,13 +3,12 @@ Use sqlite for testing and prototyping."""
 import os
 import sys
 import gzip
-import struct
 import sqlite3
 import pytest
 import numpy as np
 from antpack import (build_database_from_fasta,
-        build_database_from_csv,
-        build_tcr_database_from_csv,
+        build_database_from_full_chain_csv,
+        build_database_from_cdr_only_csv,
         SingleChainAnnotator, VJGeneTool)
 from antpack.utilities import read_fasta
 from .database_utilities import (get_vgene_code,
@@ -21,7 +20,7 @@ from ..conftest import (get_test_data_filepath, get_test_base_filepath)
 def test_local_db_construct(build_local_mab_lmdb):
     """Check that local database construction yields a
     database containing the information we expect."""
-    seqs, seqinfos, db_filepath, params = build_local_mab_lmdb
+    seqs, seqinfos, db_filepath, params, data_dict = build_local_mab_lmdb
     con = sqlite3.connect(db_filepath)
     cur = con.cursor()
 
@@ -35,31 +34,28 @@ def test_local_db_construct(build_local_mab_lmdb):
     assert metadata[5]==0.7
 
     for i, row in enumerate(cur.execute("SELECT * FROM sequences;")):
-        assert row[0]==seqs[i]
+        assert row[0][1:]==seqs[i]
         assert row[1]==seqinfos[i]
 
-    sca = SingleChainAnnotator(scheme=params["nmbr_scheme"])
-    annotations = sca.analyze_seqs(seqs)
-    vj_tool = VJGeneTool(scheme=params["nmbr_scheme"])
-
     # Check each set of chain tables for expected info.
-    for table_code, chain_coding in enumerate([("H",),
-                                    ("L", "K")]):
-        aligned_seqs, cdrs, unusual_positions, cdr3_region_len, vgenes, jgenes, vspecies, child_ids = \
-                prep_seqs_for_comparison(params["nmbr_scheme"],
-                    params["cdr_scheme"], chain_coding, seqs,
-                    annotations, sca, vj_tool)
+    for table_code in [0,1]:
+        chain_dict = data_dict[table_code]
 
         for i, (child_id, cdr_grp) in enumerate(
-                zip(child_ids, aligned_seqs)):
+                zip(chain_dict["child_ids"], chain_dict["aligned_seqs"])):
             cur.execute(f"SELECT * FROM _{table_code}_cdrs "
                         f"WHERE rowid = {child_id+1};")
             value = cur.fetchone()[0]
-            vgene_code = get_vgene_code(vgenes[i], vspecies[i])
-            jgene_code = get_vgene_code(jgenes[i], vspecies[i])
-            assert len(cdrs[i][0].replace('-', ''))==int(value[0])
-            assert len(cdrs[i][1].replace('-', ''))==int(value[1])
-            assert len(cdrs[i][2].replace('-', ''))==int(value[2])
+            vgene_code = get_vgene_code(chain_dict["vgenes"][i],
+                                        chain_dict["vspecies"][i])
+            jgene_code = get_vgene_code(chain_dict["jgenes"][i],
+                                        chain_dict["vspecies"][i])
+            assert len(chain_dict["cdrs"][i][0].
+                       replace('-', ''))==int(value[0])
+            assert len(chain_dict["cdrs"][i][1].
+                       replace('-', ''))==int(value[1])
+            assert len(chain_dict["cdrs"][i][2].
+                       replace('-', ''))==int(value[2])
             assert value[16:].decode()==cdr_grp[0]
             assert vgene_code[0]==int(value[4])
             assert vgene_code[1]==int(value[5])
@@ -73,11 +69,11 @@ def test_local_db_construct(build_local_mab_lmdb):
                                     byteorder='big')
             assert jgene_code[3]==int.from_bytes(value[14:16],
                                     byteorder='big')
-            assert unusual_positions[i]==int(value[3])
+            assert chain_dict["unusual_positions"][i]==int(value[3])
 
         kmer_profile = {}
 
-        for j in range(cdr3_region_len - 1):
+        for j in range(chain_dict["cdr3_region_len"] - 1):
             kmer_to_child = {}
 
             for row in cur.execute("SELECT * FROM "
@@ -86,8 +82,11 @@ def test_local_db_construct(build_local_mab_lmdb):
                 kmer_to_child[row[0]] = row[1]
 
             kmer_profile = eval_nmbr_table_row_contents(
-                    kmer_to_child, cdrs, child_ids, vgenes,
-                    vspecies, kmer_profile, j)
+                    kmer_to_child, chain_dict["cdrs"],
+                    chain_dict["child_ids"],
+                    chain_dict["vgenes"],
+                    chain_dict["vspecies"],
+                    kmer_profile, j)
 
         for row in cur.execute("SELECT * FROM "
                 f"_{table_code}_column_diversity;"):
@@ -132,13 +131,13 @@ def test_low_quality_seqs(tmp_path):
     reject_file = os.path.join(tmp_path, "REJECTS2")
 
     with open(input_file, "w+") as fhandle:
-        fhandle.write("AAAAAAAATTTTTTTTT,H,VJ123,humanoid\n")
+        fhandle.write("AAAAAAAATTTTTTTTT,VJ123,JJ126,humanoid\n")
         fhandle.write(">NAME,H,XYZ123,alien\n")
         fhandle.write("$$ALT,H,,unknown\n")
 
-    build_database_from_csv([input_file], db_path,
-            {"heavy_chain":0, "heavy_chaintype":1,
-                "heavy_vgene":2, "species":3},
+    build_database_from_full_chain_csv([input_file], db_path,
+            {"heavy_chain":0, "heavy_vgene":1,
+             "heavy_jgene":2, "species":3},
             numbering_scheme='imgt',
             cdr_definition_scheme='imgt',
             receptor_type="mab", pid_threshold=0.7,
@@ -155,61 +154,6 @@ def test_low_quality_seqs(tmp_path):
             for line1, line2 in zip(reject_handle, fhandle):
                 assert line1.strip().split('\t')[0]==line2.strip()
 
-
-def test_tcr_fmt_loading(get_test_data_filepath, tmp_path):
-    """Check that tcr standard format data is loaded
-    as expected."""
-    csv_filepath = os.path.join(get_test_data_filepath,
-            "non_antibody_test_data", "tcr_simpletest.csv.gz")
-    db_filepath = os.path.join(tmp_path, "TEMP_DB")
-
-    expected_cdrs, expected_mainseq = [], []
-    expected_vgenes, expected_jgenes, expected_species = [], [], []
-    build_tcr_database_from_csv(
-            [csv_filepath], db_filepath,
-            {"beta_cdr3":0, "beta_vgene":1,
-             "beta_jgene":2, "species":4},
-            user_memo="", reject_file=None)
-    with gzip.open(csv_filepath, "rt") as fhandle:
-        _ = fhandle.readline()
-        for line in fhandle:
-            elements = line.split(",")
-            expected_mainseq.append(elements[0] +
-                "," + elements[1] + "," +
-                elements[2])
-            expected_cdrs.append(elements[3])
-            expected_vgenes.append(elements[1])
-            expected_jgenes.append(elements[2])
-            expected_species.append(elements[4].strip())
-
-    con = sqlite3.connect(db_filepath)
-    cur = con.cursor()
-
-    for i, row in enumerate(cur.execute(
-        "SELECT * FROM _0_cdrs;")):
-        assert expected_cdrs[i]==row[0][16:].decode()
-        vgene_code = get_vgene_code(expected_vgenes[i],
-                        expected_species[i])
-        jgene_code = get_vgene_code(expected_jgenes[i],
-                        expected_species[i])
-        value = row[0]
-        assert vgene_code[0]==int(value[4])
-        assert vgene_code[1]==int(value[5])
-        assert vgene_code[2]==int.from_bytes(value[6:8],
-                                byteorder='big')
-        assert vgene_code[3]==int.from_bytes(value[8:10],
-                                byteorder='big')
-        assert jgene_code[0]==int(value[10])
-        assert jgene_code[1]==int(value[11])
-        assert jgene_code[2]==int.from_bytes(value[12:14],
-                                byteorder='big')
-        assert jgene_code[3]==int.from_bytes(value[14:16],
-                                byteorder='big')
-        assert int(value[3])==0
-
-    for i, row in enumerate(cur.execute(
-        "SELECT * FROM sequences;")):
-        assert expected_mainseq[i]==row[0]
 
 
 
@@ -342,15 +286,26 @@ def prep_seqs_for_comparison(numbering_scheme,
 
 
 @pytest.fixture(params=[
+    #{"filepath":"addtnl_test_data.fasta.gz",
+    # "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
+    # "sequence_type":"single", "memo":"testing123",
+    # "mode":"full_chain"},
+    #{"filepath":"addtnl_test_data.fasta.gz",
+    # "nmbr_scheme":"imgt", "cdr_scheme":"north",
+    # "sequence_type":"unknown", "memo":"testing123",
+    # "mode":"full_chain"},
+    #{"filepath":"test_data.csv.gz",
+    # "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
+    # "sequence_type":"single", "memo":"testing123",
+    # "mode":"full_chain"},
     {"filepath":"addtnl_test_data.fasta.gz",
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
-     "sequence_type":"single", "memo":"testing123"},
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"all_cdr_extract"},
     {"filepath":"addtnl_test_data.fasta.gz",
-     "nmbr_scheme":"imgt", "cdr_scheme":"north",
-     "sequence_type":"unknown", "memo":"testing123"},
-    {"filepath":"db_csv_load_testing.csv.gz",
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
-     "sequence_type":"single", "memo":"testing123"},
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"cdr3_extract"},
     ])
 def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
         request):
@@ -359,43 +314,144 @@ def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
     and returns all the info the test function will need
     to evaluate this local db."""
     db_filepath = os.path.join(tmp_path, "TEMP_DB")
+    temp_csv_filepath = os.path.join(tmp_path, "TEMP_CSV_FILE.csv")
     seqs, seqinfos = [], []
 
-    if "csv" in request.param["filepath"]:
-        csv_filepath = os.path.join(get_test_data_filepath,
+    if request.param["mode"] == "full_chain":
+        sca = SingleChainAnnotator(scheme=request.param["nmbr_scheme"])
+        vj_tool = VJGeneTool(scheme=request.param["nmbr_scheme"])
+
+        if request.param["filepath"].endswith("test_data.csv.gz"):
+            csv_filepath = os.path.join(get_test_data_filepath,
                         request.param["filepath"])
-        # Using hardcoded column selections here (since the
-        # test data is always the same)
-        build_database_from_csv([csv_filepath], db_filepath,
-                {"heavy_chain":0, "light_chain":3,
-                    "heavy_chaintype":2, "light_chaintype":5,
-                    "heavy_numbering":6, "light_numbering":7},
+            with gzip.open(csv_filepath, "rt") as fhandle:
+                _ = fhandle.readline()
+                with open(temp_csv_filepath, 'w') as outhandle:
+                    outhandle.write("heavy_sequence,light_sequence,"
+                        "heavy_vgene,light_vgene,heavy_jgene,light_jgene,"
+                        "heavy_numbering,light_numbering,species\n")
+                    for line in fhandle:
+                        seq = line.split(',')[0]
+                        annotation = sca.analyze_seq(seq)
+                        vgene, jgene, _, _, species = vj_tool.assign_vj_genes(
+                            annotation, seq, "unknown")
+                        if annotation[1] <= 0.7 or vgene == "":
+                            continue
+
+                        seqs.append(seq)
+                        seqinfos.append("")
+
+                        if annotation[2] == "H":
+                            outhandle.write(f"{seq},,{vgene},,"
+                                f"{jgene},,{'_'.join(annotation[0])},,"
+                                f"{species}\n")
+                        else:
+                            outhandle.write(f",{seq},,{vgene},,"
+                                f"{jgene},,{'_'.join(annotation[0])},"
+                                f"{species}\n")
+
+            build_database_from_full_chain_csv(
+                [temp_csv_filepath], db_filepath,
+                {"heavy_chain":0, "light_chain":1,
+                 "heavy_vgene":2, "light_vgene":3,
+                 "heavy_jgene":4, "light_jgene":5,
+                 "heavy_numbering":6, "light_numbering":7,
+                 "species":8},
                 numbering_scheme=request.param["nmbr_scheme"],
                 cdr_definition_scheme=request.param["cdr_scheme"],
                 receptor_type="mab", pid_threshold=0.7,
-                user_memo=request.param["memo"], reject_file=None)
-        with gzip.open(csv_filepath, "rt") as fhandle:
-            _ = fhandle.readline()
-            for line in fhandle:
-                seqinfos.append("")
-                elements = line.split(",")
-                if len(elements[0]) == 0:
-                    seqs.append(elements[3])
-                else:
-                    seqs.append(elements[0])
+                user_memo=request.param["memo"],
+                reject_file=os.path.join(tmp_path, "REJECTS"))
+
+        else:
+            fasta_filepath = os.path.join(get_test_data_filepath,
+                    request.param["filepath"])
+            build_database_from_fasta([fasta_filepath], db_filepath,
+                numbering_scheme=request.param["nmbr_scheme"],
+                cdr_definition_scheme=request.param["cdr_scheme"],
+                sequence_type=request.param["sequence_type"],
+                receptor_type="mab",
+                pid_threshold=0.7, user_memo=request.param["memo"],
+                reject_file=None)
+            for seqinfo, seq in read_fasta(fasta_filepath):
+                seqs.append(seq)
+                seqinfos.append(seqinfo)
 
     else:
+        sca = SingleChainAnnotator(scheme="imgt")
+        vj_tool = VJGeneTool(scheme="imgt")
         fasta_filepath = os.path.join(get_test_data_filepath,
                     request.param["filepath"])
-        build_database_from_fasta([fasta_filepath], db_filepath,
-            numbering_scheme=request.param["nmbr_scheme"],
-            cdr_definition_scheme=request.param["cdr_scheme"],
-            sequence_type=request.param["sequence_type"],
-            receptor_type="mab",
-            pid_threshold=0.7, user_memo=request.param["memo"],
-            reject_file=None)
-        for seqinfo, seq in read_fasta(fasta_filepath):
-            seqs.append(seq)
-            seqinfos.append(seqinfo)
 
-    return seqs, seqinfos, db_filepath, request.param
+        with open(temp_csv_filepath, 'w') as outhandle:
+            outhandle.write("heavy_cdr3,heavy_cdr2,heavy_cdr1,"
+                    "light_cdr3,light_cdr2,light_cdr1,heavy_vgene,"
+                    "light_vgene,heavy_jgene,light_jgene,species\n")
+
+            for seqinfo, seq in read_fasta(fasta_filepath):
+                annotation = sca.analyze_seq(seq)
+                vgene, jgene, _, _, species = vj_tool.assign_vj_genes(
+                    annotation, seq, "unknown")
+                if annotation[1] <= 0.7 or vgene == "":
+                    continue
+
+                seqs.append(seq)
+                seqinfos.append("")
+                position_labels = sca.assign_cdr_labels(
+                        annotation[0], annotation[2])
+                cdr3 = ''.join([a for (a,l) in zip(seq,
+                            position_labels) if l == "cdr3"])
+                cdr2 = ''.join([a for (a,l) in zip(seq,
+                            position_labels) if l == "cdr2"])
+                cdr1 = ''.join([a for (a,l) in zip(seq,
+                            position_labels) if l == "cdr1"])
+
+                if annotation[2] == "H":
+                    outhandle.write(f"{cdr3},{cdr2},{cdr1},,,,"
+                        f"{vgene},,{jgene},,{species}\n")
+                else:
+                    outhandle.write(f",,,{cdr3},{cdr2},{cdr1},,"
+                        f"{vgene},,{jgene},{species}\n")
+
+        if request.param["mode"] == "all_cdr_extract":
+            column_dict = {"heavy_cdr3":0, "heavy_cdr2":1,
+                "heavy_cdr1":2, "light_cdr3":3,
+                "light_cdr2":4, "light_cdr1":5,
+                "heavy_vgene":6, "light_vgene":7,
+                "heavy_jgene":8, "light_jgene":9,
+                "species":10}
+        else:
+            column_dict = {"heavy_cdr3":0, "light_cdr3":3,
+                "heavy_vgene":6, "light_vgene":7,
+                "heavy_jgene":8, "light_jgene":9,
+                "species":10}
+        build_database_from_cdr_only_csv(
+            [temp_csv_filepath], db_filepath,
+            column_dict, receptor_type="mab",
+            user_memo=request.param["memo"],
+            reject_file=os.path.join(tmp_path, "REJECTS"))
+
+    annotations = sca.analyze_seqs(seqs)
+    data_dict = {0:{}, 1:{}}
+    # Check each set of chain tables for expected info.
+    for table_code, chain_coding in enumerate([("H",),
+                                    ("L", "K")]):
+        seq_prep_results = prep_seqs_for_comparison(
+                request.param["nmbr_scheme"],
+                request.param["cdr_scheme"],
+                chain_coding, seqs,
+                annotations, sca, vj_tool)
+
+        data_dict[table_code]["aligned_seqs"] = seq_prep_results[0]
+        data_dict[table_code]["cdrs"] = seq_prep_results[1]
+        data_dict[table_code]["unusual_positions"] = seq_prep_results[2]
+        data_dict[table_code]["cdr3_region_len"] = seq_prep_results[3]
+        data_dict[table_code]["vgenes"] = seq_prep_results[4]
+        data_dict[table_code]["jgenes"] = seq_prep_results[5]
+        data_dict[table_code]["vspecies"] = seq_prep_results[6]
+        data_dict[table_code]["child_ids"] = seq_prep_results[7]
+        if request.param["mode"] == "cdr3_extract":
+            import pdb
+            pdb.set_trace()
+            data_dict[table_code]["aligned_seqs"]
+    return seqs, seqinfos, db_filepath, request.param, data_dict
