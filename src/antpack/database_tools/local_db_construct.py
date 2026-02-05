@@ -451,14 +451,8 @@ def build_database_from_cdr_only_csv(csv_filepaths:list,
         print("No sequences found.")
         return
 
-    pairing_type = "single"
-
-    if column_selections["light_cdr3"] >= 0 and \
-            column_selections["heavy_cdr3"] >= 0:
-        pairing_type = "paired"
-
     db_construct_tool = DatabaseConstructionTool(database_filepath,
-            "imgt", "imgt", pairing_type, receptor_type, 0.7,
+            "imgt", "imgt", "single", receptor_type, 0.7,
             license_key, user_email, consensus_path,
             nterm_kmer_dict, vj_names, vj_seqs, user_memo)
 

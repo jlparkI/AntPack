@@ -33,8 +33,10 @@ def test_local_db_construct(build_local_mab_lmdb):
     assert metadata[4]==params["memo"]
     assert metadata[5]==0.7
 
-    for i, row in enumerate(cur.execute("SELECT * FROM sequences;")):
-        assert row[0][1:]==seqs[i]
+    for i, row in enumerate(
+            cur.execute("SELECT * FROM sequences;")):
+        if not params["mode"].endswith("extract"):
+            assert row[0][1:]==seqs[i]
         assert row[1]==seqinfos[i]
 
     # Check each set of chain tables for expected info.
@@ -51,9 +53,9 @@ def test_local_db_construct(build_local_mab_lmdb):
             jgene_code = get_vgene_code(chain_dict["jgenes"][i],
                                         chain_dict["vspecies"][i])
             assert len(chain_dict["cdrs"][i][0].
-                       replace('-', ''))==int(value[0])
+                   replace('-', ''))==int(value[0])
             assert len(chain_dict["cdrs"][i][1].
-                       replace('-', ''))==int(value[1])
+                   replace('-', ''))==int(value[1])
             assert len(chain_dict["cdrs"][i][2].
                        replace('-', ''))==int(value[2])
             assert value[16:].decode()==cdr_grp[0]
@@ -233,7 +235,7 @@ def eval_nmbr_table_row_contents(kmer_to_child,
 def prep_seqs_for_comparison(numbering_scheme,
         cdr_scheme, chain_type, sequences,
         annotations, annotator,
-        vj_tool):
+        vj_tool, cdr_extract_mode):
     """Prep sequences which are of the specified chain
     type for analysis by aligning to the template,
     extracting cdrs etc."""
@@ -276,6 +278,11 @@ def prep_seqs_for_comparison(numbering_scheme,
             cdr_labels) if c == "cdr2"])
         cdr3 = ''.join([a for (a,c) in zip(aligned_seq,
             cdr_labels) if c == "cdr3"])
+        # If we are extracting cdr3 only, set the other
+        # cdrs to all gaps.
+        if cdr_extract_mode == "cdr3_extract":
+            cdr1 = '-' * len(cdr1)
+            cdr2 = '-' * len(cdr2)
         cdrs.append((cdr1, cdr2, cdr3))
         aligned_seqs.append((cdr1 + cdr2 + cdr3, cdr3))
 
@@ -286,18 +293,18 @@ def prep_seqs_for_comparison(numbering_scheme,
 
 
 @pytest.fixture(params=[
-    #{"filepath":"addtnl_test_data.fasta.gz",
-    # "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
-    # "sequence_type":"single", "memo":"testing123",
-    # "mode":"full_chain"},
-    #{"filepath":"addtnl_test_data.fasta.gz",
-    # "nmbr_scheme":"imgt", "cdr_scheme":"north",
-    # "sequence_type":"unknown", "memo":"testing123",
-    # "mode":"full_chain"},
-    #{"filepath":"test_data.csv.gz",
-    # "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
-    # "sequence_type":"single", "memo":"testing123",
-    # "mode":"full_chain"},
+    {"filepath":"addtnl_test_data.fasta.gz",
+     "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"full_chain"},
+    {"filepath":"addtnl_test_data.fasta.gz",
+     "nmbr_scheme":"imgt", "cdr_scheme":"north",
+     "sequence_type":"unknown", "memo":"testing123",
+     "mode":"full_chain"},
+    {"filepath":"test_data.csv.gz",
+     "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"full_chain"},
     {"filepath":"addtnl_test_data.fasta.gz",
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
      "sequence_type":"single", "memo":"testing123",
@@ -440,7 +447,8 @@ def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
                 request.param["nmbr_scheme"],
                 request.param["cdr_scheme"],
                 chain_coding, seqs,
-                annotations, sca, vj_tool)
+                annotations, sca, vj_tool,
+                request.param["mode"])
 
         data_dict[table_code]["aligned_seqs"] = seq_prep_results[0]
         data_dict[table_code]["cdrs"] = seq_prep_results[1]
@@ -450,8 +458,11 @@ def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
         data_dict[table_code]["jgenes"] = seq_prep_results[5]
         data_dict[table_code]["vspecies"] = seq_prep_results[6]
         data_dict[table_code]["child_ids"] = seq_prep_results[7]
-        if request.param["mode"] == "cdr3_extract":
-            import pdb
-            pdb.set_trace()
-            data_dict[table_code]["aligned_seqs"]
+        # Little bit of a hack, but...the cdrs in this test data
+        # do not have any unusual inserts, while framework occasionally
+        # does. If we are extracting cdrs only, set all unusual
+        # position values to 0.
+        if request.param["mode"].endswith("extract"):
+            data_dict[table_code]["unusual_positions"] = [0]*len(
+                    data_dict[table_code]["unusual_positions"])
     return seqs, seqinfos, db_filepath, request.param, data_dict
