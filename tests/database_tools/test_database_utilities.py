@@ -1,6 +1,11 @@
 """Test database utility functions that the end user or
 Python functions may need to access."""
-from antpack import (number_imgt_imgt_cdr, SingleChainAnnotator)
+from antpack import (number_imgt_imgt_cdr,
+        SingleChainAnnotator, VJGeneTool)
+from antpack.antpack_cpp_ext import vjgene_parser
+from .database_utilities import get_vgene_code
+
+
 
 
 def test_mab_renumbering(load_mab_nmbr_test_data):
@@ -49,3 +54,42 @@ def test_tcr_renumbering(load_tcr_nmbr_test_data):
             assigned_tokens = number_imgt_imgt_cdr(
                     ''.join(extracted_cdr), i)
             assert assigned_tokens == extracted_tokens
+
+
+
+
+def test_vjgene_parsing():
+    """Test that vjgene parsing returns correct and
+    expected data for a long list of v/j genes."""
+    vjt = VJGeneTool()
+    seq_lists = vjt.get_seq_lists()[1]
+
+    for species, name_list in seq_lists.items():
+        for name in name_list:
+            res = vjgene_parser(name, species.split("_")[0])
+            gt = get_vgene_code(name, species.split("_")[0])
+            assert res == gt
+            reassembled_gene = reassemble_gene(res,
+                        name[2], name[3], name[:2])
+            assert reassembled_gene == name
+
+
+
+def reassemble_gene(gene_extracts, chain_type,
+    gene_type, locus_type):
+    """Reassembles the vgene from the extracted portions.
+    Used for testing only, to confirm that the extracted
+    information correctly maps back to the original gene."""
+    output_gene = locus_type + chain_type + gene_type + \
+            gene_extracts[1]
+    if not gene_extracts[1].endswith("S") and \
+            len(gene_extracts[2]) > 0:
+        output_gene += '-'
+
+    if len(gene_extracts[2]) > 0:
+        output_gene += gene_extracts[2]
+
+    if len(gene_extracts[3]) > 0:
+        output_gene += "*" + gene_extracts[3]
+
+    return output_gene

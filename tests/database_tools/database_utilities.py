@@ -30,33 +30,56 @@ def get_vgene_code(vgene, species):
         raise RuntimeError("Incorrect chain code found in test data.")
     chain_code = codemap[vgene[2]]
 
-    extracted_nums = []
-    read_now = False
-    current_num = ""
+    family, gene, allele = "", "", ""
 
-    for i in range(4, len(vgene)):
-        if vgene[i] == "*":
-            break
-        if vgene[i].isnumeric():
+    if "S" in vgene:
+        family = vgene[4:vgene.find("S")+1]
+        if "*" in vgene:
+            gene = vgene[vgene.find("S")+1:vgene.find("*")]
+            allele = vgene[vgene.find("*")+1:]
+        else:
+            gene = vgene[vgene.find("S")+1:]
+    elif "-" in vgene:
+        family = vgene[4:vgene.find("-")]
+        if "*" in vgene:
+            gene = vgene[vgene.find("-")+1:vgene.find("*")]
+            allele = vgene[vgene.find("*")+1:]
+        else:
+            gene = vgene[vgene.find("-")+1:]
+    elif "*" in vgene:
+        family = vgene[4:vgene.find("*")]
+        allele = vgene[vgene.find("*")+1:]
+    else:
+        family = vgene[4:]
+
+
+    return ([chain_code, min(extract_numeric(family), 255),
+             min(extract_numeric(gene), 255), species_code],
+            family, gene, allele)
+
+
+
+
+def extract_numeric(input_string):
+    """Extracts the first numeric portion of an input
+    string."""
+    read_now = False
+    extracted_num = ""
+
+    for letter in input_string:
+        if letter.isnumeric():
             if not read_now:
                 read_now = True
-                current_num = ""
-            current_num += vgene[i]
+            extracted_num += letter
         elif read_now:
-            read_now = False
-            if len(current_num) > 0:
-                extracted_nums.append(int(current_num))
-            current_num = ""
+            break
 
-    if len(current_num) > 0:
-        extracted_nums.append(int(current_num))
-    if len(extracted_nums)==1:
-        extracted_nums.append(0)
-    elif len(extracted_nums) < 1:
-        raise RuntimeError("Invalid vgene found in test data.")
+    if len(extracted_num) == 0:
+        return 0
+    return int(extracted_num)
 
-    return (chain_code, species_code, extracted_nums[0],
-            extracted_nums[1])
+
+
 
 
 
