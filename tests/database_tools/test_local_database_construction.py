@@ -36,7 +36,7 @@ def test_local_db_construct(build_local_mab_lmdb):
     for i, row in enumerate(
             cur.execute("SELECT * FROM sequences;")):
         if not params["mode"].endswith("extract"):
-            assert row[0][1:]==seqs[i]
+            assert row[0]==seqs[i]
         assert row[1]==seqinfos[i]
 
     # Check each set of chain tables for expected info.
@@ -44,34 +44,34 @@ def test_local_db_construct(build_local_mab_lmdb):
         chain_dict = data_dict[table_code]
 
         for i, (child_id, cdr_grp) in enumerate(
-                zip(chain_dict["child_ids"], chain_dict["aligned_seqs"])):
+                zip(chain_dict["child_ids"], chain_dict["cdrs"])):
             cur.execute(f"SELECT * FROM _{table_code}_cdrs "
                         f"WHERE rowid = {child_id+1};")
-            value = cur.fetchone()[0]
+            row_values = cur.fetchone()
             vgene_code = get_vgene_code(chain_dict["vgenes"][i],
                                         chain_dict["vspecies"][i])
             jgene_code = get_vgene_code(chain_dict["jgenes"][i],
                                         chain_dict["vspecies"][i])
             assert len(chain_dict["cdrs"][i][0].
-                   replace('-', ''))==int(value[0])
+                   replace('-', ''))==int(row_values[0][0])
             assert len(chain_dict["cdrs"][i][1].
-                   replace('-', ''))==int(value[1])
+                   replace('-', ''))==int(row_values[1][0])
             assert len(chain_dict["cdrs"][i][2].
-                       replace('-', ''))==int(value[2])
-            assert value[16:].decode()==cdr_grp[0]
-            assert vgene_code[0]==int(value[4])
-            assert vgene_code[1]==int(value[5])
-            assert vgene_code[2]==int.from_bytes(value[6:8],
-                                    byteorder='big')
-            assert vgene_code[3]==int.from_bytes(value[8:10],
-                                    byteorder='big')
-            assert jgene_code[0]==int(value[10])
-            assert jgene_code[1]==int(value[11])
-            assert jgene_code[2]==int.from_bytes(value[12:14],
-                                    byteorder='big')
-            assert jgene_code[3]==int.from_bytes(value[14:16],
-                                    byteorder='big')
-            assert chain_dict["unusual_positions"][i]==int(value[3])
+                    replace('-', ''))==int(row_values[2][0])
+            assert row_values[0][1:].decode() + \
+                    row_values[1][1:].decode() == \
+                    cdr_grp[0] + cdr_grp[1]
+            assert row_values[2][1:].decode() == cdr_grp[2]
+            assert vgene_code[0][0]==row_values[3]
+            assert vgene_code[1]==row_values[4]
+            assert vgene_code[2]==row_values[5]
+            assert vgene_code[3]==row_values[6]
+
+            assert jgene_code[1]==row_values[7]
+            assert jgene_code[3]==row_values[8]
+            assert vgene_code[0][3]==row_values[9]
+            assert chain_dict["unusual_positions"][i]==\
+                    row_values[10]
 
         kmer_profile = {}
 
@@ -217,8 +217,8 @@ def eval_nmbr_table_row_contents(kmer_to_child,
 
         vgene_code = get_vgene_code(vgenes[i], vjspecies[i])
         packed_codeval = int_to_bin(codeval, 2)
-        packed_codeval += int_to_bin(vgene_code[2], 1)
-        packed_codeval += int_to_bin(vgene_code[3], 1)
+        packed_codeval += int_to_bin(vgene_code[0][1], 1)
+        packed_codeval += int_to_bin(vgene_code[0][2], 1)
         packed_codeval += int_to_bin(child_ids[i] + 1, 4)
         packed_codeval = int(packed_codeval, 2)
 

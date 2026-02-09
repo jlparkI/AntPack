@@ -17,8 +17,10 @@ def setup_canonical_numbering(numbering_scheme,
 
 
 
-def get_vgene_code(vgene, species):
+def get_vgene_code(input_vgene, species):
     """Converts the input vgene and species to a code."""
+    vgene = input_vgene.split("_")[0]
+
     species_map = {"human":1, "mouse":2, "alpaca":3, "rabbit":4}
     if species not in species_map:
         species_code = 0

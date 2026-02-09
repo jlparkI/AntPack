@@ -142,7 +142,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
         delimiter:str=',',
         receptor_type:str="mab", pid_threshold:float=0.7,
         user_memo:str="", reject_file:str = None,
-        verbose:bool=True):
+        default_species:str="human", verbose:bool=True):
     """Builds a database from a list of csv files which may or may
     not be gzipped. The database is constructed so it can be
     searched quickly. The csv files should already contain heavy
@@ -200,7 +200,8 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
               containing jgene assignments for the light chains.
             * ``"species"``: The number (from 0) of the column (if any)
               containing species assignments. If this is not supplied, it
-              will be assumed that all are human.
+              will be assumed that all sequences come from the default
+              species (see below).
             * ``"metadata"``: The number (from 0) of the column (if any)
               containing metadata for each heavy / light chain or chain pair.
 
@@ -223,6 +224,8 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
         reject_file (str): Either None or a filepath. If None, any sequences that
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
+        default_species (str): 'human', 'alpaca', 'rabbit' or 'mouse'. If you do
+            not supply a vgene column, AntPack will use this species as a default.
         verbose (bool): If True, print regular updates while running.
 
     Raises:
@@ -320,7 +323,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
             if len(row) == 0:
                 continue
             rcode = db_construct_tool.add_full_chain_csv_sequence(
-                    row, settings_list)
+                    row, settings_list, default_species)
             if len(rcode) > 0:
                 if reject_handle is not None:
                     reject_handle.write(f"{','.join(row)}\t{rcode}\n")
@@ -350,7 +353,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
 def build_database_from_cdr_only_csv(csv_filepaths:list,
         database_filepath:str, column_selections:dict, delimiter=',',
         receptor_type = "mab", header_rows:int=1, user_memo:str="",
-        reject_file:str = None, verbose:bool=True):
+        reject_file:str = None, default_species:str="human", verbose:bool=True):
     """TCR data and some antibody data is often stored with cdr3 and/or other
     cdrs pre-extracted. This function builds a database specifically using
     this type of input format where you have already extracted the cdrs. If
@@ -391,8 +394,9 @@ def build_database_from_cdr_only_csv(csv_filepaths:list,
             * ``"heavy_jgene"``: The number (from 0) of the column
               containing jgene assignments for the heavy chains.
             * ``"species"``: The number (from 0) of the column
-              containing species assignments. If not supplied,
-              the reader will assume species is always human.
+              containing species assignments. If this is not supplied, it
+              will be assumed that all sequences come from the default
+              species (see below).
             * ``"metadata"``: The number (from 0) of the column (if any)
               containing metadata for each sequence.
 
@@ -406,6 +410,8 @@ def build_database_from_cdr_only_csv(csv_filepaths:list,
         reject_file (str): Either None or a filepath. If None, any sequences that
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
+        default_species (str): 'human', 'alpaca', 'rabbit' or 'mouse'. If you do
+            not supply a vgene column, AntPack will use this species as a default.
         verbose (bool): If True, print regular updates while running.
 
     Raises:
@@ -488,7 +494,7 @@ def build_database_from_cdr_only_csv(csv_filepaths:list,
             if len(row) == 0:
                 continue
             rcode = db_construct_tool.add_extracted_cdr_csv_sequence(
-                    row, settings_list)
+                    row, settings_list, default_species)
             if len(rcode) > 0:
                 if reject_handle is not None:
                     reject_handle.write(f"{','.join(row)}\t{rcode}\n")
