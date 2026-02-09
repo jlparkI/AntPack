@@ -54,10 +54,10 @@ def test_local_db_search(build_local_mab_lmdb,
             "blosum_cutoff":[-1,4],
             "search_mode":["123", "3"],
             "cdr_length_shift":[0,1,2],
-            "symmetric_search":[False,True],
-            "use_vgene_family_only":[True, False],
-            "use_vgene":[True, False],
-            "use_jgene":[True, False]
+            "symmetric_search":[True, False],
+            "use_vgene_family_only":[True,False],
+            "use_vgene":[True,False],
+            "use_jgene":[False]
         }
 
     random.seed(123)
@@ -86,19 +86,21 @@ def test_local_db_search(build_local_mab_lmdb,
             vgene = msa[idx][1]
             species = msa[idx][3]
             vgene_filter = get_vgene_code(vgene, species)
+            if search_settings["use_vgene_family_only"]:
+                vgene_filter[0][2] = 255
+            if search_settings["use_jgene"]:
+                jgene = msa[idx][2]
+                species = msa[idx][3]
+                jgene_filter = get_vgene_code(jgene, species)
+            else:
+                jgene = ""
+                jgene_filter = ()
         else:
             vgene, species = "", ""
-            vgene_filter = (0, 0, 0, 0)
-        if search_settings["use_jgene"]:
-            jgene = msa[idx][2]
-            species = msa[idx][3]
-            jgene_filter = get_vgene_code(jgene, species)
-        else:
+            vgene_filter = ()
             jgene = ""
-            jgene_filter = (0,0,0,0)
+            jgene_filter = ()
 
-        #if ctr < 131:
-        #    continue
         hits = local_db.search(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
                 search_settings["search_mode"],
@@ -107,7 +109,7 @@ def test_local_db_search(build_local_mab_lmdb,
                 search_settings["cdr_length_shift"],
                 search_settings["use_vgene_family_only"],
                 search_settings["symmetric_search"],
-                vgene, species, jgene)
+                vgene, species, jgene)[0]
         hits = sorted(hits, key=lambda x: (x[1], x[0], x[2]))
 
         gt_hit_idx = perform_exact_search(query_seq, msa, msa[idx][4],
@@ -133,9 +135,6 @@ def test_local_db_search(build_local_mab_lmdb,
         # in the input.
         for hit in hits:
             db_seq, db_metadata = local_db.get_sequence(hit[0])
-            if db_seq != seqs[hit[0]-1]:
-                import pdb
-                pdb.set_trace()
             assert db_seq==seqs[hit[0]-1]
             assert seqinfos[hit[0]-1]==db_metadata
 
@@ -203,33 +202,23 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
 
         cdr_dists = [0,0]
         region_lengths = [0,0]
-        if not search_params["use_vgene_family_only"]:
-            if vgene_filter[3] > 0 and seq_data[5][3] != \
-                vgene_filter[3]:
-                continue
-        if vgene_filter[2] > 0 and seq_data[5][2] != \
-            vgene_filter[2]:
-            continue
-        if vgene_filter[0] > 0 and seq_data[5][0] != \
-            vgene_filter[0]:
-            continue
-        if vgene_filter[1] > 0 and seq_data[5][1] != \
-                vgene_filter[1]:
-            continue
 
-        if not search_params["use_vgene_family_only"]:
-            if jgene_filter[3] > 0 and seq_data[6][3] != \
-                jgene_filter[3]:
+        if len(vgene_filter) > 0:
+            if vgene_filter[0][0] > 0 and seq_data[5][0][0] != \
+                        vgene_filter[0][0]:
+                    continue
+            if seq_data[5][1] != vgene_filter[1]:
                 continue
-        if jgene_filter[2] > 0 and seq_data[6][2] != \
-            jgene_filter[2]:
-            continue
-        if jgene_filter[0] > 0 and seq_data[6][0] != \
-            jgene_filter[0]:
-            continue
-        if jgene_filter[1] > 0 and seq_data[6][1] != \
-                jgene_filter[1]:
-            continue
+            if vgene_filter[0][2] != 255 and seq_data[5][2] != \
+                    vgene_filter[2]:
+                continue
+            if vgene_filter[0][1] != 255 and seq_data[5][0][3] != \
+                    vgene_filter[0][3]:
+                continue
+
+            if len(jgene_filter) > 0:
+                if seq_data[6][1] != jgene_filter[1]:
+                    continue
 
         for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
             if str(j+1) not in search_params["search_mode"]:

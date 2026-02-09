@@ -55,8 +55,8 @@ def get_vgene_code(input_vgene, species):
         family = vgene[4:]
 
 
-    return ([chain_code, min(extract_numeric(family), 255),
-             min(extract_numeric(gene), 255), species_code],
+    return ([chain_code, min(extract_numeric(family), 254),
+             min(extract_numeric(gene), 254), species_code],
             family, gene, allele)
 
 
