@@ -18,7 +18,7 @@ For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocu
 v0.4 contains a bug fix for VJ gene assignment for numbering schemes
 *other* than IMGT. If perforiming VJ gene assignment with numbering
 schemes *other* than IMGT, please prefer v0.4 to prior versions.
-v0.3.8.6 (open-source) has been updated with this bug fix as well.
+v0.3.8.6.2 (open-source) has been updated with this bug fix as well.
 
 The API for the SequenceScoringTool and humanization has been updated
 and streamlined so if you are scoring sequences for humanness or
@@ -43,14 +43,15 @@ can be used it for your own data analysis in any manner you wish
 whether you work in academia or industry,
 but any software built using AntPack and intended for sale or distribution 
 must also be open-source under the GPL license. Therefore if
-you are currently using e.g. v0.3.8.6 for data analysis,
+you are currently using e.g. v0.3.8.6.2 for data analysis,
 you should feel free to continue to do so under the
-terms of your existing license. Also note that v0.3.8.6 is still
+terms of your existing license. Also note that v0.3.8.6.2 (the most
+recent open source version) is still
 available on PyPi and can be installed using:
 ```
-pip install antpack==0.3.8.6
+pip install antpack==0.3.8.6.2
 ```
-Please note that v0.3.8.6 contains a bug fix from v0.3.8.5 and
+Please note that v0.3.8.6.2 contains a bug fix from v0.3.8.5 and
 should be preferred to v0.3.8.5.
 
 
@@ -75,7 +76,7 @@ pip install pyside6 qt_material
 
 If you don't plan to use the GUI, you don't need those dependencies.
 
-AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8.
+AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.9. Support for v0.3.8 is deprecated.
 
 ## Capabilities
 
