@@ -89,6 +89,7 @@ causing the score to go over s_thresh * optimal score. Larger values of s_thresh
 cause more of the original sequence to be preserved at the expense of
 a smaller improvement in humanness.
 
-Kabat-defined CDRs are excluded from humanization. If you want to exclude
-additional key positions, you can do this by passing a list of IMGT-numbered
-positions you would like to be excluded from consideration.
+You can either exclude CDRs defined using some specified CDR definition
+OR a user-defined list of IMGT-numbered positions that you do not want to
+be modified (usually this will include CDRs but might include other regions
+that are of interest to you as well).

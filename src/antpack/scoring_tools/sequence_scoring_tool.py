@@ -450,8 +450,6 @@ class SequenceScoringTool():
 
         Args:
             seq (str): The sequence to update.
-            excluded_positions (list): A list of strings (IMGT position numbers)
-                indicating positions which should not be changed. 
             s_thresh (float): The maximum percentage by which
                 the score can shift before backmutation stops.
                 Smaller values (closer to 1) will prioritize
@@ -461,7 +459,18 @@ class SequenceScoringTool():
             cdr_labeling_scheme (str): The sequence is numbered using the IMGT
                 scheme, but to determine which positions are CDR, you can
                 use 'aho', 'kabat', 'imgt', 'martin' or 'north' by supplying
-                an appropriate argument here.
+                an appropriate argument here. CDR positions are excluded from
+                humanization UNLESS you supply your own custom list of excluded
+                positions (see below).
+            excluded_positions (list): A list of strings (IMGT position numbers)
+                indicating positions that are "masked" when humanizing, i.e.
+                positions which should not be changed. If you do
+                supply a list of excluded positions (i.e. if this list is not
+                empty), the cdr_labeling_scheme argument is ignored and ONLY
+                the positions that you specifically request to be excluded
+                are excluded. To get a default mask for a specified CDR scheme
+                that you can modify to make your own custom mask, call
+                get_standard_mask.
 
         Returns:
             initial_score (float): The score of the sequence pre-modification.
