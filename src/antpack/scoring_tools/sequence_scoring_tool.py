@@ -132,7 +132,8 @@ class SequenceScoringTool():
             region (str): One of 'fmwk1', 'fmwk2', 'fmwk3',
                 'fmwk4', 'cdr1', 'cdr2', 'cdr3', 'fmwk', 'cdr'.
                 This function will construct a mask that excludes
-                all other regions.
+                all other regions. If 'fmwk' all framework regions
+                are returned; if 'cdr' all cdr.
             cdr_labeling_scheme (str): The numbering scheme used for
                 humanness calculations is IMGT, but for generating a
                 mask, you can use a different scheme to assign CDRs
@@ -348,7 +349,7 @@ class SequenceScoringTool():
             chain_type (str): One of "H", "L".
 
         Returns:
-            mu_mix (np.ndarray): An array of shape (1, sequence_length,
+            mu_mix (np.ndarray): An array of shape (1, standard sequence length,
                 21), where 21 is the number of possible AAs.
             mixweights (float): The probability of this cluster in the mixture.
             aas (list): A list of amino acids in standard order. The last
@@ -433,12 +434,13 @@ class SequenceScoringTool():
         mu_mix = np.log(mu_mix.clip(min=1e-16))
 
         return chain_type, mu_mix, most_likely_aas
-    
+
 
 
     def suggest_humanizing_mutations(self, seq:str,
-            excluded_positions:list = [],
-            s_thresh:float = 1.25):
+            s_thresh:float = 1.25,
+            cdr_labeling_scheme:str = "kabat",
+            excluded_positions:list = []):
         """Takes an input sequence, scores it per position,
         uses the nclusters closest clusters to determine which
         modification would be most likely to have an impact,
@@ -448,16 +450,14 @@ class SequenceScoringTool():
 
         Args:
             seq (str): The sequence to update.
+            excluded_positions (list): A list of strings (IMGT position numbers)
+                indicating positions which should not be changed. 
             s_thresh (float): The maximum percentage by which
                 the score can shift before backmutation stops.
                 Smaller values (closer to 1) will prioritize
                 increasing the score over preserving the original
                 sequence. Larger values will prioritize preserving
                 the original sequence.
-            excluded_positions (list): A list of strings (IMGT position numbers)
-                indicating positions which should not be changed. This enables
-                the user to mask key residues, Vernier zones etc if so
-                desired.
             cdr_labeling_scheme (str): The sequence is numbered using the IMGT
                 scheme, but to determine which positions are CDR, you can
                 use 'aho', 'kabat', 'imgt', 'martin' or 'north' by supplying
@@ -493,20 +493,23 @@ class SequenceScoringTool():
         best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
         best_aas = np.argmax(best_cluster, axis=1)
 
-        # Construct a mask for all positions specified as excluded by the user,
-        # all CDRs (using kabat definitions) and all positions which are currently
-        # gaps (don't suggest insertions). For heavy, positions 105 and 106 are
-        # added as "special excludes": they are not part of the Kabat CDR but
-        # are Vernier zones and are usually excluded.
-        mask = self.get_standard_mask(chain_type, "fmwk", "kabat")
+        # If the user has supplied a custom mask, then set to False for all
+        # positions they specified. OTHERWISE, set to False for all
+        # cdr positions using their selected cdr scheme and additionally
+        # heavy positions 105, 106 which are Vernier zones and hence are
+        # usually excluded.
         position_dict = {k:i for i,k in enumerate(
-            self.template_aligners[chain_type].get_template_numbering())}
-        for position in excluded_positions:
-            mask[position_dict[position]] = False
-
-        if chain_type == "H":
-            mask[position_dict["105"]] = False
-            mask[position_dict["106"]] = False
+                self.template_aligners[chain_type].get_template_numbering())}
+        if len(excluded_positions) > 0:
+            mask = np.array([True for p in position_dict.keys()])
+            for position in excluded_positions:
+                mask[position_dict[position]] = False
+        else:
+            mask = self.get_standard_mask(chain_type, "fmwk",
+                                      cdr_labeling_scheme)
+            if chain_type == "H":
+                mask[position_dict["105"]] = False
+                mask[position_dict["106"]] = False
 
         del position_dict
 

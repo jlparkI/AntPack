@@ -206,7 +206,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
         if len(vgene_filter) > 0:
             if vgene_filter[0][0] > 0 and seq_data[5][0][0] != \
                         vgene_filter[0][0]:
-                    continue
+                continue
             if seq_data[5][1] != vgene_filter[1]:
                 continue
             if vgene_filter[0][2] != 255 and seq_data[5][2] != \
