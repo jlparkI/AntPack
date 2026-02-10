@@ -6,7 +6,7 @@ see [the docs](https://antpack.readthedocs.io/en/latest/index.html).
 It is currently in active development, so we are adding new features
 and making more improvements periodically.
 
-## What's new in v0.3.8.6.1
+## What's new in v0.3.8.6.2
 
 v0.3.8 adds numbering (using the IMGT scheme) and VJ
 gene assignment for TCRs. For both TCRs and mAbs, if
@@ -32,6 +32,11 @@ conserved residues was altered), together with some slight
 modifications to the liability search tool to make it more
 intelligible.
 
+v0.3.8.6.2 makes humanization more flexible by allowing you
+to specify your own list of excluded positions INSTEAD OF
+the default Kabat-identified CDRs if so desired.
+
+
 ## Installation
 
 The only required dependency is numpy. If you want to run the GUI,
@@ -47,9 +52,8 @@ Either way, to install antpack run:
 pip install antpack
 ```
 
-AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8,
-so installation should be very straightforward. A source distribution is also available
-(C++17) in case there is any need to compile from source.
+AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.9,
+so installation should be very straightforward.
 
 ## Capabilities
 
@@ -97,7 +101,7 @@ developability issues.
 
 ### Licensing
 
-AntPack is licensed under a GPL license, which means that you are free to
+AntPack prior to v0.3.9 is licensed under a GPL license, which means that you are free to
 use it for your own data analysis in any manner you like irrespective of
 whether you work on academic research or industrial R&D / QC.
 
