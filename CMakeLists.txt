@@ -28,7 +28,7 @@ endif()
 
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
-find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(Python 3.9 COMPONENTS Interpreter Development.Module REQUIRED)
 #set(QT_DEBUG_FIND_PACKAGE ON)
 
 set(CMAKE_CXX_STANDARD 17)
