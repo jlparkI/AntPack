@@ -13,8 +13,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
+          submodules: true
 
-      - name: Build and test wheels
+      - name: Build but don't test wheels
         env:
           CIBW_SKIP: "pp* cp36* cp37* *musllinux*"
           CIBW_BUILD_FRONTEND: "build"
@@ -33,10 +36,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
+          submodules: true
 
       - name: Build sdist
         run: |
           git submodule update --init --recursive
+          git submodule update --remote --recursive
           python -m pip install --upgrade pip build wheel
           python -m build --sdist
 

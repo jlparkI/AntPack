@@ -3,7 +3,7 @@ name: test
 on:
   pull_request:
     branches: [ "main" ]
-  push:
+  workflow_dispatch:
     branches: [ "main" ]
 
 jobs:
@@ -13,20 +13,28 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Python setup
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.ANTPACK_PRIVATE_CLONE }}
+        submodules: true
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip numpy nanobind pytest
+        git submodule update --init --recursive
+        git submodule update --remote --recursive
+        python -m pip install --upgrade pip numpy nanobind pytest pytest-cov
         pip install -r test_requirements.txt
         pip install -e . --verbose
+
     - name: Test with pytest
       run: |
-        pytest tests
+        pytest tests --cov --cov-report json
