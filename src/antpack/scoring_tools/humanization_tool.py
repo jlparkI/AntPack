@@ -31,8 +31,8 @@ class HumanizationTool():
         uses the nclusters closest clusters to determine which
         modification would be most likely to have an impact,
         suggest mutations and report both the mutations and the
-        new score. CDRs are excluded, together with user-specified
-        excluded positions.
+        new score. Either CDRs or a list of user-specified positions
+        are excluded.
 
         Args:
             seq (str): The sequence to update.
@@ -45,7 +45,9 @@ class HumanizationTool():
             excluded_positions (list): A list of strings (IMGT position numbers)
                 indicating positions which should not be changed. This enables
                 the user to mask key residues, Vernier zones etc if so
-                desired.
+                desired. NOTE: If you supply a list of excluded positions,
+                these are the ONLY ones that will be excluded! Standard Kabat
+                CDR masking will be turned off.
 
         Returns:
             initial_score (float): The score of the sequence pre-modification.
@@ -73,8 +75,12 @@ class HumanizationTool():
         best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
         best_aas = best_cluster.argmax(axis=1)
         mask = self.cdr_mask[chain_name].copy()
-        for position in excluded_positions:
-            mask[self.score_tool.position_dict[chain_name][position]] = False
+
+        # If user has specified excluded positions, use those only.
+        if len(excluded_positions) > 0:
+            mask[:] = True
+            for position in excluded_positions:
+                mask[self.score_tool.position_dict[chain_name][position]] = False
 
         updated_arr[0,mask] = best_aas[mask]
         starting_score = mixmodel.score(updated_arr, n_threads = 1)[0]

@@ -1,6 +1,6 @@
 # Used for determining the version if running setup.
 # Only change if building a new version.
-__version__ = "0.3.8.6.1"
+__version__ = "0.3.8.6.2"
 
 import importlib.util
 

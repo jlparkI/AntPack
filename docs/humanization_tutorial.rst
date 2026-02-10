@@ -40,5 +40,5 @@ cause more of the original sequence to be preserved at the expense of
 a smaller improvement in humanness.
 
 Kabat-defined CDRs are excluded from humanization. If you want to exclude
-additional key positions, you can do this by passing a list of IMGT-numbered
-positions you would like to be excluded from consideration.
+your own set of key positions instead, you can do this by passing a list of
+IMGT-numbered positions you would like to be excluded from consideration.

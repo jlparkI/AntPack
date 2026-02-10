@@ -1,3 +1,8 @@
+### Version 0.3.8.6.2
+Updated humanness scoring tool to allow user to specify their
+own list of excluded positions IN PLACE of the CDR exclusions
+that are typically used.
+
 ### Version 0.3.8.6.1
 Updated liability search tool to more closely parallel Satlawa et al.
 
