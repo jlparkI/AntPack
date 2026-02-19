@@ -73,10 +73,14 @@ def test_local_db_search(build_local_mab_lmdb,
         idx = random.randint(0, len(msa) - 1)
         query_seq = list(msa[idx][0][0])
         if msa[idx][4] == "H":
+            chain_type = "heavy"
             codes = msa_codes[0]
         else:
+            chain_type = "light"
             codes = msa_codes[1]
         mut_percentage = random.uniform(0, 0.2)
+        if mut_percentage < 0.05:
+            mut_percentage = 0
 
         for i, qletter in enumerate(query_seq):
             if qletter == '-':
@@ -133,6 +137,27 @@ def test_local_db_search(build_local_mab_lmdb,
 
         else:
             assert hits==gt_hit_idx
+
+        # If the input search sequence is unmodified,
+        # try checking the search from preprocessed data
+        # functionality to make sure we get the same
+        # results.
+        if mut_percentage == 0:
+            prep_inputs = local_db.retrieve_preprocessed_search_data(
+                    idx+1, chain_type,
+                    vgene!="", jgene!="",
+                    search_settings["use_vgene_family_only"])
+            alt_hits = local_db.search_from_preprocessed_data(
+                prep_inputs, search_settings["search_mode"],
+                search_settings["cdr_cutoff"],
+                search_settings["blosum_cutoff"],
+                search_settings["cdr_length_shift"],
+                search_settings["use_vgene_family_only"],
+                search_settings["symmetric_search"])[0]
+            alt_hits = sorted(alt_hits,
+                        key=lambda x: (x[1], x[0], x[2]))
+            assert hits == alt_hits
+
 
         # Make sure the metadata and sequence retrieved
         # from the database for a given id code match those
