@@ -2,7 +2,8 @@
 Python functions may need to access."""
 from antpack import (number_imgt_imgt_cdr,
         SingleChainAnnotator, VJGeneTool)
-from antpack.antpack_cpp_ext import vjgene_parser
+from antpack.antpack_cpp_ext import (vjgene_parser,
+            reassemble_vj_gene)
 from .database_utilities import get_vgene_code
 
 
@@ -73,6 +74,14 @@ def test_vjgene_parsing():
                         name[2], name[3], name[:2])
             assert reassembled_gene == name
 
+            if name[:2] == "IG":
+                receptor_type = "mab"
+            else:
+                receptor_type = "tcr"
+            test_reassembled_gene = reassemble_vj_gene(
+                    receptor_type, gt[0][0], name[3],
+                    gt[1], gt[2], gt[3])
+            assert test_reassembled_gene == reassembled_gene
 
 
 def reassemble_gene(gene_extracts, chain_type,

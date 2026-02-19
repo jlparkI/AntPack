@@ -136,6 +136,28 @@ class LocalDBSearchTool:
         return self.local_db_manager.retrieve_sequence(seq_id)
 
 
+    def get_vgene_jgene(self, seq_id:int, chain_type:str):
+        """Retrieves the vgene and jgene associated with
+        a given sequence id and chain type. Sequence ids can be
+        obtained from any of the search functions.
+
+        Args:
+            seq_id (int): A sequence id associated with one of the
+                sequences in the database.
+            chain_type (str): One of 'heavy', 'light'. If using TCRs,
+                B is heavy.
+
+        Returns:
+            vgene (str): Either a blank string if the id that was supplied
+                does not match any database sequences or there is no vgene
+                for this sequence, or the vgene from the database.
+            metadata (str): Either a blank string if the id that was supplied
+                does not match any database sequences or there is no jgene
+                for this sequence, or the jgene from the database.
+        """
+        return self.local_db_manager.retrieve_vgene_jgene(seq_id, chain_type)
+
+
 
     def build_sparse_distance_matrix(self, chain_type:str="heavy",
             mode:str="3", cdr_cutoff:float=0.25,
@@ -220,6 +242,44 @@ class LocalDBSearchTool:
                 max_cdr_length_shift, distance_type, filter_by_vgene,
                 filter_by_species, verbose)
 
+
+    def basic_clustering(self, chain_type:str="heavy",
+        mode:str="123", cdr_cutoff:float=0.2, blosum_cutoff:float=-1,
+        verbose:bool=True):
+        """Clusters the linked database using single linkage, by searching
+        every sequence once against the database. Only sequences that have the
+        same cdr3 length and the same vgenes, jgenes and species can
+        be assigned to a cluster.
+
+        Args:
+            chain_type (str): One of "heavy", "light". For TCRs, TCRB is
+                heavy.
+            mode (str): One of "123" or "3", indicating whether to use
+                cdr3 only or cdrs 1, 2 and 3 when determining whether a
+                hit meets neighborhood criteria. Generally use 123 UNLESS
+                you are working with sequences where you have data for cdr3
+                only (e.g. TCRs).
+            cdr_cutoff (float): A value in the range from 0 to 0.25
+                (inclusive). Determines the percent identity for two
+                sequences to be in the same cluster.
+            blosum_cutoff (float): Either -1 or a value >=0. If -1, this
+                argument is ignored. If >=0, sequences must have a BLOSUM
+                distance < this cutoff at all positions to be in the same
+                cluster.
+            verbose (bool): If True, print periodic updates while clustering.
+
+        Returns:
+            cluster_assignments (list): A list of ints of the same length as the
+                number of sequences in the database, including all chain
+                types. Each sequence has a cluster label which may be -2 for
+                sequence does not have chain of this type, -1 for sequence is
+                not assigned to any cluster / has no neighbors within the
+                search radius, or a number >= 0 indicating the cluster to which
+                it belongs.
+        """
+        return self.local_db_manager.basic_clustering(
+                chain_type, mode, cdr_cutoff, blosum_cutoff,
+                verbose)
 
 
     def get_database_metadata(self):

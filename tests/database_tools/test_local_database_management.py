@@ -1,11 +1,13 @@
 """Test database management & search."""
 import os
+import gzip
 from copy import deepcopy
 import random
 from math import floor
 import pytest
 import numpy as np
 from antpack import (build_database_from_fasta,
+        build_database_from_full_chain_csv,
         SingleChainAnnotator, LocalDBSearchTool, VJGeneTool)
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
         return_imgt_canonical_numbering_cpp,
@@ -28,11 +30,6 @@ def test_local_db_search(build_local_mab_lmdb,
     print(f"Testing {thread_scheme} scheme...")
     local_db = LocalDBSearchTool(db_filepath, thread_scheme)
 
-    # First annotate the chains and build a heavy and light
-    # MSA, then interleave them.
-    # Use this msa to do brute force searches and compare
-    # the results with those we get back from the database.
-
     # Check that get_num_seqs works correctly.
     assert local_db.get_num_seqs("all") == len(seqs)
     assert (local_db.get_num_seqs("heavy") ==
@@ -41,6 +38,16 @@ def test_local_db_search(build_local_mab_lmdb,
             len([s for s in msa if s[4] != "H"]))
 
     aamap = {k:i for i,k in enumerate(standard_aa_list)}
+
+    # Check that vgene reassembly works correctly.
+    for i, seqinfo in enumerate(msa):
+        if seqinfo[4] == "H":
+            chain_type = "heavy"
+        else:
+            chain_type = "light"
+        test_vgene, test_jgene = local_db.get_vgene_jgene(i+1, chain_type)
+        assert test_vgene == seqinfo[1].split("_")[0]
+        assert test_jgene == seqinfo[2].split("_")[0]
 
     # Randomly select a sequence, randomly mutate it and
     # find its closest matches using a random setting for
@@ -125,9 +132,6 @@ def test_local_db_search(build_local_mab_lmdb,
                             [h[1] for h in gt_hit_idx])
 
         else:
-            if hits != gt_hit_idx:
-                import pdb
-                pdb.set_trace()
             assert hits==gt_hit_idx
 
         # Make sure the metadata and sequence retrieved
@@ -175,6 +179,42 @@ def test_local_db_search_setup(build_local_mab_lmdb,
 
     for key, value in gt_dtable.items():
         assert dtables[1][key]==value
+
+
+
+
+
+@pytest.mark.parametrize("cdr_scheme", ["imgt"])
+def test_basic_clustering(tmp_path_factory,
+    get_test_data_filepath, cdr_scheme):
+    """Builds a local db and clusters it using a set
+    of data with known ground truths."""
+    temp_folder = tmp_path_factory.mktemp("clustering")
+    input_file = os.path.join(get_test_data_filepath,
+                "prepped_clustering_test.csv.gz")
+    db_path = os.path.join(temp_folder, "cluster_db")
+    reject_file = os.path.join(temp_folder, "REJECTS")
+
+    build_database_from_full_chain_csv([input_file], db_path,
+            {"heavy_chain":4, "heavy_vgene":0,
+             "heavy_jgene":1, "species":7},
+            numbering_scheme='imgt',
+            cdr_definition_scheme=cdr_scheme,
+            receptor_type="mab", pid_threshold=0.7,
+            user_memo="", reject_file=reject_file,
+            header_rows=1)
+
+    local_db = LocalDBSearchTool(db_path)
+    test_assignments = local_db.basic_clustering(
+            "heavy", "3", 0.2, -1, True)
+    with gzip.open(input_file, "rt") as fh:
+        _=fh.readline()
+        actual_assignments = [int(l.strip().split(',')[8]) for
+                              l in fh]
+    assert actual_assignments == test_assignments
+
+
+
 
 
 
