@@ -17,8 +17,13 @@ class LocalDBSearchTool:
                 database. All other necessary info about
                 the database will be retrieved from the
                 database.
-            multithread (bool): If True, use multithreading,
-                otherwise do not.
+            multithread (bool): If True, open database in such
+                a way that multithreading / batch search is
+                available, otherwise do not. We strongly recommend
+                setting this to False on hard drives; on solid-state
+                drives, by contrast, batch search is faster than
+                single search if querying a large number of
+                sequences so this may be advantageous.
 
         Raises:
             RuntimeError: A runtime error is raised if the
