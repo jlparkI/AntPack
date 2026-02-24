@@ -172,9 +172,8 @@ def test_sequence_extraction(raw_scoring_data):
 def test_scoring_consistency(raw_scoring_data, get_test_base_filepath):
     """Test that scores assigned by different procedures give what
     we expect."""
-    score_tool = SequenceScoringTool(offer_classifier_option=True)
-    adj_score_tool = SequenceScoringTool(offer_classifier_option=False,
-            normalization="training_set_adjust")
+    score_tool = SequenceScoringTool()
+    adj_score_tool = SequenceScoringTool(normalization="training_set_adjust")
     # This is an ugly hack, but. In prior versions of antpack, weights
     # were clipped and not allowed to go below 1e-14 for numerical
     # stability. This is higher than necessary however and 1e-16

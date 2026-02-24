@@ -298,7 +298,7 @@ class LocalDBSearchTool:
 
     def basic_clustering(self, chain_type:str="heavy",
         mode:str="123", cdr_cutoff:float=0.2, blosum_cutoff:float=-1,
-        verbose:bool=True):
+        filter_by_jgene:bool=True, verbose:bool=True):
         """Clusters the linked database using single linkage, by searching
         every sequence once against the database. Only sequences that have the
         same cdr3 length and the same vgenes, jgenes and species can
@@ -319,6 +319,9 @@ class LocalDBSearchTool:
                 argument is ignored. If >=0, sequences must have a BLOSUM
                 distance < this cutoff at all positions to be in the same
                 cluster.
+            filter_by_jgene (bool): If True, members of a cluster are
+                required to have the same jgene. If False, jgenes are
+                ignored.
             verbose (bool): If True, print periodic updates while clustering.
 
         Returns:
@@ -332,7 +335,7 @@ class LocalDBSearchTool:
         """
         return self.local_db_manager.basic_clustering(
                 chain_type, mode, cdr_cutoff, blosum_cutoff,
-                verbose)
+                filter_by_jgene, verbose)
 
 
     def get_database_metadata(self):
