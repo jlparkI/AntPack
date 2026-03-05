@@ -123,7 +123,7 @@ to false positives (an N-glycosylation motif, for example, will not always be gl
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
 
-### Clustering, database construction and search (coming soon!)
+#### Clustering, database construction and search (coming soon!)
 
 ![Static Badge](https://img.shields.io/badge/New!-grey) Starting in
 v0.5 (coming soon), AntPack will contain a built-in database engine
