@@ -2,8 +2,10 @@
 
 ![Static Badge](https://img.shields.io/badge/coverage-80%25-green)
 
-AntPack is a Python package / toolkit for antibody numbering, data processing,
-statistical inference and machine learning for antibody sequences and TCRs.
+AntPack is a Python package / toolkit for numbering / alignment, VJ gene
+assignment, developability prediction, database construction,
+clustering, search, statistical inference and machine learning for
+antibody sequences and TCRs.
 It is currently in active development, so we are adding new features
 and making more improvements periodically.
 
@@ -121,11 +123,15 @@ to false positives (an N-glycosylation motif, for example, will not always be gl
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
 
-### Clustering
+### Clustering, database construction and search (coming soon!)
 
-![Static Badge](https://img.shields.io/badge/New!-grey) Starting in v0.4,
-AntPack contains tools for quickly clustering both small and large sequence
-datasets using all or part of the antibody sequence.
+![Static Badge](https://img.shields.io/badge/New!-grey) Starting in
+v0.5 (coming soon), AntPack will contain a built-in database engine
+for constructing databases from large (millions to hundreds of millions
+or billions) sequence datasets. This engine provides lightning-fast
+search capabilities (>1,000x faster than KA-Search or MMSeqs) and
+fast, highly scalable clustering and clonotyping capabilities.
+Check back for updates (coming soon!)
 
 
 ### Citing this work
