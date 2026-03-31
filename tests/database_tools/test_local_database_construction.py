@@ -89,13 +89,10 @@ def test_local_db_construct(build_local_mab_lmdb):
                     chain_dict["vgenes"],
                     chain_dict["vspecies"],
                     kmer_profile, j)
-
         for row in cur.execute("SELECT * FROM "
                 f"_{table_code}_column_diversity;"):
-            assert row[1] in kmer_profile
-            test_arr = np.frombuffer(row[-1], dtype=np.uint32)
-            test_arr = test_arr.reshape((row[2], row[3]))
-            assert np.allclose(test_arr, kmer_profile[row[1]])
+            assert row[0] in kmer_profile
+            assert row[1] == kmer_profile[row[0]]
 
 
 
@@ -183,10 +180,6 @@ def eval_nmbr_table_row_contents(kmer_to_child,
         cdr = cdr_group[2]
         cdr3len = len(cdr.replace('-', ''))
 
-        if cdr3len not in profile_counts:
-            profile_counts[cdr3len] = \
-                    np.zeros(( len(cdr) - 1, 21*21), dtype=np.uint32)
-
         # Construct the augmented child id.
         if numbering_scheme in ("imgt", "aho"):
             cdr_extract = cdr[:8] + cdr[-8:]
@@ -207,18 +200,31 @@ def eval_nmbr_table_row_contents(kmer_to_child,
             unsigned_tag_filter.to_bytes(8, byteorder=sys.byteorder),
             byteorder=sys.byteorder, signed=True)
 
-        kmer = cdr[position:position+2]
-        codeval = AAMAP[kmer[0]] * 21 + AAMAP[kmer[1]]
-        profile_counts[cdr3len][position, codeval] += 1
-        if kmer == "--":
+        dimer = cdr[position:position+2]
+        if position < len(cdr) - 2:
+            trimer = dimer + cdr[position+2]
+        else:
+            trimer = dimer + "-"
+
+        cdr3len = min(cdr3len, 31)
+        packed_codeval = int_to_bin(AAMAP[dimer[0]], 1)[2:] + \
+                int_to_bin(AAMAP[dimer[1]], 1)[3:] + \
+                int_to_bin(cdr3len, 1)[3:]
+        packed_codeval += int_to_bin(AAMAP[trimer[2]], 1)[3:]
+        count_codeval = packed_codeval + '000' + \
+                int_to_bin(position, 1)
+        count_codeval = int(count_codeval, 2)
+        if count_codeval not in profile_counts:
+            profile_counts[count_codeval] = 0
+        profile_counts[count_codeval] += 1
+        if dimer == "--" and trimer == "---":
             continue
-        codeval = AAMAP[kmer[0]] * 21 * 50 + AAMAP[kmer[1]] * 50
-        codeval += cdr3len
 
         vgene_code = get_vgene_code(vgenes[i], vjspecies[i])
-        packed_codeval = int_to_bin(codeval, 2)
-        packed_codeval += int_to_bin(vgene_code[0][1], 1)
-        packed_codeval += int_to_bin(vgene_code[0][2], 1)
+        vgene_code[0][1] = vgene_code[0][1] % 16
+        vgene_code[0][2] = vgene_code[0][2] % 128
+        packed_codeval += int_to_bin(vgene_code[0][1], 1)[4:]
+        packed_codeval += int_to_bin(vgene_code[0][2], 1)[1:]
         packed_codeval += int_to_bin(child_ids[i] + 1, 4)
         packed_codeval = int(packed_codeval, 2)
 
