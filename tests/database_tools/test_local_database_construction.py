@@ -91,8 +91,9 @@ def test_local_db_construct(build_local_mab_lmdb):
                     kmer_profile, j)
         for row in cur.execute("SELECT * FROM "
                 f"_{table_code}_column_diversity;"):
-            assert row[0] in kmer_profile
-            assert row[1] == kmer_profile[row[0]]
+            key = (row[0], row[1])
+            assert key in kmer_profile
+            assert row[2] == kmer_profile[key]
 
 
 
@@ -206,17 +207,27 @@ def eval_nmbr_table_row_contents(kmer_to_child,
         else:
             trimer = dimer + "-"
 
+        # Add both dimer and trimer counts to the kmer profile
+        # table.
         cdr3len = min(cdr3len, 31)
         packed_codeval = int_to_bin(AAMAP[dimer[0]], 1)[2:] + \
                 int_to_bin(AAMAP[dimer[1]], 1)[3:] + \
                 int_to_bin(cdr3len, 1)[3:]
-        packed_codeval += int_to_bin(AAMAP[trimer[2]], 1)[3:]
-        count_codeval = packed_codeval + '000' + \
+        count_codeval = packed_codeval + ('0'*8) + \
                 int_to_bin(position, 1)
-        count_codeval = int(count_codeval, 2)
+        count_codeval = (int(count_codeval, 2), 2)
         if count_codeval not in profile_counts:
             profile_counts[count_codeval] = 0
         profile_counts[count_codeval] += 1
+        # The trimer count is under a modified key.
+        packed_codeval += int_to_bin(AAMAP[trimer[2]], 1)[3:]
+        count_codeval = packed_codeval + ('0'*3) + \
+                int_to_bin(position, 1)
+        count_codeval = (int(count_codeval, 2), 3)
+        if count_codeval not in profile_counts:
+            profile_counts[count_codeval] = 0
+        profile_counts[count_codeval] += 1
+
         if dimer == "--" and trimer == "---":
             continue
 
