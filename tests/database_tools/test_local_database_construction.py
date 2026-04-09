@@ -9,7 +9,8 @@ import numpy as np
 from antpack import (build_database_from_fasta,
         build_database_from_full_chain_csv,
         build_database_from_cdr_only_csv,
-        SingleChainAnnotator, VJGeneTool)
+        SingleChainAnnotator, VJGeneTool,
+        LocalDBSearchTool)
 from antpack.utilities import read_fasta
 from .database_utilities import (get_vgene_code,
                 setup_canonical_numbering, int_to_bin)
@@ -33,11 +34,18 @@ def test_local_db_construct(build_local_mab_lmdb):
     assert metadata[4]==params["memo"]
     assert metadata[5]==0.7
 
+    # Temporarily create a tool to back-convert compressed
+    # sequences. TODO: Fix this so that local db search tool
+    # which is tested separately is not required here.
+    ldb = LocalDBSearchTool(db_filepath)
     for i, row in enumerate(
             cur.execute("SELECT * FROM sequences;")):
         if not params["mode"].endswith("extract"):
-            assert row[0]==seqs[i]
+            test_seq = ldb.get_sequence(i+1)[0]
+            assert test_seq==seqs[i]
         assert row[1]==seqinfos[i]
+
+    del ldb
 
     # Check each set of chain tables for expected info.
     for table_code in [0,1]:
@@ -91,9 +99,8 @@ def test_local_db_construct(build_local_mab_lmdb):
                     kmer_profile, j)
         for row in cur.execute("SELECT * FROM "
                 f"_{table_code}_column_diversity;"):
-            key = (row[0], row[1])
-            assert key in kmer_profile
-            assert row[2] == kmer_profile[key]
+            assert row[0] in kmer_profile
+            assert row[1] == kmer_profile[row[0]]
 
 
 
@@ -176,6 +183,18 @@ def eval_nmbr_table_row_contents(kmer_to_child,
                            "W":[32,16,0], "Y":[48,32,16,0],
                            "-":[], "X":[32]
                            }
+    #letter_position_map = {"A":[0], "C":[21],
+    #                       "D":[42], "E":[42],
+    #                       "F":[0,21], "G":[0,21],
+    #                       "H":[0,21], "I":[0],
+    #                       "K":[0,42], "L":[0],
+    #                       "M":[21], "N":[21,42],
+    #                       "P":[21], "Q":[21,42],
+    #                       "R":[0,42], "S":[21,42],
+    #                       "T":[0,42], "V":[0,21,42],
+    #                       "W":[0,21,42], "Y":[0,21,42],
+    #                       "-":[], "X":[21]
+    #                       }
 
     for i, cdr_group in enumerate(cdrs):
         cdr = cdr_group[2]
@@ -186,6 +205,10 @@ def eval_nmbr_table_row_contents(kmer_to_child,
             cdr_extract = cdr[:8] + cdr[-8:]
         else:
             cdr_extract = cdr[:16]
+        #if numbering_scheme in ("imgt", "aho"):
+        #    cdr_extract = cdr[:10] + cdr[-11:]
+        #else:
+        #    cdr_extract = cdr[:21]
 
         bytestring = ['0' for j in range(64)]
         for j, letter in enumerate(cdr_extract):
@@ -215,15 +238,15 @@ def eval_nmbr_table_row_contents(kmer_to_child,
                 int_to_bin(cdr3len, 1)[3:]
         count_codeval = packed_codeval + ('0'*8) + \
                 int_to_bin(position, 1)
-        count_codeval = (int(count_codeval, 2), 2)
+        count_codeval = int(count_codeval, 2)
         if count_codeval not in profile_counts:
             profile_counts[count_codeval] = 0
         profile_counts[count_codeval] += 1
         # The trimer count is under a modified key.
         packed_codeval += int_to_bin(AAMAP[trimer[2]], 1)[3:]
-        count_codeval = packed_codeval + ('0'*3) + \
+        count_codeval = packed_codeval + '1' + ('0'*2) + \
                 int_to_bin(position, 1)
-        count_codeval = (int(count_codeval, 2), 3)
+        count_codeval = int(count_codeval, 2)
         if count_codeval not in profile_counts:
             profile_counts[count_codeval] = 0
         profile_counts[count_codeval] += 1
@@ -232,8 +255,8 @@ def eval_nmbr_table_row_contents(kmer_to_child,
             continue
 
         vgene_code = get_vgene_code(vgenes[i], vjspecies[i])
-        vgene_code[0][1] = vgene_code[0][1] % 16
-        vgene_code[0][2] = vgene_code[0][2] % 128
+        vgene_code[0][1] = vgene_code[0][1] % 15
+        vgene_code[0][2] = vgene_code[0][2] % 127
         packed_codeval += int_to_bin(vgene_code[0][1], 1)[4:]
         packed_codeval += int_to_bin(vgene_code[0][2], 1)[1:]
         packed_codeval += int_to_bin(child_ids[i] + 1, 4)

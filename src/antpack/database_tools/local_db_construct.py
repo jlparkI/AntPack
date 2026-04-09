@@ -225,7 +225,7 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
             are rejected are silently ignored. If a filepath, rejected sequences
             are written to that filepath which is saved as a csv file.
         default_species (str): 'human', 'alpaca', 'rabbit' or 'mouse'. If you do
-            not supply a vgene column, AntPack will use this species as a default.
+            not supply a species column, AntPack will use this species as a default.
         verbose (bool): If True, print regular updates while running.
 
     Raises:
@@ -240,8 +240,8 @@ def build_database_from_full_chain_csv(csv_filepaths:list,
         raise RuntimeError("The database already exists.")
 
     license_key, user_email = get_license_key_info()
-    project_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-            "..")
+    project_path = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), "..")
     consensus_path = os.path.join(project_path,
             "numbering_tools", "consensus_data")
     nterm_kmer_dict = _load_nterm_kmers()
