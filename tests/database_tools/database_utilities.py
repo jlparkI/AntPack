@@ -1,13 +1,33 @@
 """Utilities shared by all database tests."""
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
-        return_imgt_canonical_numbering_cpp)
+        return_imgt_canonical_numbering_cpp,
+        return_aho_canonical_numbering_cpp,
+        return_martin_heavy_canonical_numbering_cpp,
+        return_martin_light_canonical_numbering_cpp,
+        return_kabat_heavy_canonical_numbering_cpp,
+        return_kabat_light_canonical_numbering_cpp)
 
 
 def setup_canonical_numbering(numbering_scheme,
         cdr_scheme, chain_type):
     """Sets up a template aligner for the numbering
     scheme we have chosen."""
-    numbering = return_imgt_canonical_numbering_cpp()
+    if numbering_scheme == "imgt":
+        numbering = return_imgt_canonical_numbering_cpp()
+    elif numbering_scheme == "aho":
+        numbering = return_aho_canonical_numbering_cpp()
+    elif numbering_scheme == "kabat":
+        if chain_type in ("H", "B", "G"):
+            numbering = return_kabat_heavy_canonical_numbering_cpp()
+        else:
+            numbering = return_kabat_light_canonical_numbering_cpp()
+    elif numbering_scheme == "martin":
+        if chain_type in ("H", "B", "G"):
+            numbering = return_martin_heavy_canonical_numbering_cpp()
+        else:
+            numbering = return_martin_light_canonical_numbering_cpp()
+    else:
+        raise RuntimeError("Invalid numbering scheme supplied in test.")
 
     sta = SequenceTemplateAligner(numbering,
                         chain_type, numbering_scheme,

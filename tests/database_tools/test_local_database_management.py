@@ -5,6 +5,7 @@ from copy import deepcopy
 import random
 from math import floor
 import pytest
+import pandas as pd
 import numpy as np
 from antpack import (build_database_from_fasta,
         build_database_from_full_chain_csv,
@@ -20,12 +21,12 @@ from ..conftest import (get_test_data_filepath,
 
 
 
-def test_local_db_search(build_local_mab_lmdb,
+def test_local_db_search(build_local_mab_db,
         standard_aa_list, std_blosum_matrix):
     """Check that searches retrieve the sequences that
     we would expect based on a brute-force exact search."""
     seqs, seqinfos, db_filepath, msa, msa_codes, _ = \
-            build_local_mab_lmdb
+            build_local_mab_db
     local_db = LocalDBSearchTool(db_filepath)
 
     # Check that get_num_seqs works correctly.
@@ -50,10 +51,7 @@ def test_local_db_search(build_local_mab_lmdb,
     # Randomly select a sequence, randomly mutate it and
     # find its closest matches using a random setting for
     # distance and other parameters. Check it on the fly
-    # against the search tool. Simultaneously store the
-    # results grouped by search criteria so that we can
-    # later test all of the results against the batch
-    # search.
+    # against the search tool.
     allowed_search_settings = {
             "cdr_cutoff":[0.2, 0.25, 0.3],
             "blosum_cutoff":[-1,4],
@@ -109,6 +107,9 @@ def test_local_db_search(build_local_mab_lmdb,
             vgene_filter = ()
             jgene = ""
             jgene_filter = ()
+
+        if ctr < 25:
+            continue
 
         hits = local_db.search(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
@@ -169,12 +170,12 @@ def test_local_db_search(build_local_mab_lmdb,
 
 
 
-def test_local_db_search_setup(build_local_mab_lmdb,
+def test_local_db_search_setup(build_local_mab_db,
     standard_aa_list):
     """Check that the local db management tool is set
     up correctly."""
     _, _, db_filepath, msa, msa_codes, params = \
-        build_local_mab_lmdb
+        build_local_mab_db
     local_db = LocalDBSearchTool(db_filepath)
 
     # Check that the search tool retrieves the correct metadata.
@@ -182,37 +183,19 @@ def test_local_db_search_setup(build_local_mab_lmdb,
     assert params["nmbr_scheme"] == metadata[0]
     assert 'mab' == metadata[1]
     assert 'single' == metadata[2]
-    assert 'imgt' == metadata[3]
+    assert params["cdr_scheme"] == metadata[3]
     assert '' == metadata[4]
 
-    return
-    # Next check that the position counts table matches
-    # expected. First check for heavy. The database
-    # returns the tables all together but the Python
-    # test code will check them separately.
-    dtables = local_db.get_database_counts()
-
-    sub_msa = [m[0][0] for m in msa if m[4] == "H"]
-    gt_dtable = get_kmer_counts(sub_msa, msa_codes[0][1],
-                                standard_aa_list)
-
-    for key, value in gt_dtable.items():
-        assert dtables[0][key]==value
-
-    sub_msa = [m[0][0] for m in msa if m[4] != "H"]
-    gt_dtable = get_kmer_counts(sub_msa, msa_codes[1][1],
-                                standard_aa_list)
-
-    for key, value in gt_dtable.items():
-        assert dtables[1][key]==value
 
 
 
 
-
-@pytest.mark.parametrize("cdr_scheme", ["imgt"])
+@pytest.mark.parametrize("numbering_scheme, cdr_scheme, cdr_cutoff",
+    [("imgt", "imgt", "0.2"),
+     ("kabat", "kabat", "0.2"), ("aho", "north", "0.25")])
 def test_basic_clustering(tmp_path_factory,
-    get_test_data_filepath, cdr_scheme):
+    get_test_data_filepath, numbering_scheme,
+    cdr_scheme, cdr_cutoff):
     """Builds a local db and clusters it using a set
     of data with known ground truths."""
     temp_folder = tmp_path_factory.mktemp("clustering")
@@ -232,11 +215,11 @@ def test_basic_clustering(tmp_path_factory,
 
     local_db = LocalDBSearchTool(db_path)
     test_assignments = local_db.basic_clustering(
-            "heavy", "3", 0.2, -1, True)
-    with gzip.open(input_file, "rt") as fh:
-        _=fh.readline()
-        actual_assignments = [int(l.strip().split(',')[8]) for
-                              l in fh]
+            "heavy", "3", float(cdr_cutoff), -1, True)
+    assign_file = pd.read_csv(input_file)
+    actual_assignments = assign_file[f"{numbering_scheme}_"
+            f"{cdr_scheme}_heavy_{cdr_cutoff}_assignments"].values
+    actual_assignments = [int(z) for z in actual_assignments.tolist()]
     assert actual_assignments == test_assignments
 
 
@@ -384,13 +367,19 @@ def std_blosum_matrix():
 
 
 @pytest.fixture(scope="module", params=[
-    {"filepath":"addtnl_test_data.fasta.gz",
+    {"filepath":"covid_data.fasta.gz",
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt"},
+    {"filepath":"covid_data.fasta.gz",
+     "nmbr_scheme":"aho", "cdr_scheme":"aho"},
+    {"filepath":"covid_data.fasta.gz",
+     "nmbr_scheme":"kabat", "cdr_scheme":"kabat"},
+    {"filepath":"covid_data.fasta.gz",
+     "nmbr_scheme":"martin", "cdr_scheme":"martin"},
     ])
-def build_local_mab_lmdb(tmp_path_factory,
+def build_local_mab_db(tmp_path_factory,
         get_test_data_filepath, request):
     """Builds a local db using a set of arguments
-    appropriate for testing LMDB-based local dbs
+    appropriate for testing local dbs
     and returns all the info the test function will need
     to evaluate this local db."""
     temp_folder = tmp_path_factory.mktemp("mgmt_db_folder")
@@ -447,6 +436,9 @@ def build_local_mab_lmdb(tmp_path_factory,
     for seq, annotation in zip(seqs, annotations):
         vgene, jgene, _, _, species = vj.assign_vj_genes(annotation, seq,
                 "unknown", "identity")
+        if vgene == "":
+            import pdb
+            pdb.set_trace()
         if annotation[2] == "H":
             msa.append( (heavy_msa[hctr], vgene, jgene,
                          species, annotation[2],

@@ -5,7 +5,6 @@ import sys
 import gzip
 import sqlite3
 import pytest
-import numpy as np
 from antpack import (build_database_from_fasta,
         build_database_from_full_chain_csv,
         build_database_from_cdr_only_csv,
@@ -96,7 +95,8 @@ def test_local_db_construct(build_local_mab_lmdb):
                     chain_dict["child_ids"],
                     chain_dict["vgenes"],
                     chain_dict["vspecies"],
-                    kmer_profile, j)
+                    kmer_profile, j,
+                    params["nmbr_scheme"])
         for row in cur.execute("SELECT * FROM "
                 f"_{table_code}_column_diversity;"):
             assert row[0] in kmer_profile
@@ -183,18 +183,6 @@ def eval_nmbr_table_row_contents(kmer_to_child,
                            "W":[32,16,0], "Y":[48,32,16,0],
                            "-":[], "X":[32]
                            }
-    #letter_position_map = {"A":[0], "C":[21],
-    #                       "D":[42], "E":[42],
-    #                       "F":[0,21], "G":[0,21],
-    #                       "H":[0,21], "I":[0],
-    #                       "K":[0,42], "L":[0],
-    #                       "M":[21], "N":[21,42],
-    #                       "P":[21], "Q":[21,42],
-    #                       "R":[0,42], "S":[21,42],
-    #                       "T":[0,42], "V":[0,21,42],
-    #                       "W":[0,21,42], "Y":[0,21,42],
-    #                       "-":[], "X":[21]
-    #                       }
 
     for i, cdr_group in enumerate(cdrs):
         cdr = cdr_group[2]
@@ -205,10 +193,6 @@ def eval_nmbr_table_row_contents(kmer_to_child,
             cdr_extract = cdr[:8] + cdr[-8:]
         else:
             cdr_extract = cdr[:16]
-        #if numbering_scheme in ("imgt", "aho"):
-        #    cdr_extract = cdr[:10] + cdr[-11:]
-        #else:
-        #    cdr_extract = cdr[:21]
 
         bytestring = ['0' for j in range(64)]
         for j, letter in enumerate(cdr_extract):
@@ -343,6 +327,22 @@ def prep_seqs_for_comparison(numbering_scheme,
      "mode":"full_chain"},
     {"filepath":"test_data.csv.gz",
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"full_chain"},
+    {"filepath":"test_data.csv.gz",
+     "nmbr_scheme":"aho", "cdr_scheme":"aho",
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"full_chain"},
+    {"filepath":"test_data.csv.gz",
+     "nmbr_scheme":"martin", "cdr_scheme":"martin",
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"full_chain"},
+    {"filepath":"test_data.csv.gz",
+     "nmbr_scheme":"kabat", "cdr_scheme":"kabat",
+     "sequence_type":"single", "memo":"testing123",
+     "mode":"full_chain"},
+    {"filepath":"test_data.csv.gz",
+     "nmbr_scheme":"kabat", "cdr_scheme":"imgt",
      "sequence_type":"single", "memo":"testing123",
      "mode":"full_chain"},
     {"filepath":"addtnl_test_data.fasta.gz",
