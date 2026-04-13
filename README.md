@@ -2,8 +2,10 @@
 
 ![Static Badge](https://img.shields.io/badge/coverage-80%25-green)
 
-AntPack is a Python package / toolkit for antibody numbering, data processing,
-statistical inference and machine learning for antibody sequences and TCRs.
+AntPack is a Python package / toolkit for numbering / alignment, VJ gene
+assignment, developability prediction, database construction,
+clustering, search, statistical inference and machine learning for
+antibody sequences and TCRs.
 It is currently in active development, so we are adding new features
 and making more improvements periodically.
 
@@ -12,6 +14,7 @@ and making more improvements periodically.
 For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocumentationlatest.pages.dev/)
 
 [You can find the docs here for older versions.](https://antpackdocumentation.pages.dev/)
+
 
 ## What's new in v0.5
 
@@ -35,7 +38,7 @@ humanizing them please see the updated section of the docs.
 ## Licensing
 
 Versions v0.3.9 and afterwards are licensed for academic and noncommercial
-use only; you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/)
+use only; you must first obtain a [free license key](https://www.antpacklicensemanagement.com/)
 to use. You do not have to re-setup the key when upgrading AntPack in
 an existing venv or conda environment.
 
@@ -44,14 +47,15 @@ can be used it for your own data analysis in any manner you wish
 whether you work in academia or industry,
 but any software built using AntPack and intended for sale or distribution 
 must also be open-source under the GPL license. Therefore if
-you are currently using e.g. v0.3.8.6 for data analysis,
+you are currently using e.g. v0.3.8.6.2 for data analysis,
 you should feel free to continue to do so under the
-terms of your existing license. Also note that v0.3.8.6 is still
+terms of your existing license. Also note that v0.3.8.6.2 (the most
+recent open source version) is still
 available on PyPi and can be installed using:
 ```
-pip install antpack==0.3.8.6
+pip install antpack==0.3.8.6.2
 ```
-Please note that v0.3.8.6 contains a bug fix from v0.3.8.5 and
+Please note that v0.3.8.6.2 contains a bug fix from v0.3.8.5 and
 should be preferred to v0.3.8.5.
 
 
@@ -59,7 +63,7 @@ should be preferred to v0.3.8.5.
 
 Starting with v0.3.9, AntPack is only available for noncommercial
 academic use. To use AntPack versions
-v0.3.9 or later, you must first obtain a [free license key](https://pwslicensekey.pythonanywhere.com/).
+v0.3.9 or later, you must first obtain a [free license key](https://www.antpacklicensemanagement.com/).
 To install AntPack, run:
 ```
 pip install antpack
@@ -76,7 +80,7 @@ pip install pyside6 qt_material
 
 If you don't plan to use the GUI, you don't need those dependencies.
 
-AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.8.
+AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.9. Support for v0.3.8 is deprecated.
 
 ## Capabilities
 
@@ -120,6 +124,7 @@ that identifying liabilities through finding motifs in this way is known to be p
 to false positives (an N-glycosylation motif, for example, will not always be glycosylated).
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
+
 
 ### Clustering and fast database search
 
