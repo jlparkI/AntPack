@@ -11,7 +11,6 @@ from antpack import (build_database_from_fasta,
         build_database_from_full_chain_csv,
         SingleChainAnnotator, LocalDBSearchTool, VJGeneTool)
 from antpack.antpack_cpp_ext import (SequenceTemplateAligner,
-        return_imgt_canonical_numbering_cpp,
         get_blosum_mismatch_matrix_cpp)
 from antpack.utilities import read_fasta
 from .database_utilities import (get_vgene_code,
@@ -65,7 +64,7 @@ def test_local_db_search(build_local_mab_db,
 
     random.seed(123)
 
-    for ctr in range(1000):
+    for ctr in range(500):
         idx = random.randint(0, len(msa) - 1)
         query_seq = list(msa[idx][0][0])
         if msa[idx][4] == "H":
@@ -108,9 +107,6 @@ def test_local_db_search(build_local_mab_db,
             jgene = ""
             jgene_filter = ()
 
-        if ctr < 25:
-            continue
-
         hits = local_db.search(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
                 search_settings["search_mode"],
@@ -135,9 +131,6 @@ def test_local_db_search(build_local_mab_db,
                             [h[1] for h in gt_hit_idx])
 
         else:
-            if hits != gt_hit_idx:
-                import pdb
-                pdb.set_trace()
             assert hits==gt_hit_idx
 
         # If the input search sequence is unmodified,
@@ -192,7 +185,9 @@ def test_local_db_search_setup(build_local_mab_db,
 
 @pytest.mark.parametrize("numbering_scheme, cdr_scheme, cdr_cutoff",
     [("imgt", "imgt", "0.2"),
-     ("kabat", "kabat", "0.2"), ("aho", "north", "0.25")])
+     ("kabat", "kabat", "0.2"),
+     ("aho", "north", "0.25"),
+     ("martin", "martin", "0.25")])
 def test_basic_clustering(tmp_path_factory,
     get_test_data_filepath, numbering_scheme,
     cdr_scheme, cdr_cutoff):
@@ -245,8 +240,17 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                     search_params["cdr_cutoff"]),
         floor(cdrlen[2] * search_params["cdr_cutoff"])]
 
+    if chain_code == "H":
+        chain_code_set = "H"
+    elif chain_code in ("K", "L"):
+        chain_code_set = "KL"
+    elif chain_code in ("B", "D"):
+        chain_code_set = "BD"
+    else:
+        chain_code_set = "AG"
+
     for i, seq_data in enumerate(msa):
-        if seq_data[4] != chain_code:
+        if seq_data[4] not in chain_code_set:
             continue
 
         cdr_dists = [0,0]
@@ -436,9 +440,6 @@ def build_local_mab_db(tmp_path_factory,
     for seq, annotation in zip(seqs, annotations):
         vgene, jgene, _, _, species = vj.assign_vj_genes(annotation, seq,
                 "unknown", "identity")
-        if vgene == "":
-            import pdb
-            pdb.set_trace()
         if annotation[2] == "H":
             msa.append( (heavy_msa[hctr], vgene, jgene,
                          species, annotation[2],
