@@ -1,4 +1,4 @@
-Clustering antibody sequences in AntPack
+Additional options for clustering in AntPack
 ===============================================
 
 For clustering small datasets (a few dozen to a few thousand
@@ -22,8 +22,10 @@ functions and easily cluster and visualize it using a variety of methods.
 See the Clustering examples on the main page of the docs to see how to
 do this.
 
-For large datasets, AntPack currently offers just one *highly* scalable
-option (other options coming soon). The ``EMCategoricalMixture`` is
+For large datasets, you can use the database search and clustering tools
+provided with AntPack, which scale reasonably well to the tens of
+millions of sequences range. Alternatively, you can use the
+``EMCategoricalMixture``, which is
 designed to use multithreading and run with datasets too large to load
 to memory; it can easily cluster datasets ranging from a few hundred to
 tens of millions in size. This model is a mixture model which assigns
@@ -32,11 +34,16 @@ such, it is a probabilistic model that can calculate the probability
 that a new sequence could have come from its training data or the
 probability of a specific mutation given its training set. As with
 distance matrix construction, you can cluster using the whole
-sequence or any selected subregion.
+sequence or any selected subregion. It is lower-resolution than
+clonotyping using the database search and clustering tools, so it's
+only really applicable for some more niche use cases.
+
+We're hoping to further improve the scalability of database clustering
+in the near future.
 
 Choosing the number of clusters for the EMCategoricalMixture can be a
-little tricky. Currently it provides [BIC](https://en.wikipedia.org/wiki/Bayesian_information_criterion)
-and [AIC](https://en.wikipedia.org/wiki/Akaike_information_criterion) and you can
+little tricky. Currently it provides `BIC <https://en.wikipedia.org/wiki/Bayesian_information_criterion>`_
+and `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ and you can
 use these to select the number of clusters by finding the number that gives the
 lowest BIC and AIC. (For an example of how to do this -- and how to use the
 EMCategoricalMixture more generally -- see the Clustering examples on the
