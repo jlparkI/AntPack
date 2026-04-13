@@ -46,6 +46,13 @@ larger datasets, we strongly recommend using a more
 scalable algorithm to cluster the database (AntPack
 will provide additional options for this soon!)
 
+Search and clustering will generally be much faster
+on solid state drives (SSD) than hard drives so we recommend
+constructing on SSD where possible. Typical disk space
+usage is about 6 GB per 10 million single chains and
+possibly more if there is a large amount of associated
+metadata that you want to store for each sequence.
+
 To search or cluster an existing database, use a
 LocalDBSearchTool, e.g.:::
 

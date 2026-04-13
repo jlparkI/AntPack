@@ -24,6 +24,16 @@ efficiently)! (Upcoming versions of AntPack will include
 even more scalable alternatives for clustering large
 datasets).
 
+It is important to realize that search speeds will depend
+on hardware. Searches will be fastest on solid-state drives
+(SSD). They will be slower on hard drives but will still be
+much faster than what can be acheived with other available
+tools. The amount of disk space required to construct a database
+is usually about 6 GB per 10 million single chains (possibly
+more if there is a large amount of metadata that you want to
+store associated with each sequence, and of course more for
+paired chains).
+
 If you want to cluster a small dataset (e.g. low thousands),
 AntPack has some very flexible tools to quickly construct a
 distance matrix; this in turn can be used by a wide variety

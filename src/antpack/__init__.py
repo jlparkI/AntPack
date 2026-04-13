@@ -1,5 +1,5 @@
 # Only change if building a new version.
-__version__ = "0.4"
+__version__ = "0.5"
 
 import importlib.util
 
