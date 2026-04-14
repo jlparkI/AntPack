@@ -30,7 +30,7 @@ you should keep them in case you need to reinstall AntPack.
 
 
 AntPack is distributed precompiled as a wheel
-for most platforms. In these cases pip will install it without any need to
+for Linux and Windows. In these cases pip will install it without any need to
 compile any code. In the unlikely event that you encounter
 any issues please contact us using the Issues page on Github (see About / Contact
 section on the main page of the `github repo <https://github.com/jlparkI/AntPack>`_).
