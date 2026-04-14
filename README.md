@@ -158,3 +158,5 @@ or the final paper in [Bioinformatics.](https://academic.oup.com/bioinformatics/
 
 The authors & maintainers gratefully acknowledge the contributions of
 Japanese artist Yusuke Kamiyamane for the creation of the Fugue icon set.
+
+The authors have also made use of the excellent [parallel-hashmap library by Gregory Popovitch](https://github.com/greg7mdp/parallel-hashmap) in the development of this toolkit.
