@@ -34,8 +34,6 @@ jobs:
       - name: Build wheels for Mac
         if: runner.os == 'macOS'
         env:
-          CC: gcc-15
-          CXX: g++-15
           CIBW_SKIP: "cp38-* cp37-* cp36-* *-musllinux*"
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
         run: python -m cibuildwheel --output-dir wheelhouse
