@@ -32,10 +32,11 @@ jobs:
       run: |
         brew install libomp
         export OpenMP_ROOT=$(brew --prefix)/opt/libomp
-        export CC=gcc-14
-        export CXX=g++-14
 
     - name: Install dependencies
+      env:
+        CC: gcc
+        CXX: g++
       run: |
         git submodule update --init --recursive
         git submodule update --remote --recursive
