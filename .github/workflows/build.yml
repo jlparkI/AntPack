@@ -29,7 +29,6 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install libomp
-          brew install gcc@15
           export OpenMP_ROOT=$(brew --prefix)/opt/libomp
       
       - name: Build wheels for Mac
