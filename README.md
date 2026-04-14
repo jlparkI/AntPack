@@ -9,6 +9,8 @@ antibody sequences and TCRs.
 It is currently in active development, so we are adding new features
 and making more improvements periodically.
 
+It is intended for use on Linux or Windows platforms.
+
 ## Usage
 
 For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocumentationlatest.pages.dev/)
@@ -80,7 +82,7 @@ pip install pyside6 qt_material
 
 If you don't plan to use the GUI, you don't need those dependencies.
 
-AntPack is distributed as a wheel precompiled for most platforms and CPython >= 3.9. Support for v0.3.8 is deprecated.
+AntPack is distributed as a wheel precompiled for Linux and Windows and CPython >= 3.9. Support for v0.3.8 is deprecated.
 
 ## Capabilities
 
