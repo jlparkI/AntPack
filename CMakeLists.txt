@@ -154,7 +154,7 @@ endif()
 
 
 # Add non-nanobind submodules
-target_link_libraries(antpack_cpp_ext PRIVATE absl::base absl::flat_hash_set)
+target_link_libraries(antpack_cpp_ext PRIVATE absl::flat_hash_set)
 
 # Target compile flags specific for sqlite.
 target_compile_definitions(antpack_cpp_ext PRIVATE
