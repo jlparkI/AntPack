@@ -28,18 +28,18 @@ jobs:
       - name: Dependencies for mac
         if: runner.os == 'macOS'
         run: |
-          brew update
-          brew install llvm
-          brew upgrade libomp
+          brew install libomp
       
       - name: Build wheels for Mac
         if: runner.os == 'macOS'
         env:
-          CC: /opt/homebrew/opt/llvm/bin/clang
-          CXX: /opt/homebrew/opt/llvm/bin/clang++
           CIBW_SKIP: "cp38-* cp37-* cp36-* *-musllinux*"
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
-        run: python -m cibuildwheel --output-dir wheelhouse
+        run: |
+          export CMAKE_ARGS="-DOpenMP_CXX_FLAGS='-Xpreprocessor -fopenmp' \
+              -DOpenMP_CXX_LIB_NAMES='omp' \
+              -DOpenMP_omp_LIBRARY=$(brew --prefix libomp)/lib/libomp.dylib"
+          python -m cibuildwheel --output-dir wheelhouse
 
       - name: Build wheels for all except Mac
         if: runner.os != 'macOS'
