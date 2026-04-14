@@ -29,8 +29,8 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew upgrade libomp
           brew install llvm
+          brew upgrade libomp
       
       - name: Build wheels for Mac
         if: runner.os == 'macOS'
