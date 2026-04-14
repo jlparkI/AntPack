@@ -122,21 +122,6 @@ nanobind_add_module(
 #SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 
-# For mac specifically, there are flags we need to set to ensure
-# OpenMP is found.
-if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-    set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include")
-    set(OpenMP_C_LIB_NAMES "omp")
-    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
-endif()
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include")
-    set(OpenMP_CXX_LIB_NAMES "omp")
-    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
-endif()
-
-
-
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(antpack_cpp_ext PUBLIC OpenMP::OpenMP_CXX)
