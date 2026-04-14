@@ -52,10 +52,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 #Generate a compile commands file for use by linters.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-##########
-#Add non-nanobind submodules.
-add_subdirectory(extern/abseil-cpp)
-
 
 nanobind_add_module(
   antpack_cpp_ext
