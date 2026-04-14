@@ -38,7 +38,7 @@ class Delegate(QStyledItemDelegate):
         painter.drawPixmap(icon_pos, icon)
 
         # DRAW TEXT
-        font = QFont("Roboto Black", 12)
+        font = QFont("Roboto Black", 10)
         text_pos = QRect((left * 2) + icon.width(), option.rect.y(),
                 option.rect.width(), option.rect.height())
         painter.setFont(font)
@@ -93,5 +93,5 @@ class SideMenuWidget(QWidget):
 
     def sizeHint(self):
         size_hint = self.listview.sizeHint()
-        size_hint.setWidth(200)
+        size_hint.setWidth(175)
         return size_hint

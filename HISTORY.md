@@ -1,3 +1,14 @@
+### Version 0.5
+We have introduced the LocalDBSearchTool, for lightning-fast
+search of large antibody and TCR databases. There are also
+associated functions for constructing databases from a variety
+of different input formats. Tools are introduced for single-
+linkage clustering / clonotyping of datasets as large as
+100 million sequences when first consolidated into a database.
+These tools have limited scalability beyond that range due
+to the O(N^2) scaling of single linkage; we plan to further
+improve scaling in future versions.
+
 ### Version 0.4.0
 Humanization has been merged into the SequenceScoringTool. The
 API for the SequenceScoringTool has been streamlined and updated

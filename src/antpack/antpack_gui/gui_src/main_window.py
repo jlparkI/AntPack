@@ -142,6 +142,13 @@ class MainWindow(QMainWindow):
         quit_command.triggered.connect(self.quit_event)
         quit_command.setShortcut('Ctrl+Q')
         file_menu.addAction(quit_command)
+        
+
+        data_menu = menu_bar.addMenu("Data")
+
+        build_db = data_menu.addMenu("Build local database")
+        build_db = data_menu.addMenu("Search local database")
+        build_db = data_menu.addMenu("Search CAS database")
 
         self.setMenuBar(menu_bar)
 
@@ -182,6 +189,8 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
+            seq = self.sc_annotator.clean_sequence(seq)
 
             if self.selected_seqs is None:
                 self.selected_seqs = MultiSequenceData()
@@ -236,6 +245,8 @@ class MainWindow(QMainWindow):
                         "entered were not valid.", QMessageBox.Ok)
                 self.update_seq_comparison_tabs()
                 return
+
+            seq = self.sc_annotator.clean_sequence(seq)
 
             try:
                 self.selected_seqs = process_for_vj_comparison(seq, seq_type,

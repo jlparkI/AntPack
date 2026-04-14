@@ -15,23 +15,25 @@ For usage for v0.3.9 and later, see the [docs at this link.](https://antpackdocu
 
 [You can find the docs here for older versions.](https://antpackdocumentation.pages.dev/)
 
-## What's new in v0.4
 
-v0.4 contains a bug fix for VJ gene assignment for numbering schemes
-*other* than IMGT. If perforiming VJ gene assignment with numbering
-schemes *other* than IMGT, please prefer v0.4 to prior versions.
-v0.3.8.6.2 (open-source) has been updated with this bug fix as well.
+## What's new in v0.5
+
+v0.5 contains tools for constructing searchable antibody & TCR
+databases. Once you've built a local database you can search it
+for sequences similar to your query (percent identity above some
+threshold, same vgene or same jgene etc.) at speeds hundreds of
+times faster than what other tools (e.g. MMSeqs, KA-Search) can
+achieve. AntPack now provides tools for clonotyping a database using
+single-linkage clustering, which scales reasonably well to the 10
+million to 50 million sequence range (depending on hardware). We
+hope to introduce even more scalable tools for single linkage
+clustering in future versions. There is also a mixture model
+tool that provides lower-resolution clustering for even larger
+datasets, and highly efficient tools for clustering small datasets.
 
 The API for the SequenceScoringTool and humanization has been updated
 and streamlined so if you are scoring sequences for humanness or
 humanizing them please see the updated section of the docs.
-
-v0.4 also contains capabilities for clustering antibody datasets
-ranging in size from a few dozen sequences to tens of millions
-using a variety of algorithms using any CDR or framework region
-of interest. (see below and see docs). These will be significantly
-expanded in the next version with further clustering and search
-capabilities and structure analysis-related tools.
 
 ## Licensing
 
@@ -123,15 +125,22 @@ to false positives (an N-glycosylation motif, for example, will not always be gl
 Still, these kinds of alerts can be useful for making yourself aware of potential
 developability issues.
 
-#### Clustering, database construction and search (coming soon!)
 
-![Static Badge](https://img.shields.io/badge/New!-grey) Starting in
-v0.5 (coming soon), AntPack will contain a built-in database engine
-for constructing databases from large (millions to hundreds of millions
-or billions) sequence datasets. This engine provides lightning-fast
-search capabilities (>1,000x faster than KA-Search or MMSeqs) and
-fast, highly scalable clustering and clonotyping capabilities.
-Check back for updates (coming soon!)
+### Clustering and fast database search
+
+![Static Badge](https://img.shields.io/badge/New!-grey) Starting in v0.4,
+AntPack contains tools for quickly clustering small sequence datasets using
+all or part of the antibody sequence. Starting in v0.5, AntPack further
+includes tools to quickly build large antibody / TCR sequence databases
+and to run lightning-fast searches for sequences similar to queries on
+those databases (thousands of searches against a 100 million sequence
+database in seconds). AntPack now provides some limited capabilities
+for clustering / clonotyping of large datasets. The search tool is
+fast enough to run single linkage clustering on 10 - 50 million
+sequences. For still larger datasets, AntPack currently provides
+a highly scalable mixture model. We hope to further improve the
+scalability of single linkage clustering to reach the billion
+sequence range in the near future.
 
 
 ### Citing this work
@@ -149,3 +158,5 @@ or the final paper in [Bioinformatics.](https://academic.oup.com/bioinformatics/
 
 The authors & maintainers gratefully acknowledge the contributions of
 Japanese artist Yusuke Kamiyamane for the creation of the Fugue icon set.
+
+The authors have also made use of the excellent [parallel-hashmap library by Gregory Popovitch](https://github.com/greg7mdp/parallel-hashmap) in the development of this toolkit.

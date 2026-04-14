@@ -1,8 +1,6 @@
 name: test
 
 on:
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
     branches: [ "main" ]
 
@@ -27,7 +25,26 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Install dependencies
+    - name: Dependencies for mac
+      if: runner.os == 'macOS'
+      run: |
+        brew install libomp
+        export OpenMP_ROOT=$(brew --prefix)/opt/libomp
+        brew install gcc@14
+    
+    - name: Installation for mac
+      if: runner.os == 'macOS'
+      env:
+        CC: gcc-15
+        CXX: g++-15
+      run: |
+        git submodule update --init --recursive
+        git submodule update --remote --recursive
+        python -m pip install --upgrade pip numpy nanobind pytest pytest-cov
+        pip install -r test_requirements.txt
+        pip install -e . --verbose
+
+    - name: Installation for other platforms
       run: |
         git submodule update --init --recursive
         git submodule update --remote --recursive

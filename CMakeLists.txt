@@ -30,17 +30,15 @@ project(${SKBUILD_PROJECT_NAME} LANGUAGES C CXX)
 
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_C_STANDARD 99)
+
+
 # Extremely annoying but MSVC requires an additional flag to be set.
 if (MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "/O3")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
     add_compile_options("/Zc:__cplusplus" "/permissive-")
-endif()
-
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
 execute_process(
@@ -50,7 +48,9 @@ find_package(nanobind CONFIG REQUIRED)
 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
+#########
+#Generate a compile commands file for use by linters.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
 nanobind_add_module(
@@ -74,8 +74,6 @@ nanobind_add_module(
 
     extern/antpack_private/src/developability_calcs/liability_search_tool.cpp
 
-    extern/antpack_private/src/dna_read_handling/dna_sequence_handling.cpp
-
     extern/antpack_private/src/utilities/utilities.cpp
     extern/antpack_private/src/utilities/cdr_assignment_utilities.cpp
     extern/antpack_private/src/utilities/consensus_file_utilities.cpp
@@ -95,6 +93,12 @@ nanobind_add_module(
     extern/antpack_private/src/license_key_handling/key_check_routines.cpp
     extern/antpack_private/src/license_key_handling/pub_private_utilities.cpp
 
+    extern/antpack_private/src/database_tools/local_database_construction_tool.cpp
+    extern/antpack_private/src/database_tools/local_database_management_tool.cpp
+    extern/antpack_private/src/database_tools/core_search_utilities.cpp
+    extern/antpack_private/src/database_tools/core_sqlite_search_functions.cpp
+    extern/antpack_private/src/database_tools/database_utilities.cpp
+    extern/antpack_private/src/database_tools/sqlite3.c
 
     extern/antpack_private/src/license_key_handling/crypto_support/add_scalar.c
     extern/antpack_private/src/license_key_handling/crypto_support/fe.c
@@ -107,6 +111,7 @@ nanobind_add_module(
     extern/antpack_private/src/license_key_handling/crypto_support/sign.c
     extern/antpack_private/src/license_key_handling/crypto_support/verify.c
 
+
 )
 
 
@@ -117,6 +122,21 @@ nanobind_add_module(
 #SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 
+# For mac specifically, there are flags we need to set to ensure
+# OpenMP is found.
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include")
+    set(OpenMP_C_LIB_NAMES "omp")
+    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
+endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include")
+    set(OpenMP_CXX_LIB_NAMES "omp")
+    set(OpenMP_omp_LIBRARY "/opt/homebrew/opt/libomp/lib/libomp.dylib")
+endif()
+
+
+
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(antpack_cpp_ext PUBLIC OpenMP::OpenMP_CXX)
@@ -124,7 +144,22 @@ if(OpenMP_CXX_FOUND)
 	    list(APPEND OpenMP_CXX_FLAGS "-openmp:experimental")
     endif()
     target_compile_options(antpack_cpp_ext PRIVATE ${OpenMP_CXX_FLAGS})
+else()
+    message( FATAL_ERROR "OpenMP is required and was not found.")
 endif()
+
+
+# Add non-nanobind submodules
+target_link_libraries(antpack_cpp_ext)
+
+# Target compile flags specific for sqlite.
+target_compile_definitions(antpack_cpp_ext PRIVATE
+    "SQLITE_DEFAULT_MEMSTATUS=0"
+    "SQLITE_OMIT_DECLTYPE"
+    "SQLITE_OMIT_PROGRESS_CALLBACK"
+    "SQLITE_OMIT_SHARED_CACHE"
+)
+
 
 install(TARGETS antpack_cpp_ext
     LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

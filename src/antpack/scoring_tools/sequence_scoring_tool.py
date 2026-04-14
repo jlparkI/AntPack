@@ -14,16 +14,11 @@ from antpack.antpack_cpp_ext import SequenceTemplateAligner
 class SequenceScoringTool():
     """Tool for scoring sequences."""
 
-    def __init__(self, offer_classifier_option = False,
-            normalization = "none", max_threads = 2):
-        """Class constructor.
+    def __init__(self, normalization = "none", max_threads = 2):
+        """Class constructor. Note that the "offer_classifier_option"
+        present in previous versions is deprecated as of v0.5.
 
         Args:
-            offer_classifier_option (bool): If True, the object loads
-                additional species-specific models (mouse, rhesus monkey,
-                rat) and can use these to function as a classifier. If this
-                is False, setting mode='classifier' when calling a scoring
-                function will result in an error.
             normalization (str): One of "none", "training_set_adjust" and
                 "normalize". If normalize, the score is divided by the
                 number of non-masked residues. If "training_set_adjust",
@@ -43,26 +38,7 @@ class SequenceScoringTool():
                     ahip.light_allowed_positions, "L", "imgt")
                 }
         self.chain_map = {"H":"H", "K":"L", "L":"L", "":"unknown"}
-
-        if offer_classifier_option:
-            self.models = {
-                    "human":{"H":load_model(project_dir, "heavy",
-                                                max_threads=max_threads),
-                        "L":load_model(project_dir, "light",
-                                                max_threads=max_threads)},
-                    "mouse":{"H":load_model(project_dir, "heavy", species="mouse",
-                                                max_threads=max_threads),
-                        "L":load_model(project_dir, "light", species="mouse",
-                                                max_threads=max_threads)},
-                    "rhesus":{"H":load_model(project_dir, "heavy", species="rhesus",
-                                                max_threads=max_threads),
-                        "L":load_model(project_dir, "light", species="rhesus",
-                                                max_threads=max_threads)},
-                    "rat":{"H":load_model(project_dir, "heavy", species="rat",
-                                                max_threads=max_threads) }
-                }
-        else:
-            self.models = {"human":{"H":load_model(project_dir, "heavy",
+        self.models = {"human":{"H":load_model(project_dir, "heavy",
                                     max_threads=max_threads),
                         "L":load_model(project_dir, "light",
                                     max_threads=max_threads)} }
@@ -132,7 +108,8 @@ class SequenceScoringTool():
             region (str): One of 'fmwk1', 'fmwk2', 'fmwk3',
                 'fmwk4', 'cdr1', 'cdr2', 'cdr3', 'fmwk', 'cdr'.
                 This function will construct a mask that excludes
-                all other regions.
+                all other regions. If 'fmwk' all framework regions
+                are returned; if 'cdr' all cdr.
             cdr_labeling_scheme (str): The numbering scheme used for
                 humanness calculations is IMGT, but for generating a
                 mask, you can use a different scheme to assign CDRs
@@ -230,18 +207,15 @@ class SequenceScoringTool():
             mask_gaps (bool): If True, all non-filled IMGT positions in the sequence
                 are ignored when calculating the score. This is useful when your
                 sequence has unusual deletions and you would like to ignore these.
-            mode (str): One of 'score', 'assign', 'assign_no_weights', 'classifier'.
+            mode (str): One of 'score', 'assign', 'assign_no_weights'.
                 If score, returns the human generative model score.
                 If 'assign', provides the most likely cluster number
                 for each input sequence. If 'assign_no_weights',
                 assigns the closest cluster ignoring mixture weights,
                 so that the closest cluster is assigned even if that
-                cluster is a low-probability one. If 'classifier',
-                assigns a score using the Bayes' rule classifier, which
-                also takes into account some info regarding other species.
-                'classifier' is not a good way to score sequences in general
-                because it only works well for sequences of known origin,
-                so it should only be used for testing.
+                cluster is a low-probability one. Note that the
+                'classifier' option offered in previous versions is
+                deprecated as of v0.5.
 
         Returns:
             output_scores (np.ndarray): log( p(x) ) for all input sequences.
@@ -266,23 +240,7 @@ class SequenceScoringTool():
             mask = relevant_data["mask"]
             sequences = relevant_data["seqs"]
 
-            if mode == "classifier":
-                scores = []
-                for species in ("human", "mouse", "rhesus"):
-                    scores.append(self.models[species][chain_name].score(sequences,
-                            mask=mask, mask_terminal_dels=mask_terminal_dels,
-                            mask_gaps=mask_gaps, normalize_scores=self.normalize_scores))
-                if chain_name == "H":
-                    scores.append(self.models["rat"]["H"].score(sequences,
-                            mask=mask, mask_terminal_dels=mask_terminal_dels,
-                            mask_gaps=mask_gaps, normalize_scores=self.normalize_scores))
-                else:
-                    scores.append(None)
-
-                scores = self._convert_score_to_classifier(scores[0], scores[1],
-                            scores[2], scores[3], chain_name)
-
-            elif mode == "score":
+            if mode == "score":
                 scores = self.models["human"][chain_name].score(sequences,
                         mask=mask, mask_terminal_dels=mask_terminal_dels,
                         mask_gaps=mask_gaps,
@@ -348,7 +306,7 @@ class SequenceScoringTool():
             chain_type (str): One of "H", "L".
 
         Returns:
-            mu_mix (np.ndarray): An array of shape (1, sequence_length,
+            mu_mix (np.ndarray): An array of shape (1, standard sequence length,
                 21), where 21 is the number of possible AAs.
             mixweights (float): The probability of this cluster in the mixture.
             aas (list): A list of amino acids in standard order. The last
@@ -433,12 +391,13 @@ class SequenceScoringTool():
         mu_mix = np.log(mu_mix.clip(min=1e-16))
 
         return chain_type, mu_mix, most_likely_aas
-    
+
 
 
     def suggest_humanizing_mutations(self, seq:str,
-            excluded_positions:list = [],
-            s_thresh:float = 1.25):
+            s_thresh:float = 1.25,
+            cdr_labeling_scheme:str = "kabat",
+            excluded_positions:list = []):
         """Takes an input sequence, scores it per position,
         uses the nclusters closest clusters to determine which
         modification would be most likely to have an impact,
@@ -454,22 +413,30 @@ class SequenceScoringTool():
                 increasing the score over preserving the original
                 sequence. Larger values will prioritize preserving
                 the original sequence.
-            excluded_positions (list): A list of strings (IMGT position numbers)
-                indicating positions which should not be changed. This enables
-                the user to mask key residues, Vernier zones etc if so
-                desired.
             cdr_labeling_scheme (str): The sequence is numbered using the IMGT
                 scheme, but to determine which positions are CDR, you can
                 use 'aho', 'kabat', 'imgt', 'martin' or 'north' by supplying
-                an appropriate argument here.
+                an appropriate argument here. CDR positions are excluded from
+                humanization UNLESS you supply your own custom list of excluded
+                positions (see below).
+            excluded_positions (list): A list of strings (IMGT position numbers)
+                indicating positions that are "masked" when humanizing, i.e.
+                positions which should not be changed. If you do
+                supply a list of excluded positions (i.e. if this list is not
+                empty), the cdr_labeling_scheme argument is ignored and ONLY
+                the positions that you specifically request to be excluded
+                are excluded. To get a default mask for a specified CDR scheme
+                that you can modify to make your own custom mask, call
+                get_standard_mask.
 
         Returns:
             initial_score (float): The score of the sequence pre-modification.
             final_scores (float): The scores of the sequence after each mutation
                 is adopted (in sequential order).
             mutations (list): The suggested mutations in AA_position_newAA format,
-                where position is the IMGT number for the mutation position. These
-                are in sequential order (the same as final_scores).
+                where position is the number (from 1) in the sequence for the
+                mutation position. These are in sequential order (the same as
+                final_scores).
             updated_seq (list): The updated sequences after each mutation with all
                 gaps removed. (This may be a different length from the
                 input sequence if the suggested mutation is a deletion or
@@ -493,20 +460,23 @@ class SequenceScoringTool():
         best_cluster = np.log(best_cluster[0,...].clip(min=1e-16))
         best_aas = np.argmax(best_cluster, axis=1)
 
-        # Construct a mask for all positions specified as excluded by the user,
-        # all CDRs (using kabat definitions) and all positions which are currently
-        # gaps (don't suggest insertions). For heavy, positions 105 and 106 are
-        # added as "special excludes": they are not part of the Kabat CDR but
-        # are Vernier zones and are usually excluded.
-        mask = self.get_standard_mask(chain_type, "fmwk", "kabat")
+        # If the user has supplied a custom mask, then set to False for all
+        # positions they specified. OTHERWISE, set to False for all
+        # cdr positions using their selected cdr scheme and additionally
+        # heavy positions 105, 106 which are Vernier zones and hence are
+        # usually excluded.
         position_dict = {k:i for i,k in enumerate(
-            self.template_aligners[chain_type].get_template_numbering())}
-        for position in excluded_positions:
-            mask[position_dict[position]] = False
-
-        if chain_type == "H":
-            mask[position_dict["105"]] = False
-            mask[position_dict["106"]] = False
+                self.template_aligners[chain_type].get_template_numbering())}
+        if len(excluded_positions) > 0:
+            mask = np.array([True for p in position_dict.keys()])
+            for position in excluded_positions:
+                mask[position_dict[position]] = False
+        else:
+            mask = self.get_standard_mask(chain_type, "fmwk",
+                                      cdr_labeling_scheme)
+            if chain_type == "H":
+                mask[position_dict["105"]] = False
+                mask[position_dict["106"]] = False
 
         del position_dict
 
@@ -569,29 +539,3 @@ class SequenceScoringTool():
         score = self.models["human"][chain_type].score([updated_seq]) - \
                         self.score_adjustments[chain_type]
         return score[0], all_mutations, updated_seq.replace("-", "")
-
-
-
-
-
-    def _convert_score_to_classifier(self, human_score, mouse_score,
-            rhesus_score, rat_score = None, chain_type = "H"):
-        """Converts the input generative model scores into a Bayes'
-        rule classifier score. Should only be used for testing,
-        since a classification approach of this kind is not
-        useful for sequences of unknown origin."""
-        num_positions = self.models["human"][chain_type].get_model_specs()[1]
-
-        #This is a default probability assuming equal probability of all
-        #amino acids at all positions.
-        default_prob = np.exp(np.log(1/21) * num_positions)
-
-        human_probs = np.exp(human_score)
-        if rat_score is not None:
-            norm_constant = 0.2 * np.exp(mouse_score) + 0.2 * np.exp(rhesus_score) + \
-                0.2 * np.exp(rat_score) + 0.2 * human_probs + 0.2 * default_prob
-            return 0.2 * human_probs / norm_constant
-
-        norm_constant = 0.25 * np.exp(mouse_score) + 0.25 * np.exp(rhesus_score) + \
-                0.25 * human_probs + 0.25 * default_prob
-        return 0.25 * human_probs / norm_constant
