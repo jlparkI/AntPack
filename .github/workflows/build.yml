@@ -36,8 +36,7 @@ jobs:
           CIBW_SKIP: "cp38-* cp37-* cp36-* *-musllinux*"
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
         run: |
-          export CMAKE_ARGS="-DOpenMP_CXX_FLAGS='-Xpreprocessor -fopenmp' \
-              -DOpenMP_CXX_LIB_NAMES='omp' \
+          export CMAKE_ARGS="-DOpenMP_CXX_LIB_NAMES='omp' \
               -DOpenMP_omp_LIBRARY=$(brew --prefix libomp)/lib/libomp.dylib"
           python -m cibuildwheel --output-dir wheelhouse
 
