@@ -27,16 +27,26 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: OpenMP for mac
+    - name: Dependencies for mac
       if: runner.os == 'macOS'
       run: |
         brew install libomp
         export OpenMP_ROOT=$(brew --prefix)/opt/libomp
         brew install gcc@14
-        export CXX=g++-14
-        export CC=gcc-14
+    
+    - name: Installation for mac
+      if: runner.os == 'macOS'
+      env:
+        CC: gcc-14
+        CXX: g++-14
+      run: |
+        git submodule update --init --recursive
+        git submodule update --remote --recursive
+        python -m pip install --upgrade pip numpy nanobind pytest pytest-cov
+        pip install -r test_requirements.txt
+        pip install -e . --verbose
 
-    - name: Install dependencies
+    - name: Installation for other platforms
       run: |
         git submodule update --init --recursive
         git submodule update --remote --recursive
