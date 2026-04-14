@@ -28,6 +28,8 @@ jobs:
       - name: Dependencies for mac
         if: runner.os == 'macOS'
         run: |
+          brew update
+          brew upgrade libomp
           brew install llvm
       
       - name: Build wheels for Mac
