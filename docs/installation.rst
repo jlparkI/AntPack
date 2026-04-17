@@ -4,8 +4,11 @@ Installation
 Starting with v0.3.9, AntPack can only be used for non-commercial
 purposes and is made available under an
 ASL license. To use it you'll first need to obtain a license key;
-see the `github repo <https://github.com/jlparkI/AntPack>`_ for
-details.
+at this time you can do so by emailing
+
+.. image:: images/license_key_contact_email.jpg
+   :alt: license key contact
+
 
 The only required dependency is numpy which is automatically installed.
 If you want to run the GUI, however, you have to install two additional
