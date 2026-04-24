@@ -1,3 +1,6 @@
+### Version 0.5.0.1
+Turned off journaling in SQLite to maximize I/O. Minor bug fix.
+
 ### Version 0.5
 We have introduced the LocalDBSearchTool, for lightning-fast
 search of large antibody and TCR databases. There are also
