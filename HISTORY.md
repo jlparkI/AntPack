@@ -1,3 +1,6 @@
+### Version 0.3.8.6.3
+Minor updates to the DNA sequence utilities.
+
 ### Version 0.3.8.6.2
 Updated humanness scoring tool to allow user to specify their
 own list of excluded positions IN PLACE of the CDR exclusions

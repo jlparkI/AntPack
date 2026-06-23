@@ -84,9 +84,10 @@ std::string DNASeqTranslatorCpp::translate_dna_unknown_rf(std::string sequence,
 
 
 
-std::string DNASeqTranslatorCpp::translate_dna_known_rf(std::string sequence,
-              int reading_frame,
-              bool reverse_complement) {
+std::string DNASeqTranslatorCpp::translate_dna_known_rf(
+std::string sequence,
+int reading_frame,
+bool reverse_complement) {
     std::string rev_complement = "";
     std::string *target_string;
     std::vector<char> output_letters;
