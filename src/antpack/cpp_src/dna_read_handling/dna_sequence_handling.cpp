@@ -42,13 +42,13 @@ std::string DNASeqTranslatorCpp::translate_dna_unknown_rf(std::string sequence,
     std::string output_string = "";
     int best_score = 0;
 
-    for (size_t i=0; i < 3; i++) {
+    for (int i=0; i < 3; i++) {
         std::string translation = this->translate_dna_known_rf(sequence, i,
                 false);
         int sequence_length = translation.length();
         int translation_score = 0;
 
-        for (size_t j=0; j < sequence_length - 8; j++) {
+        for (int j=0; j < sequence_length - 8; j++) {
             std::string kmer = translation.substr(j, 9);
             if (this->known_mab_kmers.count(kmer) > 0)
                 translation_score += 1;
@@ -60,13 +60,13 @@ std::string DNASeqTranslatorCpp::translate_dna_unknown_rf(std::string sequence,
         }
     }
     if (check_reverse_complement) {
-        for (size_t i=0; i < 3; i++) {
+        for (int i=0; i < 3; i++) {
             std::string translation = this->translate_dna_known_rf(sequence, i,
                     true);
             int sequence_length = translation.length();
             int translation_score = 0;
 
-            for (size_t j=0; j < sequence_length - 8; j++) {
+            for (int j=0; j < sequence_length - 8; j++) {
                 std::string kmer = translation.substr(j, 9);
                 if (this->known_mab_kmers.count(kmer) > 0)
                     translation_score += 1;
@@ -83,15 +83,7 @@ std::string DNASeqTranslatorCpp::translate_dna_unknown_rf(std::string sequence,
 
 
 
-/// @brief Translates from DNA to protein when the reading frame
-///        is known.
-/// @param sequence The input DNA sequence. Should contain A, G, C, T
-///        and (possibly) N only.
-/// @param reading_frame How many positions from start to begin translating.
-///        Should be one of 0, 1, 2.
-/// @param reverse_complement If True, use the reverse complement of the
-///        sequence rather than the sequence itself.
-/// @return The DNA sequence translated to amino acids.
+
 std::string DNASeqTranslatorCpp::translate_dna_known_rf(std::string sequence,
               int reading_frame,
               bool reverse_complement) {
@@ -123,7 +115,7 @@ std::string DNASeqTranslatorCpp::translate_dna_known_rf(std::string sequence,
         target_string = &sequence;
     }
 
-    for (size_t i=reading_frame; i < sequence_length - 2; i+=3) {
+    for (int i=reading_frame; i < sequence_length - 2; i+=3) {
         std::string codon = target_string->substr(i, 3);
 
         // Any codon containing an N is converted to X as
