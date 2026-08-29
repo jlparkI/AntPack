@@ -80,27 +80,8 @@ def test_local_db_construct(build_local_mab_lmdb):
             assert chain_dict["unusual_positions"][i]==\
                     row_values[10]
 
-        kmer_profile = {}
-
-        for j in range(chain_dict["cdr3_region_len"] - 1):
-            kmer_to_child = {}
-
-            for row in cur.execute("SELECT * FROM "
-                                   f"_{table_code}_{j};"):
-                assert row[0] not in kmer_to_child
-                kmer_to_child[row[0]] = row[1]
-
-            kmer_profile = eval_nmbr_table_row_contents(
-                    kmer_to_child, chain_dict["cdrs"],
-                    chain_dict["child_ids"],
-                    chain_dict["vgenes"],
-                    chain_dict["vspecies"],
-                    kmer_profile, j,
-                    params["nmbr_scheme"])
-        for row in cur.execute("SELECT * FROM "
-                f"_{table_code}_column_diversity;"):
-            assert row[0] in kmer_profile
-            assert row[1] == kmer_profile[row[0]]
+        eval_search_table_row_contents(data_dict[table_code]['cdrs'], table_code,
+                                       params['nmbr_scheme'], params['cdr_scheme'])
 
 
 
@@ -165,91 +146,17 @@ def test_low_quality_seqs(tmp_path):
 
 
 
-def eval_nmbr_table_row_contents(kmer_to_child,
-        cdrs, child_ids, vgenes, vjspecies, profile_counts,
-        position, numbering_scheme="imgt"):
-    """Tests the contents of the rows from the numbering
-    table."""
-    AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
-    letter_position_map = {"A":[48], "C":[32],
-                           "D":[16], "E":[16],
-                           "F":[0], "G":[48,32],
-                           "H":[48,16], "I":[48,0],
-                           "K":[32,16], "L":[32,0],
-                           "M":[32], "N":[16,0],
-                           "P":[32], "Q":[16,0],
-                           "R":[32,16], "S":[48,32,16],
-                           "T":[48,32,0], "V":[48,16,0],
-                           "W":[32,16,0], "Y":[48,32,16,0],
-                           "-":[], "X":[32]
-                           }
+def eval_search_table_row_contents(cdrs, chain_code,
+    numbering_scheme, cdr_scheme):
+    """Tests the contents of the rows from the search tables."""
+    if chain_code == 0:
+        func_name = numbering_scheme + "_heavy_nmbr_" +  cdr_scheme + "_cdr_arrangement"
+    else:
+        func_name = numbering_scheme + "_light_nmbr_" +  cdr_scheme + "_cdr_arrangement"
 
-    for i, cdr_group in enumerate(cdrs):
-        cdr = cdr_group[2]
-        cdr3len = len(cdr.replace('-', ''))
-
-        # Construct the augmented child id.
-        if numbering_scheme in ("imgt", "aho"):
-            cdr_extract = cdr[:8] + cdr[-8:]
-        else:
-            cdr_extract = cdr[:16]
-
-        bytestring = ['0' for j in range(64)]
-        for j, letter in enumerate(cdr_extract):
-            for offset_pos in letter_position_map[letter]:
-                bytestring[j+offset_pos] = '1'
-
-        unsigned_tag_filter = int(''.join(bytestring)[::-1], 2)
-        # Although AntPack will work correctly and interchangeably
-        # on bigendian and littleendian systems, testing is always
-        # conducted on littlendian platforms, and there is no
-        # reason to support bigendian here.
-        tag_filter = int.from_bytes(
-            unsigned_tag_filter.to_bytes(8, byteorder=sys.byteorder),
-            byteorder=sys.byteorder, signed=True)
-
-        dimer = cdr[position:position+2]
-        if position < len(cdr) - 2:
-            trimer = dimer + cdr[position+2]
-        else:
-            trimer = dimer + "-"
-
-        # Add both dimer and trimer counts to the kmer profile
-        # table.
-        cdr3len = min(cdr3len, 31)
-        packed_codeval = int_to_bin(AAMAP[dimer[0]], 1)[2:] + \
-                int_to_bin(AAMAP[dimer[1]], 1)[3:] + \
-                int_to_bin(cdr3len, 1)[3:]
-        count_codeval = packed_codeval + ('0'*8) + \
-                int_to_bin(position, 1)
-        count_codeval = int(count_codeval, 2)
-        if count_codeval not in profile_counts:
-            profile_counts[count_codeval] = 0
-        profile_counts[count_codeval] += 1
-        # The trimer count is under a modified key.
-        packed_codeval += int_to_bin(AAMAP[trimer[2]], 1)[3:]
-        count_codeval = packed_codeval + '1' + ('0'*2) + \
-                int_to_bin(position, 1)
-        count_codeval = int(count_codeval, 2)
-        if count_codeval not in profile_counts:
-            profile_counts[count_codeval] = 0
-        profile_counts[count_codeval] += 1
-
-        if dimer == "--" and trimer == "---":
-            continue
-
-        vgene_code = get_vgene_code(vgenes[i], vjspecies[i])
-        vgene_code[0][1] = vgene_code[0][1] % 15
-        vgene_code[0][2] = vgene_code[0][2] % 127
-        packed_codeval += int_to_bin(vgene_code[0][1], 1)[4:]
-        packed_codeval += int_to_bin(vgene_code[0][2], 1)[1:]
-        packed_codeval += int_to_bin(child_ids[i] + 1, 4)
-        packed_codeval = int(packed_codeval, 2)
-
-        assert packed_codeval in kmer_to_child
-        assert tag_filter == kmer_to_child[packed_codeval]
-
-    return profile_counts
+    import pdb
+    pdb.set_trace()
+    ordered_nmbr = getattr(antpack.antpack_cpp_ext, func_name)
 
 
 

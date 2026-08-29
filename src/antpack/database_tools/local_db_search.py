@@ -32,7 +32,8 @@ class LocalDBSearchTool:
             mode:str="3", cdr_cutoff:float=0.25,
             blosum_cutoff:float=-1, max_cdr_length_shift:int=2,
             use_family_only=True, symmetric_search=False,
-            vgene:str="", species:str="", jgene:str=""):
+            vgene:str="", species:str="", jgene:str="",
+            hamming_maximum:int=10):
         """Searches the database and returns a list of nearest
         neighbors that meet the input criteria. The search can
         be conducted using the full sequence or a sub-region
@@ -100,6 +101,8 @@ class LocalDBSearchTool:
                 the specific jgene (depending on the
                 use_vjgene_family_only argument). Ignored if no
                 species or vgene is supplied.
+            hamming_maximum (int): The largest allowable hamming distance;
+                if less than percent identity, it is used instead.
 
         Returns:
             hits (list): A list of tuples containing (sequence_id,
@@ -113,10 +116,13 @@ class LocalDBSearchTool:
             error_message (str): An error message which is "" if
                 all went well and is informative otherwise.
         """
-        return self.local_db_manager.search(seq, annotation,
+        return self.local_db_manager.search(
+                seq, annotation,
                 mode, cdr_cutoff, blosum_cutoff,
                 max_cdr_length_shift, use_family_only,
-                symmetric_search, vgene, species, jgene)
+                symmetric_search, vgene, species, jgene,
+                hamming_maximum)
+
 
 
 
