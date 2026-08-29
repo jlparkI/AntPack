@@ -1,10 +1,10 @@
 """Test database construction for errors.
 Use sqlite for testing and prototyping."""
 import os
-import sys
 import gzip
 import sqlite3
 import pytest
+import antpack
 from antpack import (build_database_from_fasta,
         build_database_from_full_chain_csv,
         build_database_from_cdr_only_csv,
@@ -44,8 +44,6 @@ def test_local_db_construct(build_local_mab_lmdb):
             assert test_seq==seqs[i]
         assert row[1]==seqinfos[i]
 
-    del ldb
-
     # Check each set of chain tables for expected info.
     for table_code in [0,1]:
         chain_dict = data_dict[table_code]
@@ -53,7 +51,7 @@ def test_local_db_construct(build_local_mab_lmdb):
         for i, (child_id, cdr_grp) in enumerate(
                 zip(chain_dict["child_ids"], chain_dict["cdrs"])):
             cur.execute(f"SELECT * FROM _{table_code}_cdrs "
-                        f"WHERE rowid = {child_id+1};")
+                        f"WHERE child_id = {child_id+1};")
             row_values = cur.fetchone()
             vgene_code = get_vgene_code(chain_dict["vgenes"][i],
                                         chain_dict["vspecies"][i])
@@ -80,8 +78,17 @@ def test_local_db_construct(build_local_mab_lmdb):
             assert chain_dict["unusual_positions"][i]==\
                     row_values[10]
 
-        eval_search_table_row_contents(data_dict[table_code]['cdrs'], table_code,
+        tdict = eval_search_table_row_contents(data_dict[table_code]['cdrs'], table_code,
                                        params['nmbr_scheme'], params['cdr_scheme'])
+        # 20 here is arbitrary and is determined by the search depth on the db.
+        # Update this if that changes. TODO: Make this test independent of arbitrary
+        # constants, or fetch the search depth from the db.
+        for i in range(20):
+            for row in cur.execute(f"SELECT * FROM _trie_{table_code}_{i};"):
+                assert row[0] in tdict[i]
+                assert tdict[i][row[0]][0] == row[1]
+                assert tdict[i][row[0]][1] == row[2]
+                assert tdict[i][row[0]][2] == row[3]
 
 
 
@@ -149,14 +156,48 @@ def test_low_quality_seqs(tmp_path):
 def eval_search_table_row_contents(cdrs, chain_code,
     numbering_scheme, cdr_scheme):
     """Tests the contents of the rows from the search tables."""
+    AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
+    sca = SingleChainAnnotator(scheme=numbering_scheme)
+
     if chain_code == 0:
         func_name = numbering_scheme + "_heavy_nmbr_" +  cdr_scheme + "_cdr_arrangement"
     else:
         func_name = numbering_scheme + "_light_nmbr_" +  cdr_scheme + "_cdr_arrangement"
 
-    import pdb
-    pdb.set_trace()
-    ordered_nmbr = getattr(antpack.antpack_cpp_ext, func_name)
+    ordered_nmbr = getattr(antpack.antpack_cpp_ext, func_name)()
+    sorted_nmbr = sca.sort_position_codes(ordered_nmbr)
+    position_extracts = []
+    # 20 here is arbitrary and is determined by the search depth on the db.
+    # Update this if that changes. TODO: Make this test independent of arbitrary
+    # constants, or fetch the search depth from the db.
+    for i in range(len(ordered_nmbr) - 20, len(ordered_nmbr)):
+        position_extracts.append(sorted_nmbr.index(ordered_nmbr[i]))
+
+    assert len(position_extracts) == 20
+
+    # Build a trie stored as a dict. This is horribly wasteful space-wise
+    # but is good for a test run quickly on a small sequence set, since it
+    # is easy to troubleshoot.
+    tdict = {k:{} for k in range(20)}
+    next_child_code = 1
+
+    
+
+    for cdr_grp in cdrs:
+        cdr3_extract = [cdr_grp[-1][e] for e in position_extracts]
+        parent_code = 0
+
+        for i, letter in enumerate(cdr3_extract):
+            if parent_code not in tdict[i]:
+                tdict[i][parent_code] = [next_child_code, 0, 0]
+                next_child_code += 21
+            if tdict[i][parent_code][2] < 100 or (tdict[i][parent_code][1] &
+                                                  (1 << AAMAP[letter])) == 0:
+                tdict[i][parent_code][1] = (tdict[i][parent_code][1] | (1 << AAMAP[letter]))
+                tdict[i][parent_code][2] += 1
+            parent_code = tdict[i][parent_code][0] + AAMAP[letter]
+
+    return tdict
 
 
 
@@ -236,22 +277,6 @@ def prep_seqs_for_comparison(numbering_scheme,
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
      "sequence_type":"single", "memo":"testing123",
      "mode":"full_chain"},
-    {"filepath":"test_data.csv.gz",
-     "nmbr_scheme":"aho", "cdr_scheme":"aho",
-     "sequence_type":"single", "memo":"testing123",
-     "mode":"full_chain"},
-    {"filepath":"test_data.csv.gz",
-     "nmbr_scheme":"martin", "cdr_scheme":"martin",
-     "sequence_type":"single", "memo":"testing123",
-     "mode":"full_chain"},
-    {"filepath":"test_data.csv.gz",
-     "nmbr_scheme":"kabat", "cdr_scheme":"kabat",
-     "sequence_type":"single", "memo":"testing123",
-     "mode":"full_chain"},
-    {"filepath":"test_data.csv.gz",
-     "nmbr_scheme":"kabat", "cdr_scheme":"imgt",
-     "sequence_type":"single", "memo":"testing123",
-     "mode":"full_chain"},
     {"filepath":"addtnl_test_data.fasta.gz",
      "nmbr_scheme":"imgt", "cdr_scheme":"imgt",
      "sequence_type":"single", "memo":"testing123",
@@ -326,7 +351,7 @@ def build_local_mab_lmdb(tmp_path, get_test_data_filepath,
                 sequence_type=request.param["sequence_type"],
                 receptor_type="mab",
                 pid_threshold=0.7, user_memo=request.param["memo"],
-                reject_file=None)
+                reject_file=os.path.join(tmp_path, "fasta_REJECTS"))
             for seqinfo, seq in read_fasta(fasta_filepath):
                 seqs.append(seq)
                 seqinfos.append(seqinfo)
