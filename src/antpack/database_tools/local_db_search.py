@@ -28,16 +28,14 @@ class LocalDBSearchTool:
 
 
 
-    def search(self, seq:str, annotation:tuple,
+    def search_pid(self, seq:str, annotation:tuple,
             mode:str="3", cdr_cutoff:float=0.25,
-            blosum_cutoff:float=-1, max_cdr_length_shift:int=2,
+            max_cdr_length_shift:int=2,
             use_family_only=True, symmetric_search=False,
-            vgene:str="", species:str="", jgene:str="",
-            hamming_maximum:int=10):
-        """Searches the database and returns a list of nearest
-        neighbors that meet the input criteria. The search can
-        be conducted using the full sequence or a sub-region
-        of it (e.g. cdr3, the cdrs etc).
+            vgene:str="", species:str="", jgene:str=""):
+        """Searches the database using percent identity criteria.
+        The search can be conducted using the full sequence or a
+        sub-region of it (e.g. cdr3, the cdrs etc).
 
         Args:
             seq (str): The input amino acid sequence. May contain
@@ -64,13 +62,6 @@ class LocalDBSearchTool:
                 from 0 to 0.3 (if you want to use a larger value
                 you will need to do a slower full-table scan instead
                 of using this function).
-            blosum_cutoff (float): Either -1 or a value >= 0. If < 0,
-                this argument is ignored. If >= 0, any match with
-                a max BLOSUM mismatch score above this value is
-                discarded. Specifying a value >= 0 makes
-                the search more restrictive by excluding results that
-                are within CDR cutoff but have a highly improbable
-                mutation (as determined by BLOSUM scoring).
             max_cdr_length_shift (int): The maximum +/- amount by
                 which the length of cdr3 for a match can differ from
                 the query. If 0, the results are required to have cdr3
@@ -101,8 +92,6 @@ class LocalDBSearchTool:
                 the specific jgene (depending on the
                 use_vjgene_family_only argument). Ignored if no
                 species or vgene is supplied.
-            hamming_maximum (int): The largest allowable hamming distance;
-                if less than percent identity, it is used instead.
 
         Returns:
             hits (list): A list of tuples containing (sequence_id,
@@ -118,11 +107,9 @@ class LocalDBSearchTool:
         """
         return self.local_db_manager.search(
                 seq, annotation,
-                mode, cdr_cutoff, blosum_cutoff,
+                mode, cdr_cutoff,
                 max_cdr_length_shift, use_family_only,
-                symmetric_search, vgene, species, jgene,
-                hamming_maximum)
-
+                symmetric_search, vgene, species, jgene)
 
 
 
