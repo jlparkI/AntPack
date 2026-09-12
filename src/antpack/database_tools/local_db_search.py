@@ -8,7 +8,8 @@ class LocalDBSearchTool:
     """Contains tools for searching a local database and
     clustering its contents."""
 
-    def __init__(self, database_path:str):
+    def __init__(self, database_path:str,
+        fast_high_ram_mode:bool=True):
         """Class constructor.
 
         Args:
@@ -16,6 +17,10 @@ class LocalDBSearchTool:
                 database. All other necessary info about
                 the database will be retrieved from the
                 database.
+            fast_high_ram_mode (bool): Store a search index
+                in memory. Takes up more RAM but is faster by
+                orders of magnitude. Prefer this to be True
+                unless the database is extremely large.
 
         Raises:
             RuntimeError: A runtime error is raised if the
@@ -24,7 +29,7 @@ class LocalDBSearchTool:
         """
         license_key, user_email = get_license_key_info()
         self.local_db_manager = LocalDatabaseToolCpp(database_path,
-                license_key, user_email)
+                license_key, user_email, fast_high_ram_mode)
 
 
 
@@ -105,7 +110,7 @@ class LocalDBSearchTool:
             error_message (str): An error message which is "" if
                 all went well and is informative otherwise.
         """
-        return self.local_db_manager.search(
+        return self.local_db_manager.search_pid(
                 seq, annotation,
                 mode, cdr_cutoff,
                 max_cdr_length_shift, use_family_only,
