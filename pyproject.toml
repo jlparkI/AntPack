@@ -48,7 +48,7 @@ cmake.version = ">=3.18"
 # This build backend automatically strips unless install.strip is
 # set to false, so that even if build-type is set to debug,
 # the symbols will be stripped.
-#cmake.build-type = "Debug"
-#install.strip = false
+cmake.build-type = "Debug"
+install.strip = false
 
-cmake.build-type = "Release"
+#cmake.build-type = "Release"
