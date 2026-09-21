@@ -26,13 +26,20 @@ def test_local_db_search(build_local_mab_db,
     we would expect based on a brute-force exact search."""
     seqs, seqinfos, db_filepath, msa, msa_codes, _ = \
             build_local_mab_db
-    local_db = LocalDBSearchTool(db_filepath)
+    # Create tools with different settings for max box size, min depth
+    # etc. This only affects search, so we don't need to test other properties
+    # for each of these.
+    local_db_tools = [
+        LocalDBSearchTool(db_filepath, 100, 5, True),
+        LocalDBSearchTool(db_filepath, 10, 10, True),
+        LocalDBSearchTool(db_filepath, 10, 21, True)
+    ]
 
     # Check that get_num_seqs works correctly.
-    assert local_db.get_num_seqs("all") == len(seqs)
-    assert (local_db.get_num_seqs("heavy") ==
+    assert local_db_tools[0].get_num_seqs("all") == len(seqs)
+    assert (local_db_tools[0].get_num_seqs("heavy") ==
             len([s for s in msa if s[4] == "H"]))
-    assert (local_db.get_num_seqs("light") ==
+    assert (local_db_tools[0].get_num_seqs("light") ==
             len([s for s in msa if s[4] != "H"]))
 
     aamap = {k:i for i,k in enumerate(standard_aa_list)}
@@ -43,7 +50,7 @@ def test_local_db_search(build_local_mab_db,
             chain_type = "heavy"
         else:
             chain_type = "light"
-        test_vgene, test_jgene = local_db.get_vgene_jgene(i+1, chain_type)
+        test_vgene, test_jgene = local_db_tools[0].get_vgene_jgene(i+1, chain_type)
         assert test_vgene == seqinfo[1].split("_")[0]
         assert test_jgene == seqinfo[2].split("_")[0]
 
@@ -107,7 +114,10 @@ def test_local_db_search(build_local_mab_db,
             jgene = ""
             jgene_filter = ()
 
-        hits = local_db.search_pid(query_seq,
+        all_hits = []
+
+        for local_db_tool in local_db_tools:
+            hits = local_db_tool.search_pid(query_seq,
                 (codes[0], 1, msa[idx][4], ""),
                 search_settings["search_mode"],
                 search_settings["cdr_cutoff"],
@@ -115,7 +125,8 @@ def test_local_db_search(build_local_mab_db,
                 search_settings["use_vgene_family_only"],
                 search_settings["symmetric_search"],
                 vgene, species, jgene)[0]
-        hits = sorted(hits, key=lambda x: (x[1], x[0], x[2]))
+            hits = sorted(hits, key=lambda x: (x[1], x[0], x[2]))
+            all_hits.append(hits)
 
         gt_hit_idx = perform_exact_search(query_seq, msa, msa[idx][4],
                 codes, search_settings, vgene_filter,
@@ -124,16 +135,18 @@ def test_local_db_search(build_local_mab_db,
         # point, check result is close. Otherwise check for
         # exact match.
         if search_settings["blosum_cutoff"] > 0:
-            assert ([h[0] for h in hits]==
+            for hits in all_hits:
+                assert ([h[0] for h in hits]==
                             [h[0]for h in gt_hit_idx])
-            assert np.allclose([h[1] for h in hits],
+                assert np.allclose([h[1] for h in hits],
                             [h[1] for h in gt_hit_idx])
 
         else:
-            if hits != gt_hit_idx:
-                import pdb
-                pdb.set_trace()
-            assert hits==gt_hit_idx
+            for hits in all_hits:
+                if hits != gt_hit_idx:
+                    import pdb
+                    pdb.set_trace()
+                assert hits==gt_hit_idx
 
         # If the input search sequence is unmodified,
         # try checking the search from preprocessed data
@@ -158,8 +171,8 @@ def test_local_db_search(build_local_mab_db,
         # Make sure the metadata and sequence retrieved
         # from the database for a given id code match those
         # in the input.
-        for hit in hits:
-            db_seq, db_metadata = local_db.get_sequence(hit[0])
+        for hit in all_hits[0]:
+            db_seq, db_metadata = local_db_tools[0].get_sequence(hit[0])
             assert db_seq==seqs[hit[0]-1]
             assert seqinfos[hit[0]-1]==db_metadata
 
