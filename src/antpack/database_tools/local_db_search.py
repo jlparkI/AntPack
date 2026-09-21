@@ -9,6 +9,8 @@ class LocalDBSearchTool:
     clustering its contents."""
 
     def __init__(self, database_path:str,
+        max_box_count:int = 100,
+        min_trie_depth:int = 5,
         fast_high_ram_mode:bool=True):
         """Class constructor.
 
@@ -17,6 +19,17 @@ class LocalDBSearchTool:
                 database. All other necessary info about
                 the database will be retrieved from the
                 database.
+            max_box_count (int): The maximum number of children stored
+                within a node before its child nodes are all explicitly
+                created. Set this to a low number for maximum search speed,
+                or to a high number to minimize memory consumption. The default
+                works well for large databases. Ignored if fast_high_ram_mode is
+                False.
+            min_trie_depth (int): For any node less than this depth, all child
+                nodes are formed explicitly. Setting this to 20 or above will
+                load the whole trie into memory which maximizes search speed
+                but also memory consumption. Set this to a smaller value to
+                reduce memory consumption. Ignored if fast_high_ram_mode is False.
             fast_high_ram_mode (bool): Store a search index
                 in memory. Takes up more RAM but is faster by
                 orders of magnitude. Prefer this to be True
@@ -29,7 +42,8 @@ class LocalDBSearchTool:
         """
         license_key, user_email = get_license_key_info()
         self.local_db_manager = LocalDatabaseToolCpp(database_path,
-                license_key, user_email, fast_high_ram_mode)
+                license_key, user_email, max_box_count,
+                min_trie_depth, fast_high_ram_mode)
 
 
 

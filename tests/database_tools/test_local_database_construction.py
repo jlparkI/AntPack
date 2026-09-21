@@ -191,7 +191,7 @@ def eval_search_table_row_contents(cdrs, chain_code,
             if parent_code not in tdict[i]:
                 tdict[i][parent_code] = [next_child_code, 0, 0]
                 next_child_code += 21
-            if tdict[i][parent_code][2] < 100 or (tdict[i][parent_code][1] &
+            if tdict[i][parent_code][2] < 5000 or (tdict[i][parent_code][1] &
                                                   (1 << AAMAP[letter])) == 0:
                 tdict[i][parent_code][1] = (tdict[i][parent_code][1] | (1 << AAMAP[letter]))
                 tdict[i][parent_code][2] += 1
