@@ -59,7 +59,10 @@ def test_local_db_search(build_local_mab_db,
     # distance and other parameters. Check it on the fly
     # against the search tool.
     allowed_search_settings = {
+            "search_type":["hamming", "pid"],
             "cdr_cutoff":[0.2, 0.25, 0.3],
+            "cdr3_hamming_cutoff":[0,1,2,4],
+            "cdr12_hamming_cutoff":[500,2],
             "blosum_cutoff":[-1],
             "search_mode":["123", "3"],
             "cdr_length_shift":[0,1,2],
@@ -71,7 +74,7 @@ def test_local_db_search(build_local_mab_db,
 
     random.seed(123)
 
-    for ctr in range(500):
+    for ctr in range(1000):
         idx = random.randint(0, len(msa) - 1)
         query_seq = list(msa[idx][0][0])
         if msa[idx][4] == "H":
@@ -117,14 +120,24 @@ def test_local_db_search(build_local_mab_db,
         all_hits = []
 
         for local_db_tool in local_db_tools:
-            hits = local_db_tool.search_pid(query_seq,
-                (codes[0], 1, msa[idx][4], ""),
-                search_settings["search_mode"],
-                search_settings["cdr_cutoff"],
-                search_settings["cdr_length_shift"],
-                search_settings["use_vgene_family_only"],
-                search_settings["symmetric_search"],
-                vgene, species, jgene)[0]
+            if search_settings["search_type"] == "pid":
+                hits = local_db_tool.search_pid(query_seq,
+                    (codes[0], 1, msa[idx][4], ""),
+                    search_settings["search_mode"],
+                    search_settings["cdr_cutoff"],
+                    search_settings["cdr_length_shift"],
+                    search_settings["use_vgene_family_only"],
+                    search_settings["symmetric_search"],
+                    vgene, species, jgene)[0]
+            elif search_settings["search_type"] == "hamming":
+                hits = local_db_tool.search_hamming(query_seq,
+                    (codes[0], 1, msa[idx][4], ""),
+                    search_settings["search_mode"],
+                    search_settings["cdr3_hamming_cutoff"],
+                    search_settings["cdr12_hamming_cutoff"],
+                    search_settings["cdr_length_shift"],
+                    search_settings["use_vgene_family_only"],
+                    vgene, species, jgene)[0]
             hits = sorted(hits, key=lambda x: (x[1], x[0], x[2]))
             all_hits.append(hits)
 
@@ -255,9 +268,13 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
         cdrlen.append(len([q for (q,l) in zip(query, msa_codes[1])
             if q != '-' and l == region]))
 
-    max_hamming = [floor((cdrlen[0] + cdrlen[1]) *
+    if search_params["search_type"] == "pid":
+        max_hamming = [floor((cdrlen[0] + cdrlen[1]) *
                     search_params["cdr_cutoff"]),
-        floor(cdrlen[2] * search_params["cdr_cutoff"])]
+            floor(cdrlen[2] * search_params["cdr_cutoff"])]
+    elif search_params["search_type"] == "hamming":
+        max_hamming = [search_params["cdr12_hamming_cutoff"],
+                       search_params["cdr3_hamming_cutoff"]]
 
     if chain_code == "H":
         chain_code_set = "H"
@@ -316,7 +333,7 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
 
         # If symmetric search was specified, adjust the cutoff.
         hamming_cutoffs = deepcopy(max_hamming)
-        if search_params["symmetric_search"]:
+        if search_params["symmetric_search"] and search_params["search_type"] == "pid":
             if region_lengths[0] > 0:
                 hamming_cutoffs[0] = min(max_hamming[0],
                         floor(search_params["cdr_cutoff"] * region_lengths[0]))
