@@ -63,7 +63,7 @@ def test_local_db_search(build_local_mab_db,
             "blosum_cutoff":[-1],
             "search_mode":["123", "3"],
             "cdr_length_shift":[0,1,2],
-            "symmetric_search":[False],
+            "symmetric_search":[True,False],
             "use_vgene_family_only":[True,False],
             "use_vgene":[True,False],
             "use_jgene":[False]
