@@ -198,6 +198,77 @@ class LocalDBSearchTool:
 
 
 
+    def search_blosum(self, seq:str, annotation:tuple,
+                    mode:str="3",
+                    max_blosum_cdr3:int=3,
+                    max_blosum_cdr12:int=1000,
+                    max_cdr_length_shift:int=2,
+                    use_family_only=True,
+                    vgene:str="", species:str="", jgene:str=""):
+                """Searches the database using BLOSUM distance criteria
+                (and returns the BLOSUM distance for each result).
+        
+                Args:
+                    seq (str): The input amino acid sequence. May contain
+                        'X', must not contain '*'.
+                    annotation (tuple): A tuple of (numbering, percent id,
+                        chain type, error message) that is returned by
+                        any of the analyze_seq functions for annotators
+                        in AntPack.
+                    mode (str): One of "3" or "123", indicating whether to
+                        look for sequences that are similar based on cdr3 or
+                        based on all three cdrs.
+                    max_blosum_cdr3 (int): The maximum distance on cdr3. Should
+                        be <= 15.
+                    max_blosum_cdr12 (int): The maximum distance on cdr12.
+                        If you don't want to set a restriction on cdr 1 & 2,
+                        just set this to an arbitrary large value (e.g. 1000).
+                    max_cdr_length_shift (int): The maximum +/- amount by
+                        which the length of cdr3 for a match can differ from
+                        the query. If 0, the results are required to have cdr3
+                        be the same length as the query.
+                    use_family_only (bool): If True, when filtering by
+                        vgene, hits are required to have the same vgene *family*,
+                        but can have a different vgene within that family. If
+                        False, hits are required to have the same vgene AND
+                        family. This argument is ignored if vgene or species
+                        is "".
+                    vgene (str): One of "" or a valid vgene. If a valid vgene,
+                        hits are required to match either the vgene family or
+                        the specific vgene (depending on the
+                        use_vjgene_family_only argument). Ignored if no species
+                        is supplied.
+                    species (str): One of "" or a valid species (human, mouse,
+                        alpaca, rabbit). If "", hits are required to belong to
+                        the same assigned species.
+                    jgene (str): One of "" or a valid jgene. If a valid jgene,
+                        hits are required to match either the jgene family or
+                        the specific jgene (depending on the
+                        use_vjgene_family_only argument). Ignored if no
+                        species or vgene is supplied.
+        
+                Returns:
+                    hits (list): A list of tuples containing (sequence_id,
+                        distance, num_non_canonical_positions). The sequence
+                        ids can be used to retrieve the sequences and their
+                        metadata using the get_sequence call. Non-canonical
+                        positions are rare unusual insertions that are not
+                        included in the distance calculation; this value will
+                        normally be zero. If it is not, it indicates the hit
+                        contains unusual non-canonical positions.
+                    error_message (str): An error message which is "" if
+                        all went well and is informative otherwise.
+                """
+                return self.local_db_manager.search_blosum(
+                        seq, annotation, mode,
+                        max_blosum_cdr3, max_blosum_cdr12,
+                        max_cdr_length_shift, use_family_only,
+                        vgene, species, jgene)
+
+
+
+
+
     def search_from_preprocessed_data(self, prepped_inputs:tuple,
             mode:str="3", cdr_cutoff:float=0.25,
             blosum_cutoff:float=-1, max_cdr_length_shift:int=2,

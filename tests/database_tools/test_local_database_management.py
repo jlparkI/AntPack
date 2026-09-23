@@ -59,11 +59,12 @@ def test_local_db_search(build_local_mab_db,
     # distance and other parameters. Check it on the fly
     # against the search tool.
     allowed_search_settings = {
-            "search_type":["hamming", "pid"],
+            "search_type":["hamming", "pid", "blosum"],
             "cdr_cutoff":[0.2, 0.25, 0.3],
             "cdr3_hamming_cutoff":[0,1,2,4],
             "cdr12_hamming_cutoff":[500,2],
-            "blosum_cutoff":[-1],
+            "cdr3_blosum_cutoff":[3.5,5.5],
+            "cdr12_blosum_cutoff":[3.5,5.5],
             "search_mode":["123", "3"],
             "cdr_length_shift":[0,1,2],
             "symmetric_search":[True,False],
@@ -74,7 +75,7 @@ def test_local_db_search(build_local_mab_db,
 
     random.seed(123)
 
-    for ctr in range(1000):
+    for ctr in range(2000):
         idx = random.randint(0, len(msa) - 1)
         query_seq = list(msa[idx][0][0])
         if msa[idx][4] == "H":
@@ -138,6 +139,15 @@ def test_local_db_search(build_local_mab_db,
                     search_settings["cdr_length_shift"],
                     search_settings["use_vgene_family_only"],
                     vgene, species, jgene)[0]
+            else:
+                hits = local_db_tool.search_blosum(query_seq,
+                    (codes[0], 1, msa[idx][4], ""),
+                    search_settings["search_mode"],
+                    search_settings["cdr3_blosum_cutoff"],
+                    search_settings["cdr12_blosum_cutoff"],
+                    search_settings["cdr_length_shift"],
+                    search_settings["use_vgene_family_only"],
+                    vgene, species, jgene)[0]
             hits = sorted(hits, key=lambda x: (x[1], x[0], x[2]))
             all_hits.append(hits)
 
@@ -147,8 +157,12 @@ def test_local_db_search(build_local_mab_db,
         # If using a BLOSUM cutoff, distance will be floating
         # point, check result is close. Otherwise check for
         # exact match.
-        if search_settings["blosum_cutoff"] > 0:
+        if search_settings["search_type"] == "blosum":
             for hits in all_hits:
+                if not ([h[0] for h in hits]==
+                            [h[0]for h in gt_hit_idx]):
+                    import pdb
+                    pdb.set_trace()
                 assert ([h[0] for h in hits]==
                             [h[0]for h in gt_hit_idx])
                 assert np.allclose([h[1] for h in hits],
@@ -262,19 +276,21 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
     all sequences that have hamming distance <= specified.
     Additionally filter for BLOSUM distance (if requested)."""
     retained_dists, hit_idx, noncanon_pos, cdrlen = [], [], [], []
-    max_hamming = 0
 
     for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
         cdrlen.append(len([q for (q,l) in zip(query, msa_codes[1])
             if q != '-' and l == region]))
 
     if search_params["search_type"] == "pid":
-        max_hamming = [floor((cdrlen[0] + cdrlen[1]) *
+        max_distance = [floor((cdrlen[0] + cdrlen[1]) *
                     search_params["cdr_cutoff"]),
             floor(cdrlen[2] * search_params["cdr_cutoff"])]
     elif search_params["search_type"] == "hamming":
-        max_hamming = [search_params["cdr12_hamming_cutoff"],
+        max_distance = [search_params["cdr12_hamming_cutoff"],
                        search_params["cdr3_hamming_cutoff"]]
+    else:
+        max_distance = [search_params["cdr12_blosum_cutoff"],
+                        search_params["cdr3_blosum_cutoff"]]
 
     if chain_code == "H":
         chain_code_set = "H"
@@ -312,8 +328,17 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
         for j, region in enumerate(["cdr1", "cdr2", "cdr3"]):
             if str(j+1) not in search_params["search_mode"]:
                 continue
-            region_dist = len([a for (a,b,l) in zip(seq_data[0][0], query,
-                msa_codes[1]) if l==region and a != b])
+            if search_params["search_type"] != "blosum":
+                region_dist = len([a for (a,b,l) in zip(seq_data[0][0], query,
+                    msa_codes[1]) if l==region and a != b])
+            else:
+                region_dist = 0
+                for l1, l2, code in zip(seq_data[0][0], query, msa_codes[1]):
+                    if code != region:
+                        continue
+                    l1num = aamap[l1] * 22
+                    l2num = aamap[l2]
+                    region_dist += blosum_matrix[l1num + l2num]
             cdr_dists[int(j/2)] += region_dist
             region_len = len([s for (s,l) in
                     zip(seq_data[0][0], msa_codes[1])
@@ -332,42 +357,23 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
                     cdr_dists[int(j/2)] += 200
 
         # If symmetric search was specified, adjust the cutoff.
-        hamming_cutoffs = deepcopy(max_hamming)
+        distance_cutoffs = deepcopy(max_distance)
         if search_params["symmetric_search"] and search_params["search_type"] == "pid":
             if region_lengths[0] > 0:
-                hamming_cutoffs[0] = min(max_hamming[0],
+                distance_cutoffs[0] = min(max_distance[0],
                         floor(search_params["cdr_cutoff"] * region_lengths[0]))
-            hamming_cutoffs[1] = min(max_hamming[1],
+            distance_cutoffs[1] = min(max_distance[1],
                         floor(search_params["cdr_cutoff"] * region_lengths[1]))
 
         # If we meet Hamming distance criteria, store sequence
         # as a hit UNLESS BLOSUM cutoff was also specified, in
         # which case calculate BLOSUM distance and see if we
         # also meet THAT cutoff.
-        if cdr_dists[0] <= hamming_cutoffs[0] and \
-                cdr_dists[1] <= hamming_cutoffs[1]:
-            if search_params["blosum_cutoff"] < 0:
-                hit_idx.append(i+1)
-                retained_dists.append(cdr_dists[0] + cdr_dists[1])
-                noncanon_pos.append(seq_data[0][1])
-            '''else:
-                blosum_dist, max_blosum_dist = 0, 0
-                allowed_regions = {f"cdr{k}" for k in
-                                   search_params["search_mode"]}
-                for l1, l2, code in zip(seq_data[0][0], query,
-                                            msa_codes[1]):
-                    if code not in allowed_regions:
-                        continue
-                    l1num = aamap[l1] * 22
-                    l2num = aamap[l2]
-                    max_blosum_dist = max(blosum_matrix[l1num + l2num],
-                                          max_blosum_dist)
-                    blosum_dist += blosum_matrix[l1num + l2num]
-                blosum_dist = float(blosum_dist)
-                if max_blosum_dist <= search_params["blosum_cutoff"]:
-                    hit_idx.append(i+1)
-                    retained_dists.append(blosum_dist)
-                    noncanon_pos.append(seq_data[0][1])'''
+        if cdr_dists[0] <= distance_cutoffs[0] and \
+                cdr_dists[1] <= distance_cutoffs[1]:
+            hit_idx.append(i+1)
+            retained_dists.append(cdr_dists[0] + cdr_dists[1])
+            noncanon_pos.append(seq_data[0][1])
 
 
     if len(hit_idx) == 0:
@@ -375,6 +381,8 @@ def perform_exact_search(query, msa, chain_code, msa_codes,
 
     hit_idx = list(zip(hit_idx, retained_dists, noncanon_pos))
     return sorted(hit_idx, key=lambda x: (x[1], x[0], x[2]))
+
+
 
 
 def get_kmer_counts(msa, cdr_labels, aalist):
