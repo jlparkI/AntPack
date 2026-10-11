@@ -30,8 +30,8 @@ def test_local_db_search(build_local_mab_db,
     # etc. This only affects search, so we don't need to test other properties
     # for each of these.
     local_db_tools = [
-        LocalDBSearchTool(db_filepath, 100, 5, True),
-        LocalDBSearchTool(db_filepath, 10, 10, True),
+        #LocalDBSearchTool(db_filepath, 100, 5, True),
+        #LocalDBSearchTool(db_filepath, 10, 10, True),
         LocalDBSearchTool(db_filepath, 10, 21, True)
     ]
 

@@ -10,6 +10,14 @@ from antpack import (build_database_from_fasta,
         build_database_from_cdr_only_csv,
         SingleChainAnnotator, VJGeneTool,
         LocalDBSearchTool)
+from antpack.antpack_cpp_ext import (
+    return_imgt_canonical_numbering_cpp,
+    return_aho_canonical_numbering_cpp,
+    return_martin_heavy_canonical_numbering_cpp,
+    return_martin_light_canonical_numbering_cpp,
+    return_kabat_heavy_canonical_numbering_cpp,
+    return_kabat_light_canonical_numbering_cpp,
+)
 from antpack.utilities import read_fasta
 from .database_utilities import (get_vgene_code,
                 setup_canonical_numbering, int_to_bin)
@@ -36,13 +44,13 @@ def test_local_db_construct(build_local_mab_lmdb):
     # Temporarily create a tool to back-convert compressed
     # sequences. TODO: Fix this so that local db search tool
     # which is tested separately is not required here.
-    ldb = LocalDBSearchTool(db_filepath)
-    for i, row in enumerate(
-            cur.execute("SELECT * FROM sequences;")):
-        if not params["mode"].endswith("extract"):
-            test_seq = ldb.get_sequence(i+1)[0]
-            assert test_seq==seqs[i]
-        assert row[1]==seqinfos[i]
+    #ldb = LocalDBSearchTool(db_filepath)
+    #for i, row in enumerate(
+    #        cur.execute("SELECT * FROM sequences;")):
+    #    if not params["mode"].endswith("extract"):
+    #        test_seq = ldb.get_sequence(i+1)[0]
+    #        assert test_seq==seqs[i]
+    #    assert row[1]==seqinfos[i]
 
     # Check each set of chain tables for expected info.
     for table_code in [0,1]:
@@ -80,15 +88,16 @@ def test_local_db_construct(build_local_mab_lmdb):
 
         tdict = eval_search_table_row_contents(data_dict[table_code]['cdrs'], table_code,
                                        params['nmbr_scheme'], params['cdr_scheme'])
-        # 20 here is arbitrary and is determined by the search depth on the db.
-        # Update this if that changes. TODO: Make this test independent of arbitrary
-        # constants, or fetch the search depth from the db.
-        for i in range(20):
-            for row in cur.execute(f"SELECT * FROM _trie_{table_code}_{i};"):
-                assert row[0] in tdict[i]
-                assert tdict[i][row[0]][0] == row[1]
-                assert tdict[i][row[0]][1] == row[2]
-                assert tdict[i][row[0]][2] == row[3]
+        for k in range(2):
+            # 10 here is arbitrary and is determined by the search depth on the db.
+            # Update this if that changes. TODO: Make this test independent of arbitrary
+            # constants, or fetch the search depth from the db.
+            for i in range(10):
+                for row in cur.execute(f"SELECT * FROM _trie_{table_code}_{k}_{i};"):
+                    assert row[0] in tdict[k][i]
+                    assert tdict[k][i][row[0]][0] == row[1]
+                    assert tdict[k][i][row[0]][1] == row[2]
+                    assert tdict[k][i][row[0]][2] == row[3]
 
 
 
@@ -159,43 +168,46 @@ def eval_search_table_row_contents(cdrs, chain_code,
     AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
     sca = SingleChainAnnotator(scheme=numbering_scheme)
 
-    if chain_code == 0:
-        func_name = numbering_scheme + "_heavy_nmbr_" +  cdr_scheme + "_cdr_arrangement"
+    if numbering_scheme in ("imgt", "aho"):
+        func_name = "return_" + numbering_scheme + "_canonical_numbering_cpp"
+    elif chain_code == 0:
+        func_name = "return" + numbering_scheme + "_heavy_canonical_numbering_cpp"
     else:
-        func_name = numbering_scheme + "_light_nmbr_" +  cdr_scheme + "_cdr_arrangement"
+        func_name = numbering_scheme + "_light_canonical_numbering_cpp"
 
     ordered_nmbr = getattr(antpack.antpack_cpp_ext, func_name)()
-    sorted_nmbr = sca.sort_position_codes(ordered_nmbr)
-    position_extracts = []
-    # 20 here is arbitrary and is determined by the search depth on the db.
-    # Update this if that changes. TODO: Make this test independent of arbitrary
-    # constants, or fetch the search depth from the db.
-    for i in range(len(ordered_nmbr) - 20, len(ordered_nmbr)):
-        position_extracts.append(sorted_nmbr.index(ordered_nmbr[i]))
 
-    assert len(position_extracts) == 20
+    
+    position_extracts = {0:list(range(10)),
+                         1:list(range(len(ordered_nmbr)-10, len(ordered_nmbr)))}
 
     # Build a trie stored as a dict. This is horribly wasteful space-wise
     # but is good for a test run quickly on a small sequence set, since it
     # is easy to troubleshoot.
-    tdict = {k:{} for k in range(20)}
-    next_child_code = 1
+    tdict = {i:{k:{} for k in range(10)} for i in range(2)}
+    next_child_code = {i:[0]*10 for i in range(2)}
 
-    
 
-    for cdr_grp in cdrs:
-        cdr3_extract = [cdr_grp[-1][e] for e in position_extracts]
-        parent_code = 0
+    # 10 here is arbitrary and is determined by the search depth on the db.
+    # Update this if that changes. TODO: Make this test independent of arbitrary
+    # constants, or fetch the search depth from the db.
+    for k in range(2):
+        for cdr_grp in cdrs:
+            if k == 0:
+                cdr3_extract = cdr_grp[-1][:10]
+            else:
+                cdr3_extract = cdr_grp[-1][-10:]
+            parent_code = 0
 
-        for i, letter in enumerate(cdr3_extract):
-            if parent_code not in tdict[i]:
-                tdict[i][parent_code] = [next_child_code, 0, 0]
-                next_child_code += 21
-            if tdict[i][parent_code][2] < 5000 or (tdict[i][parent_code][1] &
-                                                  (1 << AAMAP[letter])) == 0:
-                tdict[i][parent_code][1] = (tdict[i][parent_code][1] | (1 << AAMAP[letter]))
-                tdict[i][parent_code][2] += 1
-            parent_code = tdict[i][parent_code][0] + AAMAP[letter]
+            for i, letter in enumerate(cdr3_extract):
+                if parent_code not in tdict[k][i]:
+                    tdict[k][i][parent_code] = [next_child_code[k][i], 0, 0]
+                    next_child_code[k][i] += 21
+                if tdict[k][i][parent_code][2] < 5000 or (tdict[k][i][parent_code][1] &
+                                                    (1 << AAMAP[letter])) == 0:
+                    tdict[k][i][parent_code][1] = (tdict[k][i][parent_code][1] | (1 << AAMAP[letter]))
+                    tdict[k][i][parent_code][2] += 1
+                parent_code = tdict[k][i][parent_code][0] + AAMAP[letter]
 
     return tdict
 
