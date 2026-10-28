@@ -95,7 +95,6 @@ def test_local_db_construct(build_local_mab_lmdb):
                     row_values[10]
 
         tdict = eval_search_table_row_contents(data_dict[table_code]['cdrs'], table_code,
-                                       params['nmbr_scheme'], params['cdr_scheme'],
                                        position_ordering)
         for k in range(2):
             # 10 here is arbitrary and is determined by the search depth on the db.
@@ -107,6 +106,10 @@ def test_local_db_construct(build_local_mab_lmdb):
                     assert tdict[k][i][row[0]][0] == row[1]
                     assert tdict[k][i][row[0]][1] == row[2]
                     assert tdict[k][i][row[0]][2] == row[3]
+
+        tags = get_tag_list(data_dict[table_code]['cdrs'], table_code, position_ordering)
+        for i, row in enumerate(cur.execute(f"SELECT * FROM _{table_code}_tags;")):
+            assert row == (tags[i][0], tags[i][1], chain_dict["child_ids"][i]+1)
 
 
 
@@ -172,7 +175,7 @@ def test_low_quality_seqs(tmp_path):
 
 
 def eval_search_table_row_contents(cdrs, chain_code,
-    numbering_scheme, cdr_scheme, position_ordering):
+    position_ordering):
     """Tests the contents of the rows from the search tables."""
     AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
 
@@ -207,6 +210,30 @@ def eval_search_table_row_contents(cdrs, chain_code,
 
     return tdict
 
+
+
+
+
+def get_tag_list(cdrs, chain_code, position_ordering):
+    """Get the start / end tags associated with each cdr and sequence."""
+    AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
+    tags = []
+
+    for cdr_grp in cdrs:
+        fwd_grp = cdr_grp[-1][:10]
+        reverse_grp = cdr_grp[-1][-10:]
+        fwd_grp = [fwd_grp[m] for m in position_ordering[chain_code][0]]
+        reverse_grp = [reverse_grp[m] for m in position_ordering[chain_code][1]]
+
+        fwd_tag = 0
+        for i, letter in enumerate(fwd_grp):
+            fwd_tag |= (AAMAP[letter] << (i*5+11))
+        reverse_tag = 0
+        for i, letter in enumerate(reverse_grp):
+            reverse_tag |= (AAMAP[letter] << (i*5+11))
+
+        tags.append([fwd_tag, reverse_tag])
+    return tags
 
 
 
