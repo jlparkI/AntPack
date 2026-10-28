@@ -40,6 +40,14 @@ def test_local_db_construct(build_local_mab_lmdb):
     assert metadata[3]==params["cdr_scheme"]
     assert metadata[4]==params["memo"]
     assert metadata[5]==0.7
+    position_ordering = metadata[7].split('_')
+    position_ordering = {0:([int(z) for z in position_ordering[0].split(',')],
+                      [int (z) for z in position_ordering[1].split(',')]),
+                      1:([int(z) for z in position_ordering[2].split(',')],
+                      [int(z) for z in position_ordering[3].split(',')])}
+    for k, ordering in position_ordering.items():
+        for subordering in ordering:
+            assert sorted(subordering) == list(range(10))
 
     # Temporarily create a tool to back-convert compressed
     # sequences. TODO: Fix this so that local db search tool
@@ -87,7 +95,8 @@ def test_local_db_construct(build_local_mab_lmdb):
                     row_values[10]
 
         tdict = eval_search_table_row_contents(data_dict[table_code]['cdrs'], table_code,
-                                       params['nmbr_scheme'], params['cdr_scheme'])
+                                       params['nmbr_scheme'], params['cdr_scheme'],
+                                       position_ordering)
         for k in range(2):
             # 10 here is arbitrary and is determined by the search depth on the db.
             # Update this if that changes. TODO: Make this test independent of arbitrary
@@ -163,23 +172,9 @@ def test_low_quality_seqs(tmp_path):
 
 
 def eval_search_table_row_contents(cdrs, chain_code,
-    numbering_scheme, cdr_scheme):
+    numbering_scheme, cdr_scheme, position_ordering):
     """Tests the contents of the rows from the search tables."""
     AAMAP = {k:i for i,k in enumerate("ACDEFGHIKLMNPQRSTVWY-")}
-    sca = SingleChainAnnotator(scheme=numbering_scheme)
-
-    if numbering_scheme in ("imgt", "aho"):
-        func_name = "return_" + numbering_scheme + "_canonical_numbering_cpp"
-    elif chain_code == 0:
-        func_name = "return" + numbering_scheme + "_heavy_canonical_numbering_cpp"
-    else:
-        func_name = numbering_scheme + "_light_canonical_numbering_cpp"
-
-    ordered_nmbr = getattr(antpack.antpack_cpp_ext, func_name)()
-
-    
-    position_extracts = {0:list(range(10)),
-                         1:list(range(len(ordered_nmbr)-10, len(ordered_nmbr)))}
 
     # Build a trie stored as a dict. This is horribly wasteful space-wise
     # but is good for a test run quickly on a small sequence set, since it
@@ -197,6 +192,7 @@ def eval_search_table_row_contents(cdrs, chain_code,
                 cdr3_extract = cdr_grp[-1][:10]
             else:
                 cdr3_extract = cdr_grp[-1][-10:]
+            cdr3_extract = [cdr3_extract[m] for m in position_ordering[chain_code][k]]
             parent_code = 0
 
             for i, letter in enumerate(cdr3_extract):

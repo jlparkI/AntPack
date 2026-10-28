@@ -9,8 +9,8 @@ class LocalDBSearchTool:
     clustering its contents."""
 
     def __init__(self, database_path:str,
-        max_box_count:int = 100,
-        min_trie_depth:int = 5,
+        max_box_count:int = 1,
+        min_trie_depth:int = 50,
         fast_high_ram_mode:bool=True):
         """Class constructor.
 
@@ -42,9 +42,8 @@ class LocalDBSearchTool:
         """
         license_key, user_email = get_license_key_info()
         self.local_db_manager = LocalDatabaseToolCpp(database_path,
-                license_key, user_email, max_box_count,
-                min_trie_depth, fast_high_ram_mode)
-
+                license_key, user_email, min_trie_depth,
+                max_box_count, fast_high_ram_mode)
 
 
     def search_pid(self, seq:str, annotation:tuple,
