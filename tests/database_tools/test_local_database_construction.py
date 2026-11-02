@@ -40,7 +40,9 @@ def test_local_db_construct(build_local_mab_lmdb):
     assert metadata[3]==params["cdr_scheme"]
     assert metadata[4]==params["memo"]
     assert metadata[5]==0.7
-    position_ordering = metadata[7].split('_')
+    position_ordering = metadata[7].split('*')
+    position_ordering = [*position_ordering[0].split('_'),
+                         *position_ordering[1].split('_')]
     position_ordering = {0:([int(z) for z in position_ordering[0].split(',')],
                       [int (z) for z in position_ordering[1].split(',')]),
                       1:([int(z) for z in position_ordering[2].split(',')],
@@ -227,10 +229,10 @@ def get_tag_list(cdrs, chain_code, position_ordering):
 
         fwd_tag = 0
         for i, letter in enumerate(fwd_grp):
-            fwd_tag |= (AAMAP[letter] << (i*5+11))
+            fwd_tag |= (AAMAP[letter] << (58-i*5))
         reverse_tag = 0
         for i, letter in enumerate(reverse_grp):
-            reverse_tag |= (AAMAP[letter] << (i*5+11))
+            reverse_tag |= (AAMAP[letter] << (58-i*5))
 
         tags.append([fwd_tag, reverse_tag])
     return tags
